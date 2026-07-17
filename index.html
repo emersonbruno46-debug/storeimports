@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Imports | Celulares, eletrônicos e acessórios</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Consulte produtos, confira a disponibilidade e solicite sua reserva para retirada presencial na Store Imports.">
+  <meta property="og:title" content="Store Imports | Celulares, eletrônicos e acessórios">
+  <meta property="og:description" content="Consulte produtos, confira a disponibilidade e solicite sua reserva para retirada presencial na Store Imports.">
+  <meta property="og:type" content="website">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="./assets/logo.png">
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="./style.css">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- ==========================================
+       TOP ANNOUNCEMENT BAR
+       ========================================== -->
+  <div class="top-bar">
+    <div class="container top-bar-content">
+      <span>Consulte a disponibilidade, reserve online e retire na loja.</span>
+      <a href="https://wa.me/5500000000000" target="_blank" class="top-bar-link" id="top-bar-cta">
+        Falar com a equipe <i data-lucide="arrow-up-right" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MAIN FIXED HEADER
+       ========================================== -->
+  <header class="main-header" id="main-header">
+    <div class="container header-container">
+      <!-- Logo -->
+      <a href="#home" class="logo-link" id="header-logo-link">
+        <img src="./assets/logo.png" alt="Store Imports">
+      </a>
+
+      <!-- Desktop Nav Menu -->
+      <nav class="nav-menu">
+        <ul class="nav-list">
+          <li><a href="#home" class="nav-link active" id="nav-home">Início</a></li>
+          <li><a href="#catalogo" class="nav-link" id="nav-catalogo">Produtos</a></li>
+          <li><a href="#categorias" class="nav-link" id="nav-categorias">Categorias</a></li>
+          <li><a href="#como-funciona" class="nav-link" id="nav-como-funciona">Como funciona</a></li>
+          <li><a href="#diferenciais" class="nav-link" id="nav-diferenciais">Diferenciais</a></li>
+          <li><a href="#contato" class="nav-link" id="nav-contato">Contato</a></li>
+        </ul>
+      </nav>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <!-- Search Trigger (Desktop) -->
+        <button class="btn-header-icon" id="btn-search-trigger" title="Buscar produtos">
+          <i data-lucide="search"></i>
+        </button>
+
+        <!-- Cart Trigger -->
+        <button class="btn-header-icon" id="btn-cart-trigger" title="Sua seleção">
+          <i data-lucide="shopping-bag"></i>
+          <span class="cart-badge" id="cart-badge-count">0</span>
+        </button>
+
+        <!-- WhatsApp CTA -->
+        <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-primary btn-sm d-none d-lg-flex" id="header-whatsapp-cta">
+          <i data-lucide="phone"></i> Falar com a Loja
+        </a>
+
+        <!-- Mobile Drawer Toggle -->
+        <button class="btn-hamburger" id="btn-hamburger" title="Abrir menu">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MOBILE DRAWER MENU
+       ========================================== -->
+  <div class="mobile-drawer-overlay" id="mobile-drawer-overlay">
+    <div class="mobile-drawer">
+      <div class="mobile-drawer-header">
+        <div class="mobile-drawer-logo">
+          <img src="./assets/logo.png" alt="Store Imports">
+        </div>
+        <button class="btn-close-drawer" id="btn-close-drawer">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <ul class="mobile-nav-list">
+        <li><a href="#home" class="mobile-nav-link" id="m-nav-home">Início</a></li>
+        <li><a href="#catalogo" class="mobile-nav-link" id="m-nav-catalogo">Produtos</a></li>
+        <li><a href="#categorias" class="mobile-nav-link" id="m-nav-categorias">Categorias</a></li>
+        <li><a href="#como-funciona" class="mobile-nav-link" id="m-nav-como-funciona">Como funciona</a></li>
+        <li><a href="#contato" class="mobile-nav-link" id="m-nav-contato">Contato</a></li>
+        <li><a href="./admin.html" class="mobile-nav-link" style="color: var(--orange-primary);" id="m-nav-admin"><i data-lucide="lock" style="width: 16px; height: 16px; display: inline;"></i> Painel Operacional</a></li>
+      </ul>
+
+      <div class="mobile-drawer-footer">
+        <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-primary" id="m-drawer-whatsapp">
+          <i data-lucide="phone"></i> Falar no WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       DYNAMIC VIEWPORT CONTAINER
+       ========================================== -->
+  <main id="app-viewport">
+    
+    <!-- HOME VIEW (LANDING PAGE) -->
+    <div id="view-home" class="app-view">
+      
+      <!-- HERO PRINCIPAL -->
+      <section class="hero">
+        <div class="hero-bg-shapes">
+          <div class="hero-shape-purple"></div>
+          <div class="hero-shape-orange"></div>
+        </div>
+        
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <div class="badge-capsule badge-orange-light">
+              <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Tecnologia, praticidade e retirada rápida
+            </div>
+            
+            <h1 class="hero-title">
+              Seu próximo celular pode estar <span class="text-orange">esperando por você.</span>
+            </h1>
+            
+            <p class="hero-description">
+              Consulte produtos disponíveis, escolha suas opções e solicite a retirada diretamente na Store Imports.
+            </p>
+            
+            <div class="hero-buttons">
+              <a href="#catalogo" class="btn btn-primary" id="btn-hero-catalog">
+                Ver produtos <i data-lucide="arrow-right"></i>
+              </a>
+              <a href="#como-funciona" class="btn btn-secondary" id="btn-hero-steps">
+                Como funciona
+              </a>
+            </div>
+            
+            <div class="hero-stats">
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><i data-lucide="refresh-cw"></i></div>
+                <div class="hero-stat-text">Estoque atualizado</div>
+              </div>
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><i data-lucide="check-circle-2"></i></div>
+                <div class="hero-stat-text">Reserva rápida</div>
+              </div>
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><i data-lucide="store"></i></div>
+                <div class="hero-stat-text">Pagamento presencial</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <div class="tag-catalogo-preparacao badge-capsule badge-purple-light">
+              <i data-lucide="hourglass" style="width: 14px; height: 14px;"></i> Catálogo em preparação
+            </div>
+            <div class="hero-visual-card">
+              <div class="hero-visual-header">
+                <img src="./assets/logo.png" alt="Logo" class="hero-visual-logo">
+                <div class="badge-capsule badge-orange-light" style="font-size: 0.65rem; padding: 4px 10px;">PROTÓTIPO</div>
+              </div>
+              <h3 class="hero-visual-title">Catálogo Store Imports</h3>
+              <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 20px;">Uma interface demonstrativa ilustrando a futura listagem dos nossos smartphones e acessórios.</p>
+              
+              <div class="mock-shapes-container">
+                <div class="mock-shape">
+                  <div class="mock-icon"><i data-lucide="smartphone"></i></div>
+                  <div class="mock-line long"></div>
+                  <div class="mock-line short"></div>
+                </div>
+                <div class="mock-shape">
+                  <div class="mock-icon"><i data-lucide="headphones"></i></div>
+                  <div class="mock-line medium"></div>
+                  <div class="mock-line short"></div>
+                </div>
+                <div class="mock-shape">
+                  <div class="mock-icon"><i data-lucide="watch"></i></div>
+                  <div class="mock-line long"></div>
+                  <div class="mock-line short"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STICKY SEARCH SECTION -->
+      <div class="container search-section" id="sticky-search-anchor">
+        <div class="search-bar-wrapper">
+          <div class="search-input-container">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" class="search-bar-input" id="main-search-input" placeholder="Qual produto você está procurando?">
+          </div>
+          <button class="btn btn-primary search-btn" id="btn-main-search">
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      <!-- BENEFITS BAR -->
+      <section class="benefits section-spacing">
+        <div class="container benefits-grid">
+          <div class="benefit-item">
+            <div class="benefit-icon-wrapper"><i data-lucide="check-circle-2"></i></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Estoque atualizado</h4>
+              <p class="benefit-desc">Consulte produtos antes de sair de casa.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item">
+            <div class="benefit-icon-wrapper"><i data-lucide="clock"></i></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Reserva rápida</h4>
+              <p class="benefit-desc">Separe o produto e garanta sua retirada.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item">
+            <div class="benefit-icon-wrapper"><i data-lucide="store"></i></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Retirada presencial</h4>
+              <p class="benefit-desc">Pague na loja apenas no momento de retirar.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item">
+            <div class="benefit-icon-wrapper"><i data-lucide="users"></i></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Atendimento especializado</h4>
+              <p class="benefit-desc">Equipe pronta para te apoiar na escolha.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CATEGORIES SECTION -->
+      <section class="section-spacing" id="categorias">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">Encontre por categoria</h2>
+            <p class="section-subtitle">Navegue pelas principais categorias da Store Imports.</p>
+          </div>
+
+          <div class="categories-grid" id="categories-container">
+            <!-- Populated via Javascript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUCT SHOWCASE / CATALOG PLACEHOLDER -->
+      <section class="section-spacing bg-secondary" id="catalogo">
+        <div class="container">
+          
+          <div class="catalog-actions-header">
+            <div>
+              <h2 class="section-title" style="text-align: left; margin-bottom: 4px;">Produtos disponíveis</h2>
+              <p class="section-subtitle" style="text-align: left;">Consulte o catálogo e veja o que está disponível para retirada.</p>
+            </div>
+            
+            <!-- Demo Toggle Switch -->
+            <div class="demo-toggle-container" id="demo-toggle-trigger" title="Alternar entre o catálogo real em preparação ou a demonstração de protótipo">
+              <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
+              <span>Modo Demonstração</span>
+              <label class="switch">
+                <input type="checkbox" id="demo-mode-checkbox">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- CATALOG VIEWPORT (Empty state OR Skeletons OR Grid) -->
+          <div id="catalog-viewport">
+            
+            <!-- DEFAULT: PRODUCTION EMPTY STATE -->
+            <div id="production-empty-state" class="empty-state-card">
+              <div class="empty-state-icon">
+                <i data-lucide="construction"></i>
+              </div>
+              <h3 class="empty-state-title">Nosso catálogo está sendo preparado.</h3>
+              <p class="empty-state-text">
+                Em breve você poderá consultar celulares, acessórios e disponibilidade em tempo real. Ative o <strong>Modo Demonstração</strong> acima para visualizar uma simulação de funcionamento.
+              </p>
+              <div class="empty-state-actions">
+                <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-primary" id="btn-empty-contact">
+                  <i data-lucide="phone"></i> Falar com a loja
+                </a>
+                <button class="btn btn-secondary" id="btn-activate-demo-empty">
+                  Ativar Demonstração
+                </button>
+              </div>
+            </div>
+
+            <!-- DYNAMIC DEMO / SKELETON / CATALOG WRAPPER (HIDDEN INITIALLY) -->
+            <div id="catalog-active-content" class="d-none">
+              
+              <!-- LAYOUT GRID: SIDEBAR FILTERS + MAIN CATALOG GRID -->
+              <div class="catalog-page-layout">
+                
+                <!-- SIDEBAR FILTERS -->
+                <aside class="filters-sidebar">
+                  <div class="filter-group">
+                    <h4 class="filter-title">Categoria</h4>
+                    <div class="filter-options" id="filter-categories-list">
+                      <!-- Populated dynamically -->
+                    </div>
+                  </div>
+
+                  <div class="filter-group">
+                    <h4 class="filter-title">Marca</h4>
+                    <div class="filter-options" id="filter-brands-list">
+                      <!-- Populated dynamically -->
+                    </div>
+                  </div>
+
+                  <div class="filter-group">
+                    <h4 class="filter-title">Condição</h4>
+                    <div class="filter-options">
+                      <label class="filter-option-checkbox">
+                        <span><input type="checkbox" name="condition" value="Novo" class="filter-checkbox"> Novo</span>
+                      </label>
+                      <label class="filter-option-checkbox">
+                        <span><input type="checkbox" name="condition" value="Seminovo" class="filter-checkbox"> Seminovo</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="filter-group">
+                    <h4 class="filter-title">Disponibilidade</h4>
+                    <div class="filter-options">
+                      <label class="filter-option-checkbox">
+                        <span><input type="checkbox" name="availability" value="Disponível" class="filter-checkbox"> Disponível</span>
+                      </label>
+                      <label class="filter-option-checkbox">
+                        <span><input type="checkbox" name="availability" value="Poucas unidades" class="filter-checkbox"> Últimas unidades</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <button class="btn btn-secondary btn-sm" id="btn-clear-filters" style="width: 100%;">
+                    Limpar filtros
+                  </button>
+                </aside>
+
+                <!-- GRID CONTENT -->
+                <div>
+                  <!-- Grid header toolbar -->
+                  <div class="catalog-results-bar">
+                    <span class="results-count" id="catalog-results-count">Mostrando 0 produtos</span>
+                    <div class="results-sorting">
+                      <span class="sort-label">Ordenar por:</span>
+                      <select class="sort-select" id="sort-select-input">
+                        <option value="recentes">Mais recentes</option>
+                        <option value="preco-crescente">Menor preço</option>
+                        <option value="preco-decrescente">Maior preço</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Product Grid List -->
+                  <div class="products-grid" id="products-container">
+                    <!-- Populated dynamically -->
+                  </div>
+
+                  <!-- Catalog Empty State (No filter matches) -->
+                  <div id="catalog-no-results" class="empty-state-card d-none" style="padding: 32px; max-width: 100%;">
+                    <div class="empty-state-icon" style="font-size: 2rem;">
+                      <i data-lucide="search-code"></i>
+                    </div>
+                    <h4 class="empty-state-title" style="font-size: 1.15rem;">Nenhum produto encontrado.</h4>
+                    <p class="empty-state-text" style="font-size: 0.85rem;">
+                      Tente remover alguns filtros ou mude sua busca para encontrar o produto desejado.
+                    </p>
+                    <button class="btn btn-primary btn-sm" id="btn-clear-filters-empty">Limpar Filtros</button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- COMO FUNCIONA SECTION -->
+      <section class="section-spacing como-funciona" id="como-funciona">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">Escolha online. Retire na loja.</h2>
+            <p class="section-subtitle">Entenda o fluxo simplificado para adquirir seus eletrônicos e smartphones.</p>
+          </div>
+
+          <div class="como-funciona-grid">
+            <div class="step-card">
+              <div class="step-number">01</div>
+              <div class="step-icon-wrapper"><i data-lucide="search"></i></div>
+              <h4 class="step-title">Pesquise o produto</h4>
+              <p class="step-desc">Utilize nossa barra de pesquisa ou navegue pelas categorias.</p>
+            </div>
+            
+            <div class="step-card">
+              <div class="step-number">02</div>
+              <div class="step-icon-wrapper"><i data-lucide="check-circle"></i></div>
+              <h4 class="step-title">Consulte a disponibilidade</h4>
+              <p class="step-desc">Verifique cores, capacidades de armazenamento e status de estoque.</p>
+            </div>
+            
+            <div class="step-card">
+              <div class="step-number">03</div>
+              <div class="step-icon-wrapper"><i data-lucide="plus-circle"></i></div>
+              <h4 class="step-title">Adicione à sua seleção</h4>
+              <p class="step-desc">Monte sua lista de interesse com as variações que você quer.</p>
+            </div>
+            
+            <div class="step-card">
+              <div class="step-number">04</div>
+              <div class="step-icon-wrapper"><i data-lucide="send"></i></div>
+              <h4 class="step-title">Envie a solicitação</h4>
+              <p class="step-desc">Preencha seus dados de contato e envie seu pedido de reserva.</p>
+            </div>
+            
+            <div class="step-card">
+              <div class="step-number">05</div>
+              <div class="step-icon-wrapper"><i data-lucide="store"></i></div>
+              <h4 class="step-title">Retire e pague na loja</h4>
+              <p class="step-desc">Aguarde o contato de confirmação e realize a retirada presencial.</p>
+            </div>
+          </div>
+
+          <div class="como-funciona-aviso">
+            A solicitação depende da confirmação da equipe e não representa uma compra concluída.
+          </div>
+        </div>
+      </section>
+
+      <!-- DIFERENCIAIS SECTION -->
+      <section class="section-spacing" id="diferenciais">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">Por que escolher a Store Imports?</h2>
+            <p class="section-subtitle">Garantimos a melhor experiência de compra presencial da região.</p>
+          </div>
+
+          <div class="diferenciais-grid">
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="shield-check"></i></div>
+              <h4 class="diferencial-title">Produtos selecionados</h4>
+              <p class="diferencial-desc">Todos os aparelhos passam por uma curadoria técnica rígida para garantir alta performance e integridade.</p>
+            </div>
+
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="message-square"></i></div>
+              <h4 class="diferencial-title">Atendimento personalizado</h4>
+              <p class="diferencial-desc">Temos um atendimento de ponta via WhatsApp e presencial para tirar todas as suas dúvidas sobre os aparelhos.</p>
+            </div>
+
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="smartphone"></i></div>
+              <h4 class="diferencial-title">Consulta rápida de estoque</h4>
+              <p class="diferencial-desc">Verifique na hora se o modelo, capacidade de armazenamento e cor desejados estão em nossa loja física.</p>
+            </div>
+
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="store"></i></div>
+              <h4 class="diferencial-title">Facilidade na retirada</h4>
+              <p class="diferencial-desc">Basta reservar online, receber a confirmação e vir retirar no horário de sua preferência, sem filas.</p>
+            </div>
+
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="help-circle"></i></div>
+              <h4 class="diferencial-title">Suporte na escolha</h4>
+              <p class="diferencial-desc">Nossos vendedores são especialistas e ajudam você a decidir qual o melhor celular para seu dia a dia.</p>
+            </div>
+
+            <div class="diferencial-card">
+              <div class="diferencial-icon"><i data-lucide="usb"></i></div>
+              <h4 class="diferencial-title">Variedade de acessórios</h4>
+              <p class="diferencial-desc">Saia da loja com seu smartphone totalmente protegido com capas premium, películas e carregadores rápidos.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTACT CTA SECTION -->
+      <section class="container section-spacing" id="contato">
+        <div class="contato-cta">
+          <div class="contato-cta-content">
+            <h2 class="contato-cta-title">Não encontrou o que estava procurando?</h2>
+            <p class="contato-cta-text">Fale com nossa equipe e consulte outros modelos, cores e capacidades disponíveis.</p>
+            <div class="contato-cta-actions">
+              <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-primary" style="background-color: var(--orange-primary);" id="btn-contato-whatsapp">
+                <i data-lucide="message-circle"></i> Consultar pelo WhatsApp
+              </a>
+              <a href="#catalogo" class="btn btn-secondary" style="border-color: var(--white); color: var(--white); background: transparent;" id="btn-contato-catalogo">
+                Ver categorias
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RESERVATION FORM VIEW (HIDDEN INITIALLY) -->
+    <div id="view-reserva" class="app-view d-none">
+      <section class="section-spacing">
+        <div class="container">
+          <div class="reservation-form-container">
+            <h2 class="reservation-form-title">Solicitar Reserva para Retirada</h2>
+            <p class="reservation-form-subtitle">Informe seus dados abaixo. Nossa equipe entrará em contato para confirmar a disponibilidade do produto.</p>
+            
+            <!-- Selection Preview -->
+            <div class="reservation-items-preview">
+              <h3 class="preview-title">Itens Selecionados</h3>
+              <div class="preview-list" id="reservation-items-preview-list">
+                <!-- Populated dynamically -->
+              </div>
+              <div class="preview-total">
+                <span>Valor total estimado:</span>
+                <span id="reservation-preview-total-value">R$ 0,00</span>
+              </div>
+            </div>
+
+            <!-- Form -->
+            <form id="reservation-submit-form" novalidate>
+              <div class="form-group">
+                <label for="form-nome" class="form-label">Nome Completo *</label>
+                <input type="text" class="form-control" id="form-nome" placeholder="Digite seu nome completo" required>
+                <span class="form-error-msg d-none" id="error-nome">Nome completo é obrigatório.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="form-whatsapp" class="form-label">WhatsApp *</label>
+                <input type="tel" class="form-control" id="form-whatsapp" placeholder="(XX) XXXXX-XXXX" required>
+                <span class="form-error-msg d-none" id="error-whatsapp">WhatsApp válido é obrigatório.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="form-email" class="form-label">E-mail (opcional)</label>
+                <input type="email" class="form-control" id="form-email" placeholder="seuemail@exemplo.com">
+                <span class="form-error-msg d-none" id="error-email">Insira um e-mail válido.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="form-contato-pref" class="form-label">Forma de contato preferida</label>
+                <select class="form-control" id="form-contato-pref">
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Ligação">Ligação telefônica</option>
+                  <option value="E-mail">E-mail</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="form-data" class="form-label">Data prevista para retirada *</label>
+                <input type="date" class="form-control" id="form-data" required>
+                <span class="form-error-msg d-none" id="error-data">Selecione uma data futura para a retirada.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="form-obs" class="form-label">Observações</label>
+                <textarea class="form-control" id="form-obs" rows="3" placeholder="Se desejar, descreva detalhes da sua retirada ou dúvidas adicionais"></textarea>
+              </div>
+
+              <div class="form-group" style="margin-top: 12px; margin-bottom: 24px;">
+                <label class="form-checkbox">
+                  <input type="checkbox" id="form-consentimento" required>
+                  <span style="font-size: 0.85rem; color: var(--text-primary); line-height: 1.4;">
+                    Estou ciente de que esta solicitação <strong>depende de confirmação da loja</strong> e que o pagamento será realizado presencialmente no momento da retirada.
+                  </span>
+                </label>
+                <span class="form-error-msg d-none" id="error-consentimento">Você precisa concordar com os termos.</span>
+              </div>
+
+              <div class="cart-disclaimer" style="margin-bottom: 24px;">
+                <i data-lucide="alert-triangle" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                Esta seleção não representa uma compra concluída. A disponibilidade será confirmada pela Store Imports e o pagamento será realizado presencialmente na retirada.
+              </div>
+
+              <div style="display: flex; gap: 16px;">
+                <button type="button" class="btn btn-secondary" id="btn-back-to-cart" style="flex: 1;">
+                  Voltar
+                </button>
+                <button type="submit" class="btn btn-primary" id="btn-submit-reservation" style="flex: 1.5;">
+                  Enviar solicitação <i data-lucide="check"></i>
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- SUCCESS SCREEN VIEW (HIDDEN INITIALLY) -->
+    <div id="view-sucesso" class="app-view d-none">
+      <section class="section-spacing">
+        <div class="container">
+          <div class="success-card">
+            <div class="success-icon-wrapper flex-center">
+              <i data-lucide="check-circle"></i>
+            </div>
+            
+            <h2 class="success-title">Solicitação enviada!</h2>
+            <p class="success-desc">Nossa equipe confirmará a disponibilidade dos produtos e entrará em contato para combinar a retirada.</p>
+            
+            <div class="success-details-box">
+              <div class="success-detail-row">
+                <span class="success-detail-label">Código da solicitação:</span>
+                <span class="success-detail-val" id="success-code">#SI-1001</span>
+              </div>
+              <div class="success-detail-row">
+                <span class="success-detail-label">Status da reserva:</span>
+                <span class="badge-status badge-status-pending" id="success-status-badge">
+                  <i data-lucide="clock" style="width: 12px; height: 12px; display: inline;"></i> Aguardando confirmação
+                </span>
+              </div>
+              <div class="success-detail-row" style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <span class="success-detail-label">Cliente:</span>
+                <span class="success-detail-val" id="success-client-name">Nome do Cliente</span>
+              </div>
+              <div class="success-detail-row">
+                <span class="success-detail-label">WhatsApp:</span>
+                <span class="success-detail-val" id="success-client-whatsapp">(11) 99999-9999</span>
+              </div>
+              <div class="success-detail-row">
+                <span class="success-detail-label">Data de retirada:</span>
+                <span class="success-detail-val" id="success-retrieval-date">00/00/0000</span>
+              </div>
+              <div class="success-detail-row" style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <span class="success-detail-label">Produtos:</span>
+                <span class="success-detail-val" id="success-products-count">1 item</span>
+              </div>
+              <div class="success-detail-row">
+                <span class="success-detail-label">Valor total estimado:</span>
+                <span class="success-detail-val text-orange" id="success-total-value">R$ 0,00</span>
+              </div>
+            </div>
+
+            <div class="success-actions">
+              <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-primary" id="btn-success-whatsapp">
+                <i data-lucide="message-circle"></i> Falar pelo WhatsApp
+              </a>
+              <a href="#catalogo" class="btn btn-secondary" id="btn-success-back-catalog">
+                Voltar ao catálogo
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       PRODUCT DETAILS MODAL
+       ========================================== -->
+  <div class="modal-overlay" id="product-detail-modal-overlay">
+    <div class="modal-container">
+      <button class="btn-close-modal" id="btn-close-product-modal" title="Fechar modal">
+        <i data-lucide="x"></i>
+      </button>
+
+      <div class="modal-body" id="product-detail-modal-body">
+        <!-- Populated via Javascript on Product Detail selection -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       CART DRAWER ("Sua seleção")
+       ========================================== -->
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay">
+    <div class="cart-drawer">
+      <div class="cart-drawer-header">
+        <h3 class="cart-drawer-title">Sua seleção</h3>
+        <button class="btn-close-drawer" id="btn-close-cart-drawer">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Items Container -->
+      <div class="cart-items-list" id="cart-items-container">
+        <!-- Populated via Javascript -->
+      </div>
+
+      <!-- Sticky Cart Footer -->
+      <div class="cart-drawer-footer">
+        <div class="cart-disclaimer">
+          <i data-lucide="alert-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+          Esta seleção não representa uma compra concluída. O pagamento é presencial.
+        </div>
+        
+        <div class="cart-summary-line">
+          <span class="cart-summary-label">Valor estimado:</span>
+          <span class="cart-summary-value" id="cart-estimated-total">R$ 0,00</span>
+        </div>
+
+        <button class="btn btn-primary btn-checkout" id="btn-drawer-reserve-submit" disabled>
+          Solicitar reserva <i data-lucide="send"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       RESPONSIVE BOTTOM BAR MOBILE
+       ========================================== -->
+  <div class="mobile-bottom-bar">
+    <div class="bottom-bar-grid">
+      <a href="#home" class="bottom-bar-item active" id="b-nav-home">
+        <div class="bottom-bar-icon-container"><i data-lucide="home"></i></div>
+        <span>Início</span>
+      </a>
+      <a href="#catalogo" class="bottom-bar-item" id="b-nav-search">
+        <div class="bottom-bar-icon-container"><i data-lucide="search"></i></div>
+        <span>Buscar</span>
+      </a>
+      <a href="#categorias" class="bottom-bar-item" id="b-nav-categories">
+        <div class="bottom-bar-icon-container"><i data-lucide="grid"></i></div>
+        <span>Categorias</span>
+      </a>
+      <a href="#selecao" class="bottom-bar-item" id="b-nav-cart">
+        <div class="bottom-bar-icon-container">
+          <i data-lucide="shopping-bag"></i>
+          <span class="bottom-bar-badge" id="cart-badge-count-mobile">0</span>
+        </div>
+        <span>Seleção</span>
+      </a>
+      <a href="https://wa.me/5500000000000" target="_blank" class="bottom-bar-item" id="b-nav-whatsapp">
+        <div class="bottom-bar-icon-container"><i data-lucide="message-circle"></i></div>
+        <span>Contato</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MAIN FOOTER
+       ========================================== -->
+  <footer class="main-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img src="./assets/logo-white.svg" alt="Store Imports">
+          </div>
+          <p class="footer-desc">
+            Consulte celulares, smartphones e acessórios de alta performance. Reserve online e realize a retirada e o pagamento em nossa loja física.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-section-title">Links rápidos</h4>
+          <ul class="footer-links">
+            <li><a href="#home" class="footer-link">Início</a></li>
+            <li><a href="#catalogo" class="footer-link">Produtos</a></li>
+            <li><a href="#categorias" class="footer-link">Categorias</a></li>
+            <li><a href="#como-funciona" class="footer-link">Como funciona</a></li>
+            <li><a href="./admin.html" class="footer-link" style="color: var(--orange-primary);"><i data-lucide="lock" style="width: 14px; height: 14px; display: inline;"></i> Painel de Gestão</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-section-title">Contato & Retirada</h4>
+          <div class="footer-contact-info">
+            <div class="footer-contact-item">
+              <i data-lucide="map-pin" style="color: var(--orange-primary); flex-shrink: 0;"></i>
+              <span>Av. Central de Compras, 1200 - Centro</span>
+            </div>
+            <div class="footer-contact-item">
+              <i data-lucide="clock" style="color: var(--orange-primary); flex-shrink: 0;"></i>
+              <span>Seg. a Sex. das 09h às 18h<br>Sáb. das 09h às 13h</span>
+            </div>
+            <div class="footer-contact-item">
+              <i data-lucide="phone" style="color: var(--orange-primary); flex-shrink: 0;"></i>
+              <span>(11) 99999-9999 / (11) 3333-3333</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          <p class="footer-warning">
+            Os preços e a disponibilidade podem sofrer alterações sem aviso prévio. As solicitações realizadas pelo site dependem de confirmação técnica da equipe da Store Imports. O pagamento do produto reservado é feito única e exclusivamente de forma presencial no estabelecimento comercial.
+          </p>
+          <p id="copyright-text"></p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic JS -->
+  <script src="./app.js"></script>
+</body>
+</html>

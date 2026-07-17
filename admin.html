@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Operacional | Store Imports</title>
+  
+  <!-- Base CSS -->
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./admin.css">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="admin-body">
+
+  <!-- ==========================================
+       ADMIN SIDEBAR NAVIGATION
+       ========================================== -->
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="sidebar-header">
+      <img src="./assets/logo-white.svg" alt="Store Imports Logo" class="sidebar-logo">
+      <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" title="Encolher Menu">
+        <i data-lucide="menu"></i>
+      </button>
+    </div>
+
+    <ul class="sidebar-menu">
+      <li>
+        <div class="menu-item-link active" id="tab-overview" data-tab="overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="menu-item-text">Visão Geral</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-products" data-tab="products">
+          <i data-lucide="smartphone"></i>
+          <span class="menu-item-text">Produtos</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-stock" data-tab="stock">
+          <i data-lucide="clipboard-list"></i>
+          <span class="menu-item-text">Estoque</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-reservations" data-tab="reservations">
+          <i data-lucide="calendar"></i>
+          <span class="menu-item-text">Reservas</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-sales" data-tab="sales">
+          <i data-lucide="shopping-bag"></i>
+          <span class="menu-item-text">Vendas</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-users" data-tab="users">
+          <i data-lucide="users"></i>
+          <span class="menu-item-text">Usuários</span>
+        </div>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <a href="./index.html" class="menu-item-link" style="background-color: rgba(255, 255, 255, 0.05);">
+        <i data-lucide="arrow-left-circle"></i>
+        <span class="menu-item-text">Ir para o Catálogo</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       MAIN DYNAMIC WORKSPACE
+       ========================================== -->
+  <div class="admin-workspace">
+    
+    <!-- TOP HEADER -->
+    <header class="admin-top-navbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn-hamburger d-lg-none" id="btn-admin-hamburger" style="padding: 0; color: var(--purple-primary);">
+          <i data-lucide="menu"></i>
+        </button>
+        <h2 class="top-navbar-title" id="workspace-title">Painel Operacional</h2>
+      </div>
+
+      <div class="user-profile-badge">
+        <div class="user-avatar flex-center">SI</div>
+        <div class="user-info-text">
+          <span class="user-name">Administrador</span>
+          <span class="user-role">Nível de Acesso Total</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN VIEW AREA -->
+    <main class="workspace-content" id="admin-view-viewport">
+      
+      <!-- ==========================================
+           TAB: VISÃO GERAL (DASHBOARD SUMMARY)
+           ========================================== -->
+      <div id="panel-overview" class="admin-view-tab">
+        
+        <!-- KPI Widgets -->
+        <section class="dashboard-kpis">
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Produtos em Catálogo</span>
+              <span class="kpi-value" id="kpi-total-products">0</span>
+            </div>
+            <div class="kpi-icon-box purple flex-center"><i data-lucide="smartphone"></i></div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Reservas Pendentes</span>
+              <span class="kpi-value" id="kpi-pending-res">0</span>
+            </div>
+            <div class="kpi-icon-box orange flex-center"><i data-lucide="clock"></i></div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Alertas de Estoque Baixo</span>
+              <span class="kpi-value" id="kpi-low-stock">0</span>
+            </div>
+            <div class="kpi-icon-box amber flex-center"><i data-lucide="alert-triangle"></i></div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Valor Reservado</span>
+              <span class="kpi-value" id="kpi-sales-value">R$ 0,00</span>
+            </div>
+            <div class="kpi-icon-box green flex-center"><i data-lucide="dollar-sign"></i></div>
+          </div>
+        </section>
+
+        <!-- Charts Mock & Activity Timeline -->
+        <div class="dashboard-grid">
+          
+          <!-- Mock Chart -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="bar-chart-3"></i> Volume Mensal de Solicitações (Demonstração)</h3>
+              <span class="results-count">Últimos 7 meses</span>
+            </div>
+            
+            <div class="mock-chart-container">
+              <!-- Rendered via JS bars -->
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 40%;" data-value="12"></div>
+                <span class="mock-chart-label">Jan</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 55%;" data-value="18"></div>
+                <span class="mock-chart-label">Fev</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 70%;" data-value="24"></div>
+                <span class="mock-chart-label">Mar</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 50%;" data-value="15"></div>
+                <span class="mock-chart-label">Abr</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 85%;" data-value="32"></div>
+                <span class="mock-chart-label">Mai</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 95%;" data-value="40"></div>
+                <span class="mock-chart-label">Jun</span>
+              </div>
+              <div class="mock-chart-bar-wrapper">
+                <div class="mock-chart-bar" style="height: 60%;" data-value="20"></div>
+                <span class="mock-chart-label">Jul</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity log -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="activity"></i> Logs e Ajustes de Operação</h3>
+            </div>
+            
+            <div class="activity-list" id="activity-log-list">
+              <!-- Dynamically populated activities -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Recent Reservations List -->
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <h3 class="panel-card-title"><i data-lucide="clock"></i> Solicitações de Reserva Recentes</h3>
+            <button class="btn btn-secondary btn-sm" id="btn-view-all-res">Gerenciar Reservas</button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>WhatsApp</th>
+                  <th>Produtos</th>
+                  <th>Valor Estimado</th>
+                  <th>Status</th>
+                  <th>Data Solicitação</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-recent-reservations-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: PRODUTOS (PRODUCTS MANAGEMENT)
+           ========================================== -->
+      <div id="panel-products" class="admin-view-tab d-none">
+        
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between; align-items: stretch;">
+            <div class="grid-2-col" style="flex-grow: 1;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" class="form-control" id="admin-search-products" placeholder="Buscar por Nome, Marca ou Código...">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <select class="form-control" id="admin-filter-products-category">
+                  <option value="">Todas as Categorias</option>
+                  <option value="smartphones">Smartphones</option>
+                  <option value="iphones">iPhones</option>
+                  <option value="android">Android</option>
+                  <option value="capas">Capas</option>
+                  <option value="peliculas">Películas</option>
+                  <option value="carregadores">Carregadores</option>
+                  <option value="fones">Fones de Ouvido</option>
+                  <option value="smartwatches">Smartwatches</option>
+                  <option value="acessorios">Acessórios</option>
+                </select>
+              </div>
+            </div>
+            
+            <button class="btn btn-primary" id="btn-admin-add-product" style="align-self: flex-end;">
+              <i data-lucide="plus"></i> Adicionar Produto
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Ref. Código</th>
+                  <th>Marca</th>
+                  <th>Nome do Produto</th>
+                  <th>Categoria</th>
+                  <th>Preço Base</th>
+                  <th>Preço Promo</th>
+                  <th>Estoque Atual</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-products-table-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: ESTOQUE (INVENTORY CONTROL)
+           ========================================== -->
+      <div id="panel-stock" class="admin-view-tab d-none">
+        
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="sliders-horizontal"></i> Realizar Ajuste Manual de Estoque</h3>
+          
+          <form id="admin-stock-adjust-form" novalidate>
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="stock-adjust-product" class="form-label">Selecionar Produto *</label>
+                <select class="form-control" id="stock-adjust-product" required>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stock-adjust-type" class="form-label">Tipo de Movimentação *</label>
+                <select class="form-control" id="stock-adjust-type" required>
+                  <option value="Entrada">Entrada (+) - Compra/Reposição</option>
+                  <option value="Saída">Saída (-) - Perda/Avaria/Uso Próprio</option>
+                  <option value="Ajuste">Ajuste Direto (=) - Inventário Correção</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="stock-adjust-amount" class="form-label">Quantidade / Novo Valor *</label>
+                <input type="number" class="form-control" id="stock-adjust-amount" placeholder="Ex: 5" required min="0">
+              </div>
+              <div class="form-group">
+                <label for="stock-adjust-reason" class="form-label">Motivo do Ajuste *</label>
+                <input type="text" class="form-control" id="stock-adjust-reason" placeholder="Ex: Correção de contagem de inventário" required>
+              </div>
+            </div>
+
+            <!-- IMEI Tracking Panel (Show for Phones only) -->
+            <div class="form-group d-none" id="stock-adjust-imeis-group">
+              <label for="stock-adjust-imeis" class="form-label">IMEIs do Smartphone (Separados por vírgula para novos aparelhos)</label>
+              <textarea class="form-control" id="stock-adjust-imeis" rows="2" placeholder="Ex: 359998887776661, 359998887776662"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 8px;">
+              Registrar Movimentação <i data-lucide="check"></i>
+            </button>
+          </form>
+        </div>
+
+        <div class="panel-card">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="history"></i> Histórico de Movimentações de Estoque</h3>
+          
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Produto</th>
+                  <th>Quantidade</th>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Funcionário</th>
+                </tr>
+              </thead>
+              <tbody id="admin-stock-logs-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: RESERVAS (RESERVATIONS TABLE)
+           ========================================== -->
+      <div id="panel-reservations" class="admin-view-tab d-none">
+        
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div class="grid-2-col">
+            <div class="form-group" style="margin-bottom: 0;">
+              <input type="text" class="form-control" id="admin-search-reservations" placeholder="Buscar por Nome do Cliente, Código ou WhatsApp...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <select class="form-control" id="admin-filter-reservations-status">
+                <option value="">Todos os Status</option>
+                <option value="Aguardando confirmação">Aguardando confirmação</option>
+                <option value="Confirmada">Confirmada</option>
+                <option value="Aguardando retirada">Aguardando retirada</option>
+                <option value="Finalizada">Finalizada</option>
+                <option value="Cancelada">Cancelada</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>WhatsApp</th>
+                  <th>Data Retirada</th>
+                  <th>Valor Estimado</th>
+                  <th>Status</th>
+                  <th>Data Solicitação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-reservations-table-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: VENDAS (REGISTRY PRESENCIAL SALES)
+           ========================================== -->
+      <div id="panel-sales" class="admin-view-tab d-none">
+        
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="plus-circle"></i> Registrar Nova Venda Física Direta</h3>
+          
+          <form id="admin-sales-registry-form" novalidate>
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="sale-select-product" class="form-label">Selecionar Produto *</label>
+                <select class="form-control" id="sale-select-product" required>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sale-qty" class="form-label">Quantidade Vendida *</label>
+                <input type="number" class="form-control" id="sale-qty" required min="1" value="1">
+              </div>
+            </div>
+
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="sale-payment-method" class="form-label">Forma de Pagamento *</label>
+                <select class="form-control" id="sale-payment-method" required>
+                  <option value="Pix">Pix Presencial</option>
+                  <option value="Cartão de Crédito">Cartão de Crédito</option>
+                  <option value="Cartão de Débito">Cartão de Débito</option>
+                  <option value="Dinheiro">Dinheiro físico</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sale-seller" class="form-label">Vendedor Responsável *</label>
+                <select class="form-control" id="sale-seller" required>
+                  <option value="Lucas (Vendedor)">Lucas (Vendedor)</option>
+                  <option value="Mariana (Vendedora)">Mariana (Vendedora)</option>
+                  <option value="Administrador">Administrador</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="sale-discount" class="form-label">Desconto Aplicado (R$, opcional)</label>
+                <input type="number" class="form-control" id="sale-discount" placeholder="Ex: 100" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label for="sale-client" class="form-label">Cliente (opcional)</label>
+                <input type="text" class="form-control" id="sale-client" placeholder="Nome do comprador presencial">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Finalizar e Dar Baixa <i data-lucide="check-circle-2"></i>
+            </button>
+          </form>
+        </div>
+
+        <div class="panel-card">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="history"></i> Vendas Físicas Registradas</h3>
+          
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código Venda</th>
+                  <th>Produto</th>
+                  <th>Quant.</th>
+                  <th>Cliente</th>
+                  <th>Forma Pagamento</th>
+                  <th>Valor Total</th>
+                  <th>Data Venda</th>
+                  <th>Vendedor</th>
+                </tr>
+              </thead>
+              <tbody id="admin-sales-log-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: USUÁRIOS & PERMISSÕES (ROLES LIST)
+           ========================================== -->
+      <div id="panel-users" class="admin-view-tab d-none">
+        
+        <div class="dashboard-grid" style="grid-template-columns: repeat(2, 1fr) !important; gap: 24px;">
+          
+          <!-- Card Admin -->
+          <div class="panel-card">
+            <div class="panel-card-header" style="border-bottom: 3px solid var(--purple-primary);">
+              <h3 class="panel-card-title"><i data-lucide="shield-check" class="text-purple"></i> Administrador</h3>
+              <span class="badge-capsule badge-purple-light">Acesso Completo</span>
+            </div>
+            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Nível hierárquico principal. Responsável pelas configurações de segurança, contratação e auditoria de vendas.</p>
+            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
+              <li>Visualizar painel financeiro e relatórios de lucros.</li>
+              <li>Cadastrar, editar e excluir produtos do catálogo.</li>
+              <li>Fazer ajustes diretos de estoque e cadastrar novos IMEIs.</li>
+              <li>Aprovar, cancelar e auditar reservas de clientes.</li>
+              <li>Gerenciar cargos, usuários e redefinir senhas.</li>
+            </ul>
+          </div>
+
+          <!-- Card Gerente -->
+          <div class="panel-card">
+            <div class="panel-card-header" style="border-bottom: 3px solid var(--purple-medium);">
+              <h3 class="panel-card-title"><i data-lucide="shield" style="color: var(--purple-medium);"></i> Gerente</h3>
+              <span class="badge-capsule badge-purple-light">Gestão e Estoque</span>
+            </div>
+            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Supervisão operacional da loja física. Administra as atividades cotidianas e o fluxo de inventário.</p>
+            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
+              <li>Visualizar e atualizar o estoque mínimo de alertas.</li>
+              <li>Adicionar novos produtos e realizar correções de preços.</li>
+              <li>Aprovar e modificar reservas de clientes.</li>
+              <li>Registrar saídas por avaria de peças ou perdas de aparelhos.</li>
+              <li>Sem acesso ao gerenciamento de usuários.</li>
+            </ul>
+          </div>
+
+          <!-- Card Vendedor -->
+          <div class="panel-card">
+            <div class="panel-card-header" style="border-bottom: 3px solid var(--orange-primary);">
+              <h3 class="panel-card-title"><i data-lucide="user-check" class="text-orange"></i> Vendedor</h3>
+              <span class="badge-capsule badge-orange-light">Reservas e Balcão</span>
+            </div>
+            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Atendimento direto no balcão físico da loja. Foca no contato presencial com o cliente final.</p>
+            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
+              <li>Consultar a disponibilidade de modelos do estoque em tempo real.</li>
+              <li>Confirmar a retirada do aparelho e converter reserva em venda concluída.</li>
+              <li>Registrar novas vendas presenciais e emitir avisos de reserva.</li>
+              <li>Bloqueado para alteração de custos de compra ou edição de produtos.</li>
+            </ul>
+          </div>
+
+          <!-- Card Estoquista -->
+          <div class="panel-card">
+            <div class="panel-card-header" style="border-bottom: 3px solid var(--text-secondary);">
+              <h3 class="panel-card-title"><i data-lucide="package" style="color: var(--text-secondary);"></i> Estoquista</h3>
+              <span class="badge-capsule" style="background-color: var(--bg-secondary); color: var(--text-secondary);">Inventário</span>
+            </div>
+            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Manuseio físico do estoque. Recebimento de mercadorias, conferência e etiquetagem dos IMEIs.</p>
+            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
+              <li>Lançar entradas de notas fiscais de compra no painel.</li>
+              <li>Listar códigos de barras e vincular números de série aos celulares.</li>
+              <li>Ajustar quantidades de acessórios e capinhas após contagem de inventário.</li>
+              <li>Bloqueado para faturamento de vendas ou visualização financeira.</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================
+       ADMIN ADD/EDIT PRODUCT MODAL
+       ========================================== -->
+  <div class="admin-modal-overlay" id="admin-product-modal-overlay">
+    <div class="admin-modal">
+      <h3 class="panel-card-title" id="admin-product-modal-title" style="margin-bottom: 24px;">Adicionar Novo Produto</h3>
+      
+      <!-- Tab Controls inside Form -->
+      <div class="admin-tabs" style="margin-bottom: 20px;">
+        <button type="button" class="admin-tab-btn active" data-form-tab="form-general">Geral</button>
+        <button type="button" class="admin-tab-btn" data-form-tab="form-prices">Preços</button>
+        <button type="button" class="admin-tab-btn" data-form-tab="form-stock">Estoque</button>
+        <button type="button" class="admin-tab-btn" data-form-tab="form-variations">Especificações</button>
+      </div>
+
+      <!-- Add Form -->
+      <form id="admin-add-product-form" novalidate>
+        
+        <!-- Tab Content: Geral -->
+        <div id="form-tab-general" class="form-tab-pane">
+          <div class="form-group">
+            <label for="p-name" class="form-label">Nome do Produto *</label>
+            <input type="text" class="form-control" id="p-name" placeholder="Ex: iPhone 15 Pro Max 256GB" required>
+          </div>
+          
+          <div class="grid-2-col">
+            <div class="form-group">
+              <label for="p-brand" class="form-label">Marca *</label>
+              <input type="text" class="form-control" id="p-brand" placeholder="Ex: Apple" required>
+            </div>
+            <div class="form-group">
+              <label for="p-model" class="form-label">Modelo *</label>
+              <input type="text" class="form-control" id="p-model" placeholder="Ex: 15 Pro Max" required>
+            </div>
+          </div>
+
+          <div class="grid-2-col">
+            <div class="form-group">
+              <label for="p-category" class="form-label">Categoria *</label>
+              <select class="form-control" id="p-category" required>
+                <option value="iphones">iPhones</option>
+                <option value="android">Android</option>
+                <option value="capas">Capas</option>
+                <option value="peliculas">Películas</option>
+                <option value="carregadores">Carregadores</option>
+                <option value="fones">Fones de Ouvido</option>
+                <option value="smartwatches">Smartwatches</option>
+                <option value="acessorios">Acessórios</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="p-condition" class="form-label">Condição *</label>
+              <select class="form-control" id="p-condition" required>
+                <option value="Novo">Novo</option>
+                <option value="Seminovo">Seminovo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="p-description" class="form-label">Descrição Comercial</label>
+            <textarea class="form-control" id="p-description" rows="2" placeholder="Ficha ou detalhes do produto..."></textarea>
+          </div>
+        </div>
+
+        <!-- Tab Content: Preços -->
+        <div id="form-tab-prices" class="form-tab-pane d-none">
+          <div class="grid-2-col">
+            <div class="form-group">
+              <label for="p-price" class="form-label">Preço de Venda (R$) *</label>
+              <input type="number" class="form-control" id="p-price" placeholder="Ex: 6999" required min="0">
+            </div>
+            <div class="form-group">
+              <label for="p-promo" class="form-label">Preço Promocional (R$, opcional)</label>
+              <input type="number" class="form-control" id="p-promo" placeholder="Ex: 6499" min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="p-cost" class="form-label">Preço de Custo Interno (R$, opcional)</label>
+            <input type="number" class="form-control" id="p-cost" placeholder="Ex: 5000" min="0">
+          </div>
+        </div>
+
+        <!-- Tab Content: Estoque -->
+        <div id="form-tab-stock" class="form-tab-pane d-none">
+          <div class="grid-2-col">
+            <div class="form-group">
+              <label for="p-quantity" class="form-label">Quantidade Inicial *</label>
+              <input type="number" class="form-control" id="p-quantity" placeholder="Ex: 5" required min="0" value="1">
+            </div>
+            <div class="form-group">
+              <label for="p-min-qty" class="form-label">Alerta Estoque Mínimo *</label>
+              <input type="number" class="form-control" id="p-min-qty" placeholder="Ex: 1" required min="0" value="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="p-code" class="form-label">Código de Referência Interno</label>
+            <input type="text" class="form-control" id="p-code" placeholder="Ex: IP15P-256">
+          </div>
+          <div class="form-group" id="p-imei-tracker">
+            <label for="p-imeis-list" class="form-label">IMEIs do Lote (Para celulares - separados por vírgula)</label>
+            <textarea class="form-control" id="p-imeis-list" rows="2" placeholder="Ex: 359998887776661, 359998887776662"></textarea>
+          </div>
+        </div>
+
+        <!-- Tab Content: Variações -->
+        <div id="form-tab-variations" class="form-tab-pane d-none">
+          <div class="form-group">
+            <label for="p-colors" class="form-label">Cores Disponíveis (Separadas por vírgula)</label>
+            <input type="text" class="form-control" id="p-colors" placeholder="Ex: Preto, Branco, Titânio Azul">
+          </div>
+          <div class="form-group">
+            <label for="p-capacities" class="form-label">Capacidades de Armazenamento (Separadas por vírgula)</label>
+            <input type="text" class="form-control" id="p-capacities" placeholder="Ex: 128GB, 256GB">
+          </div>
+          <div class="form-group">
+            <label for="p-warranty" class="form-label">Garantia</label>
+            <input type="text" class="form-control" id="p-warranty" placeholder="Ex: 12 meses Apple ou 3 meses loja">
+          </div>
+          <div class="form-group">
+            <label for="p-box" class="form-label">Conteúdo da Embalagem</label>
+            <input type="text" class="form-control" id="p-box" placeholder="Ex: Aparelho, Cabo USB-C, Manuais">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-modal-submit">Salvar Produto</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin logic script -->
+  <script src="./admin.js"></script>
+</body>
+</html>
