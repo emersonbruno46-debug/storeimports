@@ -6,16 +6,12 @@
 // MOCK DATA FOR DEMO MODE
 // ==========================================
 const MOCK_CATEGORIES = [
-  { id: 'smartphones', name: 'Smartphones', icon: 'smartphone', count: 12 },
-  { id: 'iphones', name: 'iPhones', icon: 'smartphone', count: 6 },
-  { id: 'android', name: 'Android', icon: 'smartphone', count: 6 },
-  { id: 'capas', name: 'Capas', icon: 'shield', count: 15 },
-  { id: 'peliculas', name: 'Películas', icon: 'sparkles', count: 8 },
-  { id: 'carregadores', name: 'Carregadores', icon: 'battery-charging', count: 10 },
-  { id: 'fones', name: 'Fones de Ouvido', icon: 'headphones', count: 7 },
-  { id: 'smartwatches', name: 'Smartwatches', icon: 'watch', count: 5 },
-  { id: 'caixas-de-som', name: 'Caixas de Som', icon: 'volume-2', count: 4 },
-  { id: 'acessorios', name: 'Acessórios', icon: 'usb', count: 20 }
+  { id: 'iphones', name: 'iPhones', image: 'iphones.png', count: 6 },
+  { id: 'android', name: 'Android', image: 'androids.png', count: 6 },
+  { id: 'ipads', name: 'iPads', image: 'ipads.png', count: 3 },
+  { id: 'notebooks', name: 'Notebooks', image: 'notebooks.png', count: 4 },
+  { id: 'smartwatches', name: 'Smartwatches', image: 'relógios.png', count: 5 },
+  { id: 'acessorios', name: 'Acessórios', image: 'acessórios.png', count: 20 }
 ];
 
 const MOCK_PRODUCTS = [
@@ -106,7 +102,7 @@ const MOCK_PRODUCTS = [
     cost: 1400,
     price: 2199,
     promoPrice: null,
-    quantity: 1, // Últimas unidades
+    quantity: 1,
     minQuantity: 1,
     unit: 'un',
     colors: ['Azul Ocean', 'Preto Midnight'],
@@ -126,7 +122,7 @@ const MOCK_PRODUCTS = [
     name: 'Capa Silicone MagSafe iPhone 15 Pro',
     brand: 'Custom',
     model: 'Capa MagSafe',
-    category: 'capas',
+    category: 'acessorios',
     description: 'Capa protetora de silicone premium com anel magnético compatível com carregador MagSafe. Toque macio e forro interno de microfibra.',
     cost: 25,
     price: 89,
@@ -149,7 +145,7 @@ const MOCK_PRODUCTS = [
     name: 'Carregador USB-C Rápido 45W Duplo',
     brand: 'Anker',
     model: 'Carregador 45W',
-    category: 'carregadores',
+    category: 'acessorios',
     description: 'Carregador de tomada ultra-rápido com duas portas USB-C inteligentes. Tecnologia GaN Prime para controle de temperatura.',
     cost: 75,
     price: 189,
@@ -172,12 +168,12 @@ const MOCK_PRODUCTS = [
     name: 'AirPods 3ª Geração',
     brand: 'Apple',
     model: 'AirPods 3',
-    category: 'fones',
+    category: 'acessorios',
     description: 'Fones sem fio com áudio espacial personalizado, equalização adaptativa, maior duração de bateria e resistência à água.',
     cost: 1100,
     price: 1699,
     promoPrice: null,
-    quantity: 0, // Esgotado / Sob consulta
+    quantity: 0,
     minQuantity: 1,
     unit: 'un',
     colors: ['Branco'],
@@ -281,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  initScrollAnimations();
   lucide.createIcons();
 });
 
@@ -569,10 +566,10 @@ function renderCategories() {
   
   MOCK_CATEGORIES.forEach(cat => {
     const card = document.createElement('div');
-    card.className = `category-card ${state.filters.category === cat.id ? 'active' : ''}`;
+    card.className = `category-card ${state.filters.category === cat.id ? 'active' : ''} scroll-animate`;
     card.innerHTML = `
-      <div class="category-card-icon">
-        <i data-lucide="${cat.icon}"></i>
+      <div class="category-card-img-wrapper">
+        <img src="./assets/${cat.image}" class="category-card-img" alt="${cat.name}">
       </div>
       <span class="category-card-name">${cat.name} <i data-lucide="arrow-right" class="category-card-arrow" style="width: 14px; height: 14px;"></i></span>
     `;
@@ -596,6 +593,10 @@ function renderCategories() {
     
     categoriesContainer.appendChild(card);
   });
+  
+  if (typeof initScrollAnimations === 'function') {
+    initScrollAnimations();
+  }
   
   lucide.createIcons();
 }
@@ -1497,4 +1498,30 @@ function showToast(message, type = 'info') {
       toast.remove();
     }, 300);
   }, 3500);
+}
+
+// ==========================================
+// SCROLL ANIMATIONS IMPLEMENTATION
+// ==========================================
+function initScrollAnimations() {
+  const animatedElements = document.querySelectorAll('.benefit-item, .category-card, .step-card, .diferencial-card, .contato-cta, .reservation-form-container');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-in');
+        observer.unobserve(entry.target); // Animate only once
+      }
+    });
+  }, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
+  });
+  
+  animatedElements.forEach(el => {
+    if (!el.classList.contains('scroll-animate')) {
+      el.classList.add('scroll-animate');
+    }
+    observer.observe(el);
+  });
 }
