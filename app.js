@@ -340,6 +340,9 @@ function handleRoute() {
   } else if (hash === '#diferenciais') {
     navigateToView('home');
     scrollToSection('diferenciais');
+  } else if (hash === '#assistencia') {
+    navigateToView('home');
+    scrollToSection('assistencia');
   } else if (hash === '#contato') {
     navigateToView('home');
     scrollToSection('contato');
@@ -403,7 +406,7 @@ function scrollToSection(sectionId) {
 
 function updateActiveMenuLinks(hash) {
   // Update desktop links
-  const links = ['home', 'catalogo', 'categorias', 'como-funciona', 'diferenciais', 'contato'];
+  const links = ['home', 'catalogo', 'categorias', 'como-funciona', 'assistencia', 'diferenciais', 'contato'];
   links.forEach(link => {
     const el = document.getElementById(`nav-${link}`);
     if (el) {
@@ -1334,6 +1337,10 @@ function handleReservationFormSubmit(e) {
   // Generate random order code
   const code = `#SI-${Math.floor(1000 + Math.random() * 9000)}`;
   
+  // Read payment method choice
+  const paymentMethodInput = document.querySelector('input[name="payment-method"]:checked');
+  const paymentMethod = paymentMethodInput ? paymentMethodInput.value : 'retirada';
+  
   // Create reservation object
   const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const newReservation = {
@@ -1343,6 +1350,7 @@ function handleReservationFormSubmit(e) {
     whatsapp: whatsapp,
     email: email,
     contatoPref: contatoPref,
+    paymentMethod: paymentMethod,
     dataRetirada: formatDisplayDate(dataRetirada),
     rawDate: dataRetirada,
     obs: obs,
@@ -1396,6 +1404,24 @@ function renderSuccessScreen(codeNum) {
   document.getElementById('success-products-count').textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
   document.getElementById('success-total-value').textContent = `R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   
+  // Dynamic Pix Container render
+  const pixContainer = document.getElementById('success-pix-container');
+  const pixValueHighlight = document.getElementById('success-pix-highlighted-value');
+  const wBtn = document.getElementById('btn-success-whatsapp');
+  
+  if (res.paymentMethod === 'pix') {
+    if (pixContainer) pixContainer.classList.remove('d-none');
+    if (pixValueHighlight) pixValueHighlight.textContent = `R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    if (wBtn) {
+      wBtn.innerHTML = `<i data-lucide="message-circle"></i> Enviar comprovante no WhatsApp`;
+    }
+  } else {
+    if (pixContainer) pixContainer.classList.add('d-none');
+    if (wBtn) {
+      wBtn.innerHTML = `<i data-lucide="message-circle"></i> Falar pelo WhatsApp`;
+    }
+  }
+  
   // Status Badge Rendering
   const badge = document.getElementById('success-status-badge');
   badge.className = 'badge-status';
@@ -1420,8 +1446,6 @@ function renderSuccessScreen(codeNum) {
   badge.innerHTML = statusHtml;
 
   // Configure Whatsapp button link dynamically with custom reservation text!
-  const wBtn = document.getElementById('btn-success-whatsapp');
-  
   const itemsText = res.items.map(item => {
     let spec = '';
     if (item.color) spec += ` (${item.color})`;
@@ -1429,7 +1453,12 @@ function renderSuccessScreen(codeNum) {
     return `- ${item.name}${spec} x${item.quantity}`;
   }).join('%0A');
   
-  const textMsg = `Olá! Enviei uma solicitação de reserva no site da Store Imports.%0A%0A*Código:* ${res.code}%0A*Cliente:* ${res.nome}%0A*Itens:*%0A${itemsText}%0A%0A*Data Prevista de Retirada:* ${res.dataRetirada}%0A%0AAguardando confirmação! Obrigado.`;
+  let textMsg = '';
+  if (res.paymentMethod === 'pix') {
+    textMsg = `Olá! Enviei uma solicitação de reserva no site da Store Imports com pagamento via Pix.%0A%0A*Código:* ${res.code}%0A*Cliente:* ${res.nome}%0A*Itens:*%0A${itemsText}%0A%0A*Valor do Pix:* R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%0A%0AAqui está o comprovante do meu Pix.`;
+  } else {
+    textMsg = `Olá! Enviei uma solicitação de reserva no site da Store Imports.%0A%0A*Código:* ${res.code}%0A*Cliente:* ${res.nome}%0A*Itens:*%0A${itemsText}%0A%0A*Data Prevista de Retirada:* ${res.dataRetirada}%0A%0AAguardando confirmação! Obrigado.`;
+  }
   
   wBtn.href = `https://wa.me/5511999999999?text=${textMsg}`;
   

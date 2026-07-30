@@ -223,7 +223,7 @@ const btnAdminHamburger = document.getElementById('btn-admin-hamburger');
 const workspaceTitle = document.getElementById('workspace-title');
 
 // Tabs Views
-const tabs = ['overview', 'products', 'stock', 'reservations', 'sales', 'users'];
+const tabs = ['overview', 'products', 'stock', 'reservations', 'sales', 'promo', 'users'];
 
 // Modals
 const adminProductModalOverlay = document.getElementById('admin-product-modal-overlay');
@@ -252,6 +252,7 @@ const adminSalesRegistryForm = document.getElementById('admin-sales-registry-for
 document.addEventListener('DOMContentLoaded', () => {
   setupSidebar();
   loadDatabase();
+  setupActiveProfile();
   setupEventListeners();
   renderCurrentTab();
   
@@ -401,6 +402,9 @@ function setupEventListeners() {
 
   // Sales Registry Form Submit
   adminSalesRegistryForm.addEventListener('submit', handleSalesRegistry);
+  
+  // Promo calculator setup
+  setupPromoCalculatorListeners();
 }
 
 function switchTab(tabName) {
@@ -422,6 +426,7 @@ function switchTab(tabName) {
     stock: 'Ajuste de Estoque e IMEI',
     reservations: 'Controle de Reservas',
     sales: 'Histórico de Vendas Físicas',
+    promo: 'Calculadora de Promoções',
     users: 'Cargos e Permissões'
   };
   workspaceTitle.textContent = titles[tabName] || 'Painel Operacional';
@@ -455,6 +460,16 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'sales') {
     populateProductSelects();
     renderSalesLogsTable();
+  } else if (state.currentTab === 'promo') {
+    // Reset preview tables
+    const previewCard = document.getElementById('promo-preview-card');
+    if (previewCard) previewCard.classList.add('d-none');
+    
+    // Refresh scope lists
+    const scopeSelect = document.getElementById('promo-scope');
+    if (scopeSelect) {
+      scopeSelect.dispatchEvent(new Event('change'));
+    }
   }
 }
 
@@ -473,7 +488,14 @@ function calculateOverviewKPIs() {
   const lowStock = state.products.filter(p => p.quantity <= p.minQuantity).length;
   kpiLowStock.textContent = lowStock;
   
-  // 4. Sold/Reserved estimated value (for active reservations)
+  // 4. Faturamento (Sales total)
+  const totalSales = state.sales.reduce((sum, s) => sum + s.total, 0);
+  const kpiFaturamento = document.getElementById('kpi-faturamento');
+  if (kpiFaturamento) {
+    kpiFaturamento.textContent = `R$ ${totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  }
+  
+  // 5. Sold/Reserved estimated value (for active reservations)
   const activeValue = state.reservations
     .filter(r => ['Aguardando confirmação', 'Confirmada', 'Aguardando retirada'].includes(r.status))
     .reduce((sum, r) => sum + r.total, 0);
@@ -1146,7 +1168,7 @@ function renderSalesLogsTable() {
   const sorted = [...state.sales].reverse();
   
   if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center;">Sem vendas registradas no balcão.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Sem vendas registradas no balcão.</td></tr>';
   } else {
     sorted.forEach(sale => {
       const tr = document.createElement('tr');
@@ -1159,7 +1181,15 @@ function renderSalesLogsTable() {
         <td class="text-orange" style="font-weight: 700;">R$ ${sale.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
         <td class="text-muted">${sale.date}</td>
         <td><span class="badge-capsule badge-purple-light" style="font-size: 0.7rem; padding: 2px 8px;">${sale.seller}</span></td>
+        <td>
+          <button class="table-action-btn print-btn" data-id="${sale.id}" title="Imprimir Cupom PDF"><i data-lucide="printer"></i></button>
+        </td>
       `;
+      
+      tr.querySelector('.print-btn').addEventListener('click', () => {
+        printSaleCoupon(sale.id);
+      });
+      
       tbody.appendChild(tr);
     });
   }
@@ -1235,4 +1265,365 @@ function showAdminToast(message, type = 'info') {
       toast.remove();
     }, 300);
   }, 3500);
+}
+
+// ==========================================
+// ACTIVE OPERATOR PROFILE CONTROLLER
+// ==========================================
+function setupActiveProfile() {
+  const trigger = document.getElementById('profile-dropdown-trigger');
+  const menu = document.getElementById('profile-dropdown-menu');
+  
+  if (!trigger || !menu) return;
+  
+  // Toggle profile dropdown
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('d-none');
+  });
+  
+  document.addEventListener('click', () => {
+    menu.classList.add('d-none');
+  });
+  
+  // Select active profile
+  state.activeProfile = localStorage.getItem('store_imports_active_profile') || 'Thallys';
+  updateProfileDisplay();
+  
+  menu.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const profile = item.getAttribute('data-profile');
+      state.activeProfile = profile;
+      localStorage.setItem('store_imports_active_profile', profile);
+      updateProfileDisplay();
+      menu.classList.add('d-none');
+      showAdminToast(`Perfil alterado para ${profile}`, 'success');
+      addActivityLog(`Perfil de operador alterado para: ${profile}`, 'info');
+    });
+  });
+}
+
+function updateProfileDisplay() {
+  const avatarEl = document.getElementById('active-profile-avatar');
+  const nameEl = document.getElementById('active-profile-name');
+  const roleEl = document.getElementById('active-profile-role');
+  
+  if (!avatarEl || !nameEl || !roleEl) return;
+  
+  if (state.activeProfile === 'Thallys') {
+    avatarEl.textContent = 'T';
+    avatarEl.style.backgroundColor = 'var(--purple-primary)';
+    nameEl.textContent = 'Thallys';
+    roleEl.textContent = 'Gerente Geral';
+  } else {
+    avatarEl.textContent = 'J';
+    avatarEl.style.backgroundColor = 'var(--orange-primary)';
+    nameEl.textContent = 'Joice';
+    roleEl.textContent = 'Gerente Comercial';
+  }
+}
+
+// ==========================================
+// PHYSICAL SALES RECEIPT PRINTING (PDF)
+// ==========================================
+function printSaleCoupon(saleId) {
+  const sale = state.sales.find(s => s.id === saleId);
+  if (!sale) {
+    showAdminToast('Venda não encontrada.', 'danger');
+    return;
+  }
+  
+  const printWindow = window.open('', '_blank', 'width=350,height=600');
+  if (!printWindow) {
+    showAdminToast('Bloqueador de popups ativo. Permita popups para imprimir o cupom.', 'warning');
+    return;
+  }
+  
+  const receiptStyles = `
+    <style>
+      body {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        color: #000;
+        margin: 0;
+        padding: 10px;
+        width: 280px;
+      }
+      .center {
+        text-align: center;
+      }
+      .bold {
+        font-weight: bold;
+      }
+      .divider {
+        border-top: 1px dashed #000;
+        margin: 8px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+        border-bottom: 1px dashed #000;
+      }
+      td {
+        padding: 4px 0;
+      }
+      .right {
+        text-align: right;
+      }
+      .footer {
+        font-size: 10px;
+        margin-top: 20px;
+      }
+    </style>
+  `;
+  
+  const items = sale.productName.split(',').map(itemStr => {
+    return `
+      <tr>
+        <td>${itemStr.trim()}</td>
+        <td class="right">${sale.quantity}x</td>
+        <td class="right">R$ ${sale.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  const receiptHtml = `
+    <html>
+      <head>
+        <title>Cupom de Venda - ${sale.code}</title>
+        ${receiptStyles}
+      </head>
+      <body>
+        <div class="center bold" style="font-size: 16px;">STORE IMPORTS</div>
+        <div class="center">Av. Central de Compras, 1200 - Centro</div>
+        <div class="center">Telefone: (11) 99999-9999</div>
+        <div class="divider"></div>
+        <div><strong>CUPOM DE VENDA:</strong> ${sale.code}</div>
+        <div><strong>DATA:</strong> ${sale.date}</div>
+        <div><strong>VENDEDOR:</strong> ${sale.seller}</div>
+        <div><strong>CLIENTE:</strong> ${sale.client}</div>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th class="right">Qtd</th>
+              <th class="right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items}
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div class="right"><strong>Desconto:</strong> R$ ${sale.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+        <div class="right" style="font-size: 14px; margin-top: 4px;"><strong>VALOR TOTAL:</strong> R$ ${sale.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+        <div class="divider"></div>
+        <div><strong>Forma de Pagamento:</strong> ${sale.paymentMethod}</div>
+        <div class="divider"></div>
+        <div class="center footer">
+          OBRIGADO PELA PREFERÊNCIA!<br>
+          Store Imports agradece seu contato.<br>
+          Conserve este cupom para sua garantia.
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          }
+        </script>
+      </body>
+    </html>
+  `;
+  
+  printWindow.document.write(receiptHtml);
+  printWindow.document.close();
+}
+
+// ==========================================
+// BULK PROMOTIONS CALCULATOR ENGINE
+// ==========================================
+let promoPreviewProducts = [];
+
+function setupPromoCalculatorListeners() {
+  const scopeSelect = document.getElementById('promo-scope');
+  const scopeDetailGroup = document.getElementById('promo-scope-detail-group');
+  const scopeDetailSelect = document.getElementById('promo-scope-detail');
+  const manualSelectGroup = document.getElementById('promo-manual-select-group');
+  const manualProductsList = document.getElementById('promo-manual-products-list');
+  const formPromo = document.getElementById('admin-promo-calc-form');
+  const btnPreview = document.getElementById('btn-promo-preview');
+  const btnClear = document.getElementById('btn-promo-clear');
+  
+  if (!scopeSelect) return;
+  
+  scopeSelect.addEventListener('change', () => {
+    const scope = scopeSelect.value;
+    
+    if (scope === 'all') {
+      scopeDetailGroup.classList.add('d-none');
+      manualSelectGroup.classList.add('d-none');
+    } else if (scope === 'category') {
+      scopeDetailGroup.classList.remove('d-none');
+      manualSelectGroup.classList.add('d-none');
+      document.getElementById('promo-scope-detail-label').textContent = 'Selecione a Categoria:';
+      
+      const categories = [...new Set(state.products.map(p => p.category))].filter(Boolean);
+      scopeDetailSelect.innerHTML = categories.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('');
+    } else if (scope === 'brand') {
+      scopeDetailGroup.classList.remove('d-none');
+      manualSelectGroup.classList.add('d-none');
+      document.getElementById('promo-scope-detail-label').textContent = 'Selecione a Marca:';
+      
+      const brands = [...new Set(state.products.map(p => p.brand))].filter(Boolean);
+      scopeDetailSelect.innerHTML = brands.map(b => `<option value="${b}">${b}</option>`).join('');
+    } else if (scope === 'selected') {
+      scopeDetailGroup.classList.add('d-none');
+      manualSelectGroup.classList.remove('d-none');
+      
+      manualProductsList.innerHTML = state.products.map(p => `
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; margin-bottom: 4px;">
+          <input type="checkbox" name="promo-select-product" value="${p.id}" style="width: 16px; height: 16px; accent-color: var(--purple-primary);">
+          <span>${p.name} (${p.brand}) - R$ ${p.price.toLocaleString('pt-BR')}</span>
+        </label>
+      `).join('');
+    }
+  });
+
+  btnPreview.addEventListener('click', generatePromoPreview);
+  
+  formPromo.addEventListener('submit', (e) => {
+    e.preventDefault();
+    applyPromoDiscount();
+  });
+  
+  btnClear.addEventListener('click', clearPromoDiscounts);
+}
+
+function generatePromoPreview() {
+  const scope = document.getElementById('promo-scope').value;
+  const detail = document.getElementById('promo-scope-detail').value;
+  const discountType = document.getElementById('promo-discount-type').value;
+  const discountValue = parseFloat(document.getElementById('promo-discount-value').value);
+  const previewCard = document.getElementById('promo-preview-card');
+  const tbody = document.getElementById('promo-preview-tbody');
+  
+  if (isNaN(discountValue) || discountValue < 0) {
+    showAdminToast('Insira um valor de desconto válido.', 'danger');
+    return;
+  }
+  
+  let productsToApply = [];
+  if (scope === 'all') {
+    productsToApply = [...state.products];
+  } else if (scope === 'category') {
+    productsToApply = state.products.filter(p => p.category === detail);
+  } else if (scope === 'brand') {
+    productsToApply = state.products.filter(p => p.brand === detail);
+  } else if (scope === 'selected') {
+    const checkedBoxes = document.querySelectorAll('input[name="promo-select-product"]:checked');
+    const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+    productsToApply = state.products.filter(p => selectedIds.includes(p.id));
+  }
+  
+  if (productsToApply.length === 0) {
+    showAdminToast('Nenhum produto selecionado ou elegível.', 'warning');
+    return;
+  }
+  
+  promoPreviewProducts = productsToApply.map(p => {
+    let newPromoPrice = 0;
+    if (discountType === 'percent') {
+      newPromoPrice = Math.round(p.price * (1 - discountValue / 100));
+    } else {
+      newPromoPrice = Math.max(0, p.price - discountValue);
+    }
+    
+    const realDiscount = p.price - newPromoPrice;
+    
+    return {
+      product: p,
+      newPromoPrice: newPromoPrice,
+      realDiscount: realDiscount
+    };
+  });
+  
+  tbody.innerHTML = promoPreviewProducts.map(item => `
+    <tr>
+      <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${item.product.internalCode || 'N/A'}</span></td>
+      <td><strong>${item.product.name}</strong></td>
+      <td>R$ ${item.product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+      <td class="text-muted">${item.product.promoPrice ? `R$ ${item.product.promoPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}</td>
+      <td class="text-orange" style="font-weight: 700;">R$ ${item.newPromoPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+      <td class="text-purple" style="font-weight: 700;">R$ ${item.realDiscount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+    </tr>
+  `).join('');
+  
+  if (previewCard) previewCard.classList.remove('d-none');
+  showAdminToast(`Prévia gerada para ${productsToApply.length} produtos.`, 'info');
+}
+
+function applyPromoDiscount() {
+  if (promoPreviewProducts.length === 0) {
+    showAdminToast('Gere a prévia de alterações antes de aplicar.', 'warning');
+    return;
+  }
+  
+  promoPreviewProducts.forEach(item => {
+    const idx = state.products.findIndex(p => p.id === item.product.id);
+    if (idx > -1) {
+      state.products[idx].promoPrice = item.newPromoPrice;
+    }
+  });
+  
+  saveToLocalStorage('products', state.products);
+  addActivityLog(`Promoção aplicada para ${promoPreviewProducts.length} produtos. Operador: ${state.activeProfile}.`, 'success');
+  showAdminToast('Promoção aplicada com sucesso!', 'success');
+  
+  promoPreviewProducts = [];
+  document.getElementById('promo-preview-card').classList.add('d-none');
+  renderCurrentTab();
+}
+
+function clearPromoDiscounts() {
+  const scope = document.getElementById('promo-scope').value;
+  const detail = document.getElementById('promo-scope-detail').value;
+  
+  let clearedCount = 0;
+  
+  state.products.forEach(p => {
+    let match = false;
+    if (scope === 'all') {
+      match = true;
+    } else if (scope === 'category' && p.category === detail) {
+      match = true;
+    } else if (scope === 'brand' && p.brand === detail) {
+      match = true;
+    } else if (scope === 'selected') {
+      const checkedBoxes = document.querySelectorAll('input[name="promo-select-product"]:checked');
+      const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+      if (selectedIds.includes(p.id)) match = true;
+    }
+    
+    if (match && p.promoPrice !== null) {
+      p.promoPrice = null;
+      clearedCount++;
+    }
+  });
+  
+  if (clearedCount === 0) {
+    showAdminToast('Nenhuma promoção ativa para remover no escopo selecionado.', 'warning');
+    return;
+  }
+  
+  saveToLocalStorage('products', state.products);
+  addActivityLog(`Descontos promocionais limpos de ${clearedCount} produtos. Operador: ${state.activeProfile}.`, 'warning');
+  showAdminToast(`${clearedCount} promoções removidas.`, 'success');
+  
+  document.getElementById('promo-preview-card').classList.add('d-none');
+  renderCurrentTab();
 }

@@ -57,6 +57,12 @@
         </div>
       </li>
       <li>
+        <div class="menu-item-link" id="tab-promo" data-tab="promo">
+          <i data-lucide="percent"></i>
+          <span class="menu-item-text">Promoções</span>
+        </div>
+      </li>
+      <li>
         <div class="menu-item-link" id="tab-users" data-tab="users">
           <i data-lucide="users"></i>
           <span class="menu-item-text">Usuários</span>
@@ -86,11 +92,24 @@
         <h2 class="top-navbar-title" id="workspace-title">Painel Operacional</h2>
       </div>
 
-      <div class="user-profile-badge">
-        <div class="user-avatar flex-center">SI</div>
+      <div class="user-profile-badge" id="profile-dropdown-trigger" style="cursor: pointer; position: relative;">
+        <div class="user-avatar flex-center" id="active-profile-avatar">SI</div>
         <div class="user-info-text">
-          <span class="user-name">Administrador</span>
-          <span class="user-role">Nível de Acesso Total</span>
+          <span class="user-name" id="active-profile-name">Administrador</span>
+          <span class="user-role" id="active-profile-role">Acesso Total</span>
+        </div>
+        <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 4px; color: var(--text-secondary);"></i>
+        
+        <!-- Dropdown Menu -->
+        <div class="profile-dropdown-menu d-none" id="profile-dropdown-menu" style="position: absolute; top: calc(100% + 8px); right: 0; background-color: var(--white); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); width: 180px; z-index: 1000; overflow: hidden; display: flex; flex-direction: column;">
+          <div class="dropdown-item" data-profile="Thallys" style="padding: 10px 16px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color var(--transition-fast);">
+            <div class="user-avatar flex-center" style="width: 24px; height: 24px; font-size: 0.75rem; background-color: var(--purple-primary);">T</div>
+            <span>Thallys</span>
+          </div>
+          <div class="dropdown-item" data-profile="Joice" style="padding: 10px 16px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color var(--transition-fast); border-top: 1px solid var(--border-color);">
+            <div class="user-avatar flex-center" style="width: 24px; height: 24px; font-size: 0.75rem; background-color: var(--orange-primary);">Joice</div>
+            <span>Joice</span>
+          </div>
         </div>
       </div>
     </header>
@@ -104,7 +123,7 @@
       <div id="panel-overview" class="admin-view-tab">
         
         <!-- KPI Widgets -->
-        <section class="dashboard-kpis">
+        <section class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
           <div class="kpi-card">
             <div class="kpi-details">
               <span class="kpi-label">Produtos em Catálogo</span>
@@ -129,12 +148,20 @@
             <div class="kpi-icon-box amber flex-center"><i data-lucide="alert-triangle"></i></div>
           </div>
           
-          <div class="kpi-card">
+          <div class="kpi-card" style="border-left: 4px solid var(--success);">
             <div class="kpi-details">
-              <span class="kpi-label">Valor Reservado</span>
-              <span class="kpi-value" id="kpi-sales-value">R$ 0,00</span>
+              <span class="kpi-label" style="color: var(--success); font-weight: 700;">Faturamento Realizado</span>
+              <span class="kpi-value" id="kpi-faturamento" style="color: var(--success);">R$ 0,00</span>
             </div>
-            <div class="kpi-icon-box green flex-center"><i data-lucide="dollar-sign"></i></div>
+            <div class="kpi-icon-box green flex-center"><i data-lucide="banknote"></i></div>
+          </div>
+          
+          <div class="kpi-card kpi-secondary" style="opacity: 0.75; background-color: var(--bg-secondary); border-style: dashed;">
+            <div class="kpi-details">
+              <span class="kpi-label" style="font-size: 0.72rem;">Valor Reservado (Pendente)</span>
+              <span class="kpi-value" id="kpi-sales-value" style="font-size: 1.25rem; color: var(--text-secondary);">R$ 0,00</span>
+            </div>
+            <div class="kpi-icon-box flex-center" style="background-color: var(--border-color); color: var(--text-secondary);"><i data-lucide="dollar-sign"></i></div>
           </div>
         </section>
 
@@ -474,6 +501,7 @@
                   <th>Valor Total</th>
                   <th>Data Venda</th>
                   <th>Vendedor</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="admin-sales-log-tbody">
@@ -483,6 +511,95 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- ==========================================
+           TAB: PROMOÇÕES (PROMOTIONS CALCULATOR)
+           ========================================== -->
+      <div id="panel-promo" class="admin-view-tab d-none">
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="percent"></i> Calculadora de Promoções</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 20px;">
+            Selecione o escopo do desconto (toda a loja, categoria, marca ou individual), configure o desconto e aplique-o de forma massiva.
+          </p>
+          
+          <form id="admin-promo-calc-form" novalidate>
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label class="form-label">Aplicar desconto em:</label>
+                <select class="form-control" id="promo-scope">
+                  <option value="all">Toda a Loja (Todos os Produtos)</option>
+                  <option value="category">Por Categoria</option>
+                  <option value="brand">Por Marca</option>
+                  <option value="selected">Produtos Selecionados</option>
+                </select>
+              </div>
+              
+              <div class="form-group d-none" id="promo-scope-detail-group">
+                <label class="form-label" id="promo-scope-detail-label">Detalhe do Escopo</label>
+                <select class="form-control" id="promo-scope-detail">
+                  <!-- Populated dynamically via JS -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Manual checkbox product selection (Hidden initially) -->
+            <div class="form-group d-none" id="promo-manual-select-group">
+              <label class="form-label">Selecione os Produtos:</label>
+              <div class="promo-product-checkbox-list" id="promo-manual-products-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 8px; background: var(--bg-secondary);">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+            
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label class="form-label">Tipo de Desconto *</label>
+                <select class="form-control" id="promo-discount-type">
+                  <option value="percent">Porcentagem (%) Off</option>
+                  <option value="fixed">Valor Fixo (R$) Off</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Valor do Desconto *</label>
+                <input type="number" class="form-control" id="promo-discount-value" placeholder="Ex: 5" required min="0" value="5">
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary" id="btn-promo-preview">
+                Visualizar Alterações <i data-lucide="eye"></i>
+              </button>
+              <button type="submit" class="btn btn-primary" id="btn-promo-apply-submit" style="display: inline-block; cursor: pointer; padding: 10px 20px; border-radius: var(--radius-sm); border: none; background: var(--purple-primary); color: var(--white); font-weight: 600;">
+                Aplicar Promoção <i data-lucide="check" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;"></i>
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-promo-clear" style="border-color: var(--danger); color: var(--danger); background: transparent;">
+                Limpar Descontos <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="panel-card d-none" id="promo-preview-card">
+          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="eye"></i> Prévia de Alterações de Preço</h3>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Ref. Código</th>
+                  <th>Produto</th>
+                  <th>Preço Base</th>
+                  <th>Preço Promo Atual</th>
+                  <th>Novo Preço Promo</th>
+                  <th>Desconto Real</th>
+                </tr>
+              </thead>
+              <tbody id="promo-preview-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- ==========================================

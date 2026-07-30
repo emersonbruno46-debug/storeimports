@@ -590,3 +590,57 @@ body.sidebar-collapsed .sidebar-logo {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ==========================================
+   USER PROFILE DROPDOWN MENU
+   ========================================== */
+.user-profile-badge {
+  position: relative;
+}
+
+.profile-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-dropdown-menu.d-none {
+  display: none;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+/* Secondary KPI card styling (muted) */
+.kpi-card.kpi-secondary {
+  border-color: var(--border-color);
+  background-color: #FAFAFB;
+}
+
+.kpi-card.kpi-secondary .kpi-value {
+  color: var(--text-secondary);
+}
+
+/* Promo calc selector checklist */
+.promo-product-checkbox-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--white);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
