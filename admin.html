@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./admin.css">
 
   <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@0.292.0"></script>
 </head>
 <body class="admin-body">
 
@@ -36,6 +36,12 @@
         <div class="menu-item-link" id="tab-products" data-tab="products">
           <i data-lucide="smartphone"></i>
           <span class="menu-item-text">Produtos</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-categories" data-tab="categories">
+          <i data-lucide="folder-tree"></i>
+          <span class="menu-item-text">Categorias</span>
         </div>
       </li>
       <li>
@@ -131,7 +137,7 @@
            ========================================== -->
       <div id="panel-overview" class="admin-view-tab">
         
-        <!-- KPI Widgets -->
+        <!-- KPI Widgets (4 KPIs) -->
         <section class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
           <div class="kpi-card">
             <div class="kpi-details">
@@ -151,7 +157,7 @@
           
           <div class="kpi-card">
             <div class="kpi-details">
-              <span class="kpi-label">Alertas de Estoque Baixo</span>
+              <span class="kpi-label">Alertas de Estoque</span>
               <span class="kpi-value" id="kpi-low-stock">0</span>
             </div>
             <div class="kpi-icon-box amber flex-center"><i data-lucide="alert-triangle"></i></div>
@@ -159,72 +165,103 @@
           
           <div class="kpi-card" style="border-left: 4px solid var(--success);">
             <div class="kpi-details">
-              <span class="kpi-label" style="color: var(--success); font-weight: 700;">Faturamento Realizado</span>
+              <span class="kpi-label" style="color: var(--success); font-weight: 700;">Faturamento (Simulado)</span>
               <span class="kpi-value" id="kpi-faturamento" style="color: var(--success);">R$ 0,00</span>
             </div>
             <div class="kpi-icon-box green flex-center"><i data-lucide="banknote"></i></div>
-          </div>
-          
-          <div class="kpi-card kpi-secondary" style="opacity: 0.75; background-color: var(--bg-secondary); border-style: dashed;">
-            <div class="kpi-details">
-              <span class="kpi-label" style="font-size: 0.72rem;">Valor Reservado (Pendente)</span>
-              <span class="kpi-value" id="kpi-sales-value" style="font-size: 1.25rem; color: var(--text-secondary);">R$ 0,00</span>
-            </div>
-            <div class="kpi-icon-box flex-center" style="background-color: var(--border-color); color: var(--text-secondary);"><i data-lucide="dollar-sign"></i></div>
           </div>
         </section>
 
         <!-- Charts Mock & Activity Timeline -->
         <div class="dashboard-grid">
           
-          <!-- Mock Chart -->
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="bar-chart-3"></i> Volume Mensal de Solicitações (Demonstração)</h3>
-              <span class="results-count">Últimos 7 meses</span>
+          <!-- Mock Chart & Quick Actions -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3 class="panel-card-title"><i data-lucide="bar-chart-3"></i> Volume Mensal de Solicitações (Demonstração)</h3>
+                <span class="results-count">Últimos 7 meses</span>
+              </div>
+              
+              <div class="mock-chart-container">
+                <!-- Rendered via JS bars -->
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 40%;" data-value="12" data-tooltip="12 Simulações"></div>
+                  <span class="mock-chart-label">Jan</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 55%;" data-value="18" data-tooltip="18 Simulações"></div>
+                  <span class="mock-chart-label">Fev</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 70%;" data-value="24" data-tooltip="24 Simulações"></div>
+                  <span class="mock-chart-label">Mar</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 50%;" data-value="15" data-tooltip="15 Simulações"></div>
+                  <span class="mock-chart-label">Abr</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 85%;" data-value="32" data-tooltip="32 Simulações"></div>
+                  <span class="mock-chart-label">Mai</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 95%;" data-value="40" data-tooltip="40 Simulações"></div>
+                  <span class="mock-chart-label">Jun</span>
+                </div>
+                <div class="mock-chart-bar-wrapper">
+                  <div class="mock-chart-bar chart-tooltip-target" style="height: 60%;" data-value="20" data-tooltip="20 Simulações"></div>
+                  <span class="mock-chart-label">Jul</span>
+                </div>
+              </div>
             </div>
-            
-            <div class="mock-chart-container">
-              <!-- Rendered via JS bars -->
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 40%;" data-value="12"></div>
-                <span class="mock-chart-label">Jan</span>
+
+            <!-- Quick Actions -->
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3 class="panel-card-title"><i data-lucide="zap"></i> Ações Rápidas</h3>
               </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 55%;" data-value="18"></div>
-                <span class="mock-chart-label">Fev</span>
-              </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 70%;" data-value="24"></div>
-                <span class="mock-chart-label">Mar</span>
-              </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 50%;" data-value="15"></div>
-                <span class="mock-chart-label">Abr</span>
-              </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 85%;" data-value="32"></div>
-                <span class="mock-chart-label">Mai</span>
-              </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 95%;" data-value="40"></div>
-                <span class="mock-chart-label">Jun</span>
-              </div>
-              <div class="mock-chart-bar-wrapper">
-                <div class="mock-chart-bar" style="height: 60%;" data-value="20"></div>
-                <span class="mock-chart-label">Jul</span>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px;">
+                <button class="btn btn-primary" onclick="navTo('reservas')" style="justify-content: center;"><i data-lucide="clock"></i> Ver Reservas</button>
+                <button class="btn btn-secondary" onclick="navTo('produtos')" style="justify-content: center;"><i data-lucide="package-plus"></i> Novo Produto</button>
+                <button class="btn btn-secondary" onclick="navTo('pdv')" style="justify-content: center;"><i data-lucide="shopping-cart"></i> Nova Venda (PDV)</button>
+                <button class="btn btn-secondary" onclick="navTo('config')" style="justify-content: center; color: var(--danger); border-color: var(--danger);"><i data-lucide="refresh-cw"></i> Resetar Dados</button>
               </div>
             </div>
           </div>
 
-          <!-- Activity log -->
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="activity"></i> Logs e Ajustes de Operação</h3>
+          <!-- Operational Health & Activity log -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Operational Health -->
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3 class="panel-card-title"><i data-lucide="heart-pulse"></i> Saúde Operacional</h3>
+              </div>
+              <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Estoque Sincronizado</span>
+                  <span class="badge-capsule badge-purple-light" style="font-size: 0.7rem;"><i data-lucide="check" style="width: 12px; height: 12px;"></i> 100%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Banco de Dados Local</span>
+                  <span class="badge-capsule" style="background-color: var(--success-bg); color: var(--success); font-size: 0.7rem;"><i data-lucide="database" style="width: 12px; height: 12px;"></i> V3 Ativo</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Erros Registrados (24h)</span>
+                  <span class="badge-capsule badge-orange-light" style="font-size: 0.7rem;"><i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> 0 Erros</span>
+                </div>
+              </div>
             </div>
-            
-            <div class="activity-list" id="activity-log-list">
-              <!-- Dynamically populated activities -->
+
+            <!-- Activity log -->
+            <div class="panel-card" style="flex: 1;">
+              <div class="panel-card-header">
+                <h3 class="panel-card-title"><i data-lucide="activity"></i> Logs e Ajustes de Operação</h3>
+              </div>
+              
+              <div class="activity-list" id="activity-log-list" style="max-height: 250px; overflow-y: auto;">
+                <!-- Dynamically populated activities -->
+              </div>
             </div>
           </div>
 
@@ -308,6 +345,42 @@
                 </tr>
               </thead>
               <tbody id="admin-products-table-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: CATEGORIAS (CATEGORIES MANAGEMENT)
+           ========================================== -->
+      <div id="panel-categories" class="admin-view-tab d-none">
+        
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; max-width: 400px;">
+              <input type="text" class="form-control" id="admin-search-categories" placeholder="Buscar categoria...">
+            </div>
+            <button class="btn btn-primary" id="btn-admin-add-category">
+              <i data-lucide="plus"></i> Nova Categoria
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Imagem</th>
+                  <th>Nome da Categoria</th>
+                  <th>Identificador (Slug)</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-categories-table-tbody">
                 <!-- Dynamically populated -->
               </tbody>
             </table>
@@ -708,22 +781,23 @@
        ADMIN ADD/EDIT PRODUCT MODAL
        ========================================== -->
   <div class="admin-modal-overlay" id="admin-product-modal-overlay">
-    <div class="admin-modal">
-      <h3 class="panel-card-title" id="admin-product-modal-title" style="margin-bottom: 24px;">Adicionar Novo Produto</h3>
+    <div class="admin-modal" style="max-width: 700px;">
+      <h3 class="panel-card-title" id="admin-product-modal-title" style="margin-bottom: 24px;">Cadastrar Novo Produto (V3)</h3>
       
-      <!-- Tab Controls inside Form -->
-      <div class="admin-tabs" style="margin-bottom: 20px;">
-        <button type="button" class="admin-tab-btn active" data-form-tab="form-general">Geral</button>
-        <button type="button" class="admin-tab-btn" data-form-tab="form-prices">Preços</button>
-        <button type="button" class="admin-tab-btn" data-form-tab="form-stock">Estoque</button>
-        <button type="button" class="admin-tab-btn" data-form-tab="form-variations">Especificações</button>
+      <!-- Stepper Header -->
+      <div class="admin-tabs" style="margin-bottom: 20px; display: flex; overflow-x: auto; white-space: nowrap;">
+        <button type="button" class="admin-tab-btn active" data-form-step="1">1. Básicos</button>
+        <button type="button" class="admin-tab-btn" data-form-step="2">2. Mídia</button>
+        <button type="button" class="admin-tab-btn" data-form-step="3">3. Variações & Estoque</button>
+        <button type="button" class="admin-tab-btn" data-form-step="4">4. Preços</button>
+        <button type="button" class="admin-tab-btn" data-form-step="5">5. Revisão</button>
       </div>
 
       <!-- Add Form -->
       <form id="admin-add-product-form" novalidate>
         
-        <!-- Tab Content: Geral -->
-        <div id="form-tab-general" class="form-tab-pane">
+        <!-- Step 1: Geral -->
+        <div id="form-step-1" class="form-step-pane">
           <div class="form-group">
             <label for="p-name" class="form-label">Nome do Produto *</label>
             <input type="text" class="form-control" id="p-name" placeholder="Ex: iPhone 15 Pro Max 256GB" required>
@@ -742,23 +816,16 @@
 
           <div class="grid-2-col">
             <div class="form-group">
-              <label for="p-category" class="form-label">Categoria *</label>
+              <label for="p-category" class="form-label">Categoria * (ID V3)</label>
               <select class="form-control" id="p-category" required>
-                <option value="iphones">iPhones</option>
-                <option value="android">Android</option>
-                <option value="capas">Capas</option>
-                <option value="peliculas">Películas</option>
-                <option value="carregadores">Carregadores</option>
-                <option value="fones">Fones de Ouvido</option>
-                <option value="smartwatches">Smartwatches</option>
-                <option value="acessorios">Acessórios</option>
+                <!-- Populated via JS -->
               </select>
             </div>
             <div class="form-group">
               <label for="p-condition" class="form-label">Condição *</label>
               <select class="form-control" id="p-condition" required>
-                <option value="Novo">Novo</option>
-                <option value="Seminovo">Seminovo</option>
+                <option value="new">Novo (Lacrado)</option>
+                <option value="used_demo">Seminovo (Vitrine)</option>
               </select>
             </div>
           </div>
@@ -767,73 +834,110 @@
             <label for="p-description" class="form-label">Descrição Comercial</label>
             <textarea class="form-control" id="p-description" rows="2" placeholder="Ficha ou detalhes do produto..."></textarea>
           </div>
-        </div>
-
-        <!-- Tab Content: Preços -->
-        <div id="form-tab-prices" class="form-tab-pane d-none">
-          <div class="grid-2-col">
-            <div class="form-group">
-              <label for="p-price" class="form-label">Preço de Venda (R$) *</label>
-              <input type="number" class="form-control" id="p-price" placeholder="Ex: 6999" required min="0">
-            </div>
-            <div class="form-group">
-              <label for="p-promo" class="form-label">Preço Promocional (R$, opcional)</label>
-              <input type="number" class="form-control" id="p-promo" placeholder="Ex: 6499" min="0">
-            </div>
-          </div>
           <div class="form-group">
-            <label for="p-cost" class="form-label">Preço de Custo Interno (R$, opcional)</label>
-            <input type="number" class="form-control" id="p-cost" placeholder="Ex: 5000" min="0">
+            <label for="p-sku" class="form-label">SKU Base (Opcional)</label>
+            <input type="text" class="form-control" id="p-sku" placeholder="Ex: IP15PM-BASE">
           </div>
         </div>
 
-        <!-- Tab Content: Estoque -->
-        <div id="form-tab-stock" class="form-tab-pane d-none">
-          <div class="grid-2-col">
-            <div class="form-group">
-              <label for="p-quantity" class="form-label">Quantidade Inicial *</label>
-              <input type="number" class="form-control" id="p-quantity" placeholder="Ex: 5" required min="0" value="1">
-            </div>
-            <div class="form-group">
-              <label for="p-min-qty" class="form-label">Alerta Estoque Mínimo *</label>
-              <input type="number" class="form-control" id="p-min-qty" placeholder="Ex: 1" required min="0" value="1">
-            </div>
+        <!-- Step 2: Mídia -->
+        <div id="form-step-2" class="form-step-pane d-none">
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">(Demonstração) O upload de imagens reais está desabilitado. Defina a cor da mockup.</p>
+          <div class="form-group">
+            <label class="form-label">Cor principal do SVG (Hex ou Nome)</label>
+            <input type="text" class="form-control" id="p-svg-color" placeholder="Ex: #3C1239 ou blue" value="#6B7280">
           </div>
           <div class="form-group">
-            <label for="p-code" class="form-label">Código de Referência Interno</label>
-            <input type="text" class="form-control" id="p-code" placeholder="Ex: IP15P-256">
-          </div>
-          <div class="form-group" id="p-imei-tracker">
-            <label for="p-imeis-list" class="form-label">IMEIs do Lote (Para celulares - separados por vírgula)</label>
-            <textarea class="form-control" id="p-imeis-list" rows="2" placeholder="Ex: 359998887776661, 359998887776662"></textarea>
+            <label class="form-label">Ícone do Mockup</label>
+            <select class="form-control" id="p-svg-icon">
+              <option value="smartphone">Smartphone</option>
+              <option value="package">Pacote (Acessórios)</option>
+              <option value="headphones">Fones</option>
+              <option value="watch">Smartwatch</option>
+            </select>
           </div>
         </div>
 
-        <!-- Tab Content: Variações -->
-        <div id="form-tab-variations" class="form-tab-pane d-none">
-          <div class="form-group">
-            <label for="p-colors" class="form-label">Cores Disponíveis (Separadas por vírgula)</label>
-            <input type="text" class="form-control" id="p-colors" placeholder="Ex: Preto, Branco, Titânio Azul">
+        <!-- Step 3: Variações & Estoque -->
+        <div id="form-step-3" class="form-step-pane d-none">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 0;">Lista de Variações *</label>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-variant"><i data-lucide="plus"></i> Adicionar Variação</button>
           </div>
-          <div class="form-group">
-            <label for="p-capacities" class="form-label">Capacidades de Armazenamento (Separadas por vírgula)</label>
-            <input type="text" class="form-control" id="p-capacities" placeholder="Ex: 128GB, 256GB">
+          <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 16px;">Adicione ao menos uma variação (Ex: Cor e Capacidade). Estoque e preço são definidos por variação.</p>
+          
+          <div id="variants-container" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Variants will be injected here via JS -->
           </div>
-          <div class="form-group">
-            <label for="p-warranty" class="form-label">Garantia</label>
-            <input type="text" class="form-control" id="p-warranty" placeholder="Ex: 12 meses Apple ou 3 meses loja">
+        </div>
+
+        <!-- Step 4: Preços -->
+        <div id="form-step-4" class="form-step-pane d-none">
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">Defina a precificação para cada variação.</p>
+          
+          <div id="variants-pricing-container" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Pricing per variant injected via JS -->
           </div>
-          <div class="form-group">
-            <label for="p-box" class="form-label">Conteúdo da Embalagem</label>
-            <input type="text" class="form-control" id="p-box" placeholder="Ex: Aparelho, Cabo USB-C, Manuais">
+        </div>
+
+        <!-- Step 5: Revisão -->
+        <div id="form-step-5" class="form-step-pane d-none">
+          <div class="panel-card" style="background-color: var(--bg-secondary); border: 1px dashed var(--border-color);">
+            <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Resumo do Produto</h4>
+            <p id="review-product-name" style="font-weight: 700; color: var(--purple-primary); margin-bottom: 12px;">iPhone Exemplo</p>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+              <span id="review-variants-count">0 Variações Mapeadas</span>
+              <span id="review-total-stock">Estoque Total: 0 un</span>
+            </div>
           </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: space-between;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-modal-cancel">Cancelar</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm d-none" id="btn-admin-modal-prev">Voltar</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-admin-modal-next">Próximo</button>
+            <button type="submit" class="btn btn-primary btn-sm d-none" id="btn-admin-modal-submit" style="background: var(--success); border-color: var(--success);">Confirmar e Salvar</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ADMIN ADD/EDIT CATEGORY MODAL
+       ========================================== -->
+  <div class="admin-modal-overlay d-none" id="admin-category-modal-overlay">
+    <div class="admin-modal" style="max-width: 500px;">
+      <h3 class="panel-card-title" id="admin-category-modal-title" style="margin-bottom: 24px;">Cadastrar Categoria</h3>
+      
+      <form id="admin-add-category-form" novalidate>
+        <div class="form-group">
+          <label for="c-name" class="form-label">Nome da Categoria *</label>
+          <input type="text" class="form-control" id="c-name" placeholder="Ex: Capas Premium" required>
+        </div>
+        <div class="form-group">
+          <label for="c-slug" class="form-label">Identificador (Slug) *</label>
+          <input type="text" class="form-control" id="c-slug" placeholder="Ex: capas-premium" required>
+        </div>
+        <div class="form-group">
+          <label for="c-image" class="form-label">Nome da Imagem (Na pasta assets) *</label>
+          <input type="text" class="form-control" id="c-image" placeholder="Ex: capas.png" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Visível no Catálogo?</label>
+          <select class="form-control" id="c-visible">
+            <option value="true">Sim</option>
+            <option value="false">Não</option>
+          </select>
         </div>
 
         <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-modal-cancel">Cancelar</button>
-          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-modal-submit">Salvar Produto</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-cat-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-cat-submit">Salvar Categoria</button>
         </div>
-
       </form>
     </div>
   </div>

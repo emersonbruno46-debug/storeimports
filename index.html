@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="./style.css">
 
   <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@0.292.0"></script>
 </head>
 <body>
 
@@ -62,12 +62,12 @@
       <div class="header-actions">
         <!-- Search Trigger (Desktop) -->
         <button class="btn-header-icon" id="btn-search-trigger" title="Buscar produtos">
-          <i data-lucide="search"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
 
         <!-- Cart Trigger -->
         <button class="btn-header-icon" id="btn-cart-trigger" title="Sua seleção">
-          <i data-lucide="shopping-bag"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           <span class="cart-badge" id="cart-badge-count">0</span>
         </button>
 
@@ -78,7 +78,7 @@
 
         <!-- Mobile Drawer Toggle -->
         <button class="btn-hamburger" id="btn-hamburger" title="Abrir menu">
-          <i data-lucide="menu"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
       </div>
     </div>
@@ -94,7 +94,7 @@
           <img src="./assets/logo.png" alt="Store Imports">
         </div>
         <button class="btn-close-drawer" id="btn-close-drawer">
-          <i data-lucide="x"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
 
@@ -761,7 +761,7 @@
   <div class="modal-overlay" id="product-detail-modal-overlay">
     <div class="modal-container">
       <button class="btn-close-modal" id="btn-close-product-modal" title="Fechar modal">
-        <i data-lucide="x"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
 
       <div class="modal-body" id="product-detail-modal-body">
@@ -778,7 +778,7 @@
       <div class="cart-drawer-header">
         <h3 class="cart-drawer-title">Sua seleção</h3>
         <button class="btn-close-drawer" id="btn-close-cart-drawer">
-          <i data-lucide="x"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
 
@@ -816,7 +816,7 @@
         <span>Início</span>
       </a>
       <a href="#catalogo" class="bottom-bar-item" id="b-nav-search">
-        <div class="bottom-bar-icon-container"><i data-lucide="search"></i></div>
+        <div class="bottom-bar-icon-container"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
         <span>Buscar</span>
       </a>
       <a href="#categorias" class="bottom-bar-item" id="b-nav-categories">
@@ -825,7 +825,7 @@
       </a>
       <a href="#selecao" class="bottom-bar-item" id="b-nav-cart">
         <div class="bottom-bar-icon-container">
-          <i data-lucide="shopping-bag"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           <span class="bottom-bar-badge" id="cart-badge-count-mobile">0</span>
         </div>
         <span>Seleção</span>
@@ -864,19 +864,15 @@
         </div>
 
         <div>
-          <h4 class="footer-section-title">Contato & Retirada</h4>
+          <h4 class="footer-section-title">Sobre a Demonstração</h4>
           <div class="footer-contact-info">
             <div class="footer-contact-item">
-              <i data-lucide="map-pin" style="color: var(--orange-primary); flex-shrink: 0;"></i>
-              <span>Av. Central de Compras, 1200 - Centro</span>
+              <i data-lucide="info" style="color: var(--orange-primary); flex-shrink: 0;"></i>
+              <span>Este é um ambiente demonstrativo. Nenhum produto real é comercializado.</span>
             </div>
             <div class="footer-contact-item">
-              <i data-lucide="clock" style="color: var(--orange-primary); flex-shrink: 0;"></i>
-              <span>Seg. a Sex. das 09h às 18h<br>Sáb. das 09h às 13h</span>
-            </div>
-            <div class="footer-contact-item">
-              <i data-lucide="phone" style="color: var(--orange-primary); flex-shrink: 0;"></i>
-              <span>(11) 99999-9999 / (11) 3333-3333</span>
+              <i data-lucide="shield-alert" style="color: var(--orange-primary); flex-shrink: 0;"></i>
+              <span>Não processamos pagamentos reais nem solicitamos dados sensíveis.</span>
             </div>
           </div>
         </div>

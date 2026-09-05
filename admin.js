@@ -8,11 +8,13 @@
 let state = {
   currentTab: 'overview',
   products: [],
+  categories: [],
   reservations: [],
   sales: [],
   stockLogs: [],
   activityLogs: [],
   selectedProductToEdit: null,
+  selectedCategoryToEdit: null,
   activeFormTab: 'form-general'
 };
 
@@ -25,7 +27,7 @@ const btnAdminHamburger = document.getElementById('btn-admin-hamburger');
 const workspaceTitle = document.getElementById('workspace-title');
 
 // Tabs Views
-const tabs = ['overview', 'products', 'stock', 'reservations', 'sales', 'promo', 'users', 'settings'];
+const tabs = ['overview', 'products', 'categories', 'stock', 'reservations', 'sales', 'promo', 'users', 'settings'];
 
 // Modals
 const adminProductModalOverlay = document.getElementById('admin-product-modal-overlay');
@@ -57,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupActiveProfile();
   setupEventListeners();
   renderCurrentTab();
+  initChartTooltips();
   
   lucide.createIcons();
 });
@@ -64,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load variables from shared store
 function loadDatabase() {
   state.products = getStoreData('products');
+  state.categories = getStoreData('categories');
   state.reservations = getStoreData('reservations');
   state.sales = getStoreData('sales');
   state.stockLogs = getStoreData('stock_logs');
@@ -148,6 +152,30 @@ function setupEventListeners() {
   document.getElementById('admin-product-modal-overlay').addEventListener('click', (e) => {
     if (e.target === adminProductModalOverlay) closeProductFormModal();
   });
+
+  // Categories Listeners
+  const btnAddCat = document.getElementById('btn-admin-add-category');
+  if (btnAddCat) {
+    btnAddCat.addEventListener('click', () => openCategoryFormModal());
+  }
+  const adminCatModalOverlay = document.getElementById('admin-category-modal-overlay');
+  const btnCatCancel = document.getElementById('btn-admin-cat-cancel');
+  if (btnCatCancel) {
+    btnCatCancel.addEventListener('click', closeCategoryFormModal);
+    adminCatModalOverlay.addEventListener('click', (e) => {
+      if (e.target === adminCatModalOverlay) closeCategoryFormModal();
+    });
+  }
+  
+  const formCat = document.getElementById('admin-add-category-form');
+  if (formCat) {
+    formCat.addEventListener('submit', handleCategorySubmit);
+  }
+  
+  const searchCat = document.getElementById('admin-search-categories');
+  if (searchCat) {
+    searchCat.addEventListener('input', renderCategoriesTable);
+  }
 
   // Modal Form Switch Tab-Panes
   document.querySelectorAll('[data-form-tab]').forEach(btn => {
@@ -247,6 +275,8 @@ function renderCurrentTab() {
     renderDashboardOverview();
   } else if (state.currentTab === 'products') {
     renderProductsTable();
+  } else if (state.currentTab === 'categories') {
+    renderCategoriesTable();
   } else if (state.currentTab === 'stock') {
     populateProductSelects();
     renderStockLogsTable();
@@ -272,29 +302,30 @@ function renderCurrentTab() {
 // VIEW RENDERING: OVERVIEW DASHBOARD
 // ==========================================
 function calculateOverviewKPIs() {
-  // 1. Total products
+  // 1. Total products (V3 format uses p.variants array for stock calculation)
   kpiTotalProducts.textContent = state.products.length;
   
-  // 2. Pending Reservations
-  const pending = state.reservations.filter(r => r.status === 'Aguardando confirmação').length;
+  // 2. Pending Reservations (V3 status 'new')
+  const pending = state.reservations.filter(r => r.status === 'new').length;
   kpiPendingRes.textContent = pending;
 
   // 3. Low stock warning (stock <= minQuantity)
-  const lowStock = state.products.filter(p => p.quantity <= p.minQuantity).length;
+  const lowStock = state.products.filter(p => {
+    const totalStock = p.variants ? p.variants.reduce((acc, v) => acc + v.stockQuantity, 0) : 0;
+    const minStock = (p.variants && p.variants[0]) ? p.variants[0].minimumStock : 1;
+    return totalStock <= minStock;
+  }).length;
   kpiLowStock.textContent = lowStock;
   
-  // 4. Faturamento (Sales total)
-  const totalSales = state.sales.reduce((sum, s) => sum + s.total, 0);
+  // 4. Faturamento Simulado (Sum of estimatedTotalCents for contacted/finished)
+  const totalSales = state.reservations
+    .filter(r => ['contacted', 'finished'].includes(r.status))
+    .reduce((sum, r) => sum + (r.estimatedTotalCents || 0), 0) / 100;
+  
   const kpiFaturamento = document.getElementById('kpi-faturamento');
   if (kpiFaturamento) {
     kpiFaturamento.textContent = `R$ ${totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   }
-  
-  // 5. Sold/Reserved estimated value (for active reservations)
-  const activeValue = state.reservations
-    .filter(r => ['Aguardando confirmação', 'Confirmada', 'Aguardando retirada'].includes(r.status))
-    .reduce((sum, r) => sum + r.total, 0);
-  kpiSalesValue.textContent = `R$ ${activeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 }
 
 function renderDashboardOverview() {
@@ -306,28 +337,34 @@ function renderDashboardOverview() {
   const sorted = [...state.reservations].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
   
   if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align: center;">Nenhuma solicitação recebida.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align: center;">Nenhuma simulação recebida.</td></tr>';
   } else {
     sorted.forEach(res => {
       const tr = document.createElement('tr');
       
-      const totalItems = res.items.reduce((sum, i) => sum + i.quantity, 0);
-      const prodNamePreview = res.items.map(i => `${i.name} (${i.quantity}x)`).join(', ');
+      const totalItems = res.items ? res.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
+      const prodNamePreview = res.items ? res.items.map(i => `${i.name || i.productId} (${i.quantity}x)`).join(', ') : '';
       
       let statusClass = 'status-pending';
-      if (res.status === 'Confirmada') statusClass = 'status-confirmed';
-      if (res.status === 'Aguardando retirada') statusClass = 'status-waiting';
-      if (res.status === 'Finalizada') statusClass = 'status-finished';
+      let statusLabel = 'Nova Simulação';
+      if (res.status === 'contacted') {
+        statusClass = 'status-confirmed';
+        statusLabel = 'Contato Simulado';
+      }
+      if (res.status === 'finished') {
+        statusClass = 'status-finished';
+        statusLabel = 'Finalizada';
+      }
       if (res.status === 'Cancelada') statusClass = 'status-cancelled';
 
       tr.innerHTML = `
         <td><strong>${res.code}</strong></td>
-        <td>${res.nome}</td>
-        <td>${res.whatsapp}</td>
+        <td>${res.demoCustomerName || res.nome || 'N/A'}</td>
+        <td>${res.demoContactLabel || res.whatsapp || ''}</td>
         <td style="max-width: 200px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${prodNamePreview}</td>
-        <td class="text-orange" style="font-weight: 700;">R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-        <td><span class="status-pill ${statusClass}">${res.status}</span></td>
-        <td class="text-muted">${res.createdAt}</td>
+        <td class="text-orange" style="font-weight: 700;">R$ ${(res.estimatedTotalCents ? res.estimatedTotalCents / 100 : res.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+        <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+        <td class="text-muted">${res.createdAt ? new Date(res.createdAt).toLocaleDateString('pt-BR') : ''}</td>
       `;
       
       tbody.appendChild(tr);
@@ -373,6 +410,179 @@ function renderDashboardOverview() {
   }
 
   lucide.createIcons();
+}
+
+function initChartTooltips() {
+  document.querySelectorAll('.chart-tooltip-target').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'chart-tooltip-dyn';
+      tooltip.textContent = el.getAttribute('data-tooltip');
+      tooltip.style.position = 'fixed';
+      tooltip.style.background = 'var(--text-primary)';
+      tooltip.style.color = 'var(--white)';
+      tooltip.style.padding = '6px 10px';
+      tooltip.style.borderRadius = 'var(--radius-sm)';
+      tooltip.style.fontSize = '0.75rem';
+      tooltip.style.pointerEvents = 'none';
+      tooltip.style.zIndex = '1000';
+      tooltip.style.fontWeight = 'bold';
+      
+      document.body.appendChild(tooltip);
+      
+      const rect = el.getBoundingClientRect();
+      tooltip.style.top = (rect.top - 35) + 'px';
+      tooltip.style.left = (rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)) + 'px';
+      
+      el.addEventListener('mouseleave', () => tooltip.remove(), { once: true });
+    });
+  });
+}
+
+// ==========================================
+// VIEW RENDERING: CATEGORIES MANAGEMENT (CRUD)
+// ==========================================
+function renderCategoriesTable() {
+  const tbody = document.getElementById('admin-categories-table-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
+  const query = (document.getElementById('admin-search-categories')?.value || '').trim().toLowerCase();
+  
+  let filtered = state.categories.filter(c => {
+    if (query) {
+      return c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query);
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align: center;">Nenhuma categoria encontrada.</td></tr>';
+  } else {
+    filtered.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><div class="category-icon-preview" style="width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><img src="./assets/${c.image}" alt="${c.name}" style="max-width: 24px; max-height: 24px;"></div></td>
+        <td><strong>${c.name}</strong> ${!c.visible ? '<span class="badge-capsule" style="background: var(--danger); font-size: 0.65rem;">Oculta</span>' : ''}</td>
+        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${c.id}</span></td>
+        <td>
+          <button class="table-action-btn edit-btn-cat" data-id="${c.id}" title="Editar"><i data-lucide="edit"></i></button>
+          <button class="table-action-btn delete-btn-cat" data-id="${c.id}" title="Excluir"><i data-lucide="trash-2"></i></button>
+        </td>
+      `;
+
+      tr.querySelector('.edit-btn-cat').addEventListener('click', () => {
+        openCategoryFormModal(c.id);
+      });
+      tr.querySelector('.delete-btn-cat').addEventListener('click', () => {
+        deleteCategory(c.id);
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+  lucide.createIcons();
+}
+
+function openCategoryFormModal(catId = null) {
+  const form = document.getElementById('admin-add-category-form');
+  form.reset();
+  state.selectedCategoryToEdit = catId;
+  
+  document.getElementById('admin-category-modal-title').textContent = catId ? 'Editar Categoria' : 'Cadastrar Categoria';
+  
+  if (catId) {
+    const cat = state.categories.find(c => c.id === catId);
+    if (cat) {
+      document.getElementById('c-name').value = cat.name;
+      document.getElementById('c-slug').value = cat.id;
+      document.getElementById('c-slug').disabled = true; // Cannot edit ID after creation easily
+      document.getElementById('c-image').value = cat.image;
+      document.getElementById('c-visible').value = cat.visible !== false ? 'true' : 'false';
+    }
+  } else {
+    document.getElementById('c-slug').disabled = false;
+  }
+  
+  document.getElementById('admin-category-modal-overlay').classList.remove('d-none');
+}
+
+function closeCategoryFormModal() {
+  document.getElementById('admin-category-modal-overlay').classList.add('d-none');
+  state.selectedCategoryToEdit = null;
+}
+
+function handleCategorySubmit(e) {
+  e.preventDefault();
+  
+  const idVal = document.getElementById('c-slug').value.trim();
+  const nameVal = document.getElementById('c-name').value.trim();
+  const imgVal = document.getElementById('c-image').value.trim();
+  const visVal = document.getElementById('c-visible').value === 'true';
+  
+  if (!idVal || !nameVal || !imgVal) {
+    alert("Preencha todos os campos obrigatórios.");
+    return;
+  }
+  
+  if (state.selectedCategoryToEdit) {
+    const cat = state.categories.find(c => c.id === state.selectedCategoryToEdit);
+    if (cat) {
+      cat.name = nameVal;
+      cat.image = imgVal;
+      cat.visible = visVal;
+      addActivityLog(`Categoria "${nameVal}" editada.`, 'success');
+    }
+  } else {
+    // Check if ID exists
+    if (state.categories.some(c => c.id === idVal)) {
+      alert("Já existe uma categoria com este Identificador (Slug).");
+      return;
+    }
+    state.categories.push({
+      id: idVal,
+      name: nameVal,
+      image: imgVal,
+      visible: visVal,
+      displayOrder: state.categories.length + 1
+    });
+    addActivityLog(`Categoria "${nameVal}" criada.`, 'success');
+  }
+  
+  saveToLocalStorage('categories', state.categories);
+  renderCategoriesTable();
+  
+  // Re-populate category selects in Products if needed
+  populateCategorySelects();
+  
+  closeCategoryFormModal();
+}
+
+function deleteCategory(catId) {
+  if (confirm("Tem certeza que deseja excluir esta categoria? Produtos associados a ela poderão não ser exibidos corretamente.")) {
+    state.categories = state.categories.filter(c => c.id !== catId);
+    saveToLocalStorage('categories', state.categories);
+    addActivityLog(`Categoria "${catId}" removida.`, 'warning');
+    renderCategoriesTable();
+    populateCategorySelects();
+  }
+}
+
+// Add a helper to populate the category select inside the products modal
+function populateCategorySelects() {
+  const pCatSelect = document.getElementById('p-category');
+  const filterCatSelect = document.getElementById('admin-filter-products-category');
+  
+  if (pCatSelect) {
+    pCatSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  
+  if (filterCatSelect) {
+    const currentVal = filterCatSelect.value;
+    filterCatSelect.innerHTML = `<option value="">Todas as Categorias</option>` + 
+      state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    filterCatSelect.value = currentVal;
+  }
 }
 
 // ==========================================
@@ -441,26 +651,56 @@ function renderProductsTable() {
   lucide.createIcons();
 }
 
-function openProductFormModal(prodId = null) {
-  adminAddProductForm.reset();
-  switchFormTab('form-general');
+let currentFormStep = 1;
+let tempVariants = [];
+
+function switchFormStep(step) {
+  currentFormStep = step;
   
-  // Show/Hide IMEI tracker block dynamically
-  const pCatSelect = document.getElementById('p-category');
-  const pImeiBlock = document.getElementById('p-imei-tracker');
-  
-  pCatSelect.addEventListener('change', () => {
-    if (['iphones', 'android'].includes(pCatSelect.value)) {
-      pImeiBlock.classList.remove('d-none');
-    } else {
-      pImeiBlock.classList.add('d-none');
-    }
+  // Update Tabs style
+  document.querySelectorAll('[data-form-step]').forEach(btn => {
+    const s = parseInt(btn.getAttribute('data-form-step'));
+    if (s === step) btn.classList.add('active');
+    else btn.classList.remove('active');
   });
 
+  // Toggle form panes
+  document.querySelectorAll('.form-step-pane').forEach(pane => pane.classList.add('d-none'));
+  document.getElementById(`form-step-${step}`).classList.remove('d-none');
+  
+  // Toggle buttons
+  const btnPrev = document.getElementById('btn-admin-modal-prev');
+  const btnNext = document.getElementById('btn-admin-modal-next');
+  const btnSubmit = document.getElementById('btn-admin-modal-submit');
+  
+  if (step === 1) {
+    btnPrev.classList.add('d-none');
+    btnNext.classList.remove('d-none');
+    btnSubmit.classList.add('d-none');
+  } else if (step === 5) {
+    btnPrev.classList.remove('d-none');
+    btnNext.classList.add('d-none');
+    btnSubmit.classList.remove('d-none');
+    buildReviewStep();
+  } else {
+    btnPrev.classList.remove('d-none');
+    btnNext.classList.remove('d-none');
+    btnSubmit.classList.add('d-none');
+  }
+}
+
+function openProductFormModal(prodId = null) {
+  adminAddProductForm.reset();
+  populateCategorySelects();
+  
+  tempVariants = [];
+  document.getElementById('variants-container').innerHTML = '';
+  document.getElementById('variants-pricing-container').innerHTML = '';
+  
   if (prodId) {
     // EDIT MODE
     state.selectedProductToEdit = prodId;
-    adminProductModalTitle.textContent = 'Editar Produto';
+    document.getElementById('admin-product-modal-title').textContent = 'Editar Produto';
     
     const p = state.products.find(item => item.id === prodId);
     if (p) {
@@ -470,66 +710,179 @@ function openProductFormModal(prodId = null) {
       document.getElementById('p-category').value = p.category;
       document.getElementById('p-condition').value = p.condition;
       document.getElementById('p-description').value = p.description || '';
+      document.getElementById('p-sku').value = p.internalCode || '';
       
-      document.getElementById('p-price').value = p.price;
-      document.getElementById('p-promo').value = p.promoPrice || '';
-      document.getElementById('p-cost').value = p.cost || '';
+      document.getElementById('p-svg-color').value = p.mockupStyle?.color || '#6B7280';
+      document.getElementById('p-svg-icon').value = p.mockupStyle?.icon || 'smartphone';
       
-      document.getElementById('p-quantity').value = p.quantity;
-      document.getElementById('p-min-qty').value = p.minQuantity;
-      document.getElementById('p-code').value = p.internalCode || '';
-      document.getElementById('p-imeis-list').value = p.imeis ? p.imeis.join(', ') : '';
-      
-      document.getElementById('p-colors').value = p.colors ? p.colors.join(', ') : '';
-      document.getElementById('p-capacities').value = p.capacities ? p.capacities.join(', ') : '';
-      document.getElementById('p-warranty').value = p.warranty || '';
-      document.getElementById('p-box').value = p.boxContent || '';
-      
-      // Trigger dynamic category block view initially
-      if (['iphones', 'android'].includes(p.category)) {
-        pImeiBlock.classList.remove('d-none');
-      } else {
-        pImeiBlock.classList.add('d-none');
+      // Load variants
+      if (p.variants) {
+        tempVariants = JSON.parse(JSON.stringify(p.variants)); // clone
       }
     }
   } else {
     // ADD MODE
     state.selectedProductToEdit = null;
-    adminProductModalTitle.textContent = 'Adicionar Novo Produto';
-    pImeiBlock.classList.remove('d-none'); // default is iphone, show it
+    document.getElementById('admin-product-modal-title').textContent = 'Cadastrar Novo Produto (V3)';
   }
   
-  adminProductModalOverlay.classList.add('active');
+  renderVariantsBuilder();
+  renderPricingBuilder();
+  switchFormStep(1);
+  adminProductModalOverlay.classList.remove('d-none');
 }
 
 function closeProductFormModal() {
-  adminProductModalOverlay.classList.remove('active');
+  adminProductModalOverlay.classList.add('d-none');
   state.selectedProductToEdit = null;
 }
 
-function switchFormTab(tabPaneName) {
-  state.activeFormTab = tabPaneName;
-  
-  // Update form tab button states
-  document.querySelectorAll('[data-form-tab]').forEach(btn => {
-    if (btn.getAttribute('data-form-tab') === tabPaneName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
+// ----------------- VARIANTS LOGIC -----------------
+document.getElementById('btn-add-variant')?.addEventListener('click', () => {
+  tempVariants.push({
+    id: 'var-' + Date.now(),
+    colorName: '',
+    capacityName: '',
+    priceCents: 0,
+    promoPriceCents: null,
+    costCents: null,
+    stockQuantity: 0,
+    minimumStock: 1,
+    imeis: []
   });
+  renderVariantsBuilder();
+});
 
-  // Toggle form panes
-  const panes = ['form-general', 'form-prices', 'form-stock', 'form-variations'];
-  panes.forEach(p => {
-    const block = document.getElementById(`form-tab-${p.replace('form-', '')}`);
-    if (p === tabPaneName) {
-      block.classList.remove('d-none');
-    } else {
-      block.classList.add('d-none');
-    }
+function renderVariantsBuilder() {
+  const c = document.getElementById('variants-container');
+  if (!c) return;
+  c.innerHTML = '';
+  if (tempVariants.length === 0) {
+    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Nenhuma variação adicionada.</div>';
+    return;
+  }
+  tempVariants.forEach((v, index) => {
+    const div = document.createElement('div');
+    div.style.padding = '12px';
+    div.style.border = '1px solid var(--border-color)';
+    div.style.borderRadius = 'var(--radius-md)';
+    div.style.display = 'flex';
+    div.style.flexDirection = 'column';
+    div.style.gap = '8px';
+    
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>Variação #${index+1}</strong>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="removeVariant(${index})" style="padding:4px; color:var(--danger);"><i data-lucide="trash-2"></i></button>
+      </div>
+      <div class="grid-2-col">
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Cor</label>
+          <input type="text" class="form-control var-color" value="${v.colorName || ''}" placeholder="Ex: Preto" data-idx="${index}">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Capacidade</label>
+          <input type="text" class="form-control var-cap" value="${v.capacityName || ''}" placeholder="Ex: 256GB" data-idx="${index}">
+        </div>
+      </div>
+      <div class="grid-2-col">
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Estoque Inicial (un)</label>
+          <input type="number" class="form-control var-stock" value="${v.stockQuantity}" placeholder="Ex: 5" data-idx="${index}">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Min. Estoque</label>
+          <input type="number" class="form-control var-min-stock" value="${v.minimumStock}" data-idx="${index}">
+        </div>
+      </div>
+      <div>
+        <label class="form-label" style="font-size:0.75rem;">IMEIs / Serials (Separados por vírgula)</label>
+        <textarea class="form-control var-imeis" rows="1" placeholder="Ex: 3599..., 3588..." data-idx="${index}">${(v.imeis || []).join(', ')}</textarea>
+      </div>
+    `;
+    c.appendChild(div);
   });
+  
+  // Attach events
+  c.querySelectorAll('.var-color').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].colorName = e.target.value));
+  c.querySelectorAll('.var-cap').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].capacityName = e.target.value));
+  c.querySelectorAll('.var-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].stockQuantity = parseInt(e.target.value) || 0));
+  c.querySelectorAll('.var-min-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].minimumStock = parseInt(e.target.value) || 1));
+  c.querySelectorAll('.var-imeis').forEach(el => el.addEventListener('input', e => {
+    tempVariants[e.target.dataset.idx].imeis = e.target.value.split(',').map(i=>i.trim()).filter(Boolean);
+  }));
+  lucide.createIcons();
 }
+
+window.removeVariant = function(idx) {
+  tempVariants.splice(idx, 1);
+  renderVariantsBuilder();
+};
+
+function renderPricingBuilder() {
+  const c = document.getElementById('variants-pricing-container');
+  if (!c) return;
+  c.innerHTML = '';
+  if (tempVariants.length === 0) {
+    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Adicione variações no passo 3.</div>';
+    return;
+  }
+  tempVariants.forEach((v, index) => {
+    const div = document.createElement('div');
+    div.style.padding = '12px';
+    div.style.border = '1px solid var(--border-color)';
+    div.style.borderRadius = 'var(--radius-md)';
+    const label = `${v.colorName} ${v.capacityName}`.trim() || `Variação #${index+1}`;
+    
+    div.innerHTML = `
+      <strong style="display:block; margin-bottom: 8px;">${label}</strong>
+      <div class="grid-2-col">
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Preço Base (R$)</label>
+          <input type="number" step="0.01" class="form-control var-price" value="${v.priceCents ? v.priceCents / 100 : ''}" placeholder="Ex: 5000.00" data-idx="${index}">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Preço Promo (R$)</label>
+          <input type="number" step="0.01" class="form-control var-promo" value="${v.promoPriceCents ? v.promoPriceCents / 100 : ''}" placeholder="Ex: 4800.00" data-idx="${index}">
+        </div>
+      </div>
+      <div class="grid-2-col" style="margin-top:8px;">
+        <div>
+          <label class="form-label" style="font-size:0.75rem;">Custo Interno (R$)</label>
+          <input type="number" step="0.01" class="form-control var-cost" value="${v.costCents ? v.costCents / 100 : ''}" placeholder="Ex: 4000.00" data-idx="${index}">
+        </div>
+      </div>
+    `;
+    c.appendChild(div);
+  });
+  
+  c.querySelectorAll('.var-price').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].priceCents = Math.round(parseFloat(e.target.value) * 100) || 0));
+  c.querySelectorAll('.var-promo').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].promoPriceCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
+  c.querySelectorAll('.var-cost').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].costCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
+}
+
+function buildReviewStep() {
+  document.getElementById('review-product-name').textContent = document.getElementById('p-name').value || 'N/A';
+  document.getElementById('review-variants-count').textContent = `${tempVariants.length} Variações Mapeadas`;
+  const totalStock = tempVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
+  document.getElementById('review-total-stock').textContent = `Estoque Total: ${totalStock} un`;
+}
+
+// Nav Buttons
+document.getElementById('btn-admin-modal-next')?.addEventListener('click', () => {
+  if (currentFormStep === 3) renderPricingBuilder(); // refresh pricing before entering step 4
+  if (currentFormStep < 5) switchFormStep(currentFormStep + 1);
+});
+document.getElementById('btn-admin-modal-prev')?.addEventListener('click', () => {
+  if (currentFormStep > 1) switchFormStep(currentFormStep - 1);
+});
+document.querySelectorAll('[data-form-step]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const s = parseInt(btn.getAttribute('data-form-step'));
+    if (currentFormStep === 3) renderPricingBuilder();
+    switchFormStep(s);
+  });
+});
 
 function handleProductFormSubmit(e) {
   e.preventDefault();
@@ -540,81 +893,54 @@ function handleProductFormSubmit(e) {
   const category = document.getElementById('p-category').value;
   const condition = document.getElementById('p-condition').value;
   const description = document.getElementById('p-description').value.trim();
+  const internalCode = document.getElementById('p-sku').value.trim();
   
-  const price = parseFloat(document.getElementById('p-price').value);
-  const promoVal = document.getElementById('p-promo').value;
-  const promoPrice = promoVal ? parseFloat(promoVal) : null;
-  const costVal = document.getElementById('p-cost').value;
-  const cost = costVal ? parseFloat(costVal) : null;
+  const mockupColor = document.getElementById('p-svg-color').value.trim();
+  const mockupIcon = document.getElementById('p-svg-icon').value;
   
-  const quantity = parseInt(document.getElementById('p-quantity').value);
-  const minQuantity = parseInt(document.getElementById('p-min-qty').value);
-  const internalCode = document.getElementById('p-code').value.trim();
-  const rawImeis = document.getElementById('p-imeis-list').value;
-  
-  const rawColors = document.getElementById('p-colors').value;
-  const rawCapacities = document.getElementById('p-capacities').value;
-  const warranty = document.getElementById('p-warranty').value.trim();
-  const boxContent = document.getElementById('p-box').value.trim();
-
-  // Basic validate
-  if (!name || !brand || !model || isNaN(price) || isNaN(quantity)) {
-    showAdminToast('Preencha os campos obrigatórios em todas as abas.', 'danger');
+  if (!name || !brand || !model) {
+    alert('Preencha os campos obrigatórios na Etapa 1.');
+    return;
+  }
+  if (tempVariants.length === 0) {
+    alert('Adicione pelo menos uma variação na Etapa 3.');
     return;
   }
   
-  // Format arrays
-  const imeis = rawImeis ? rawImeis.split(',').map(i => i.trim()).filter(Boolean) : [];
-  const colors = rawColors ? rawColors.split(',').map(c => c.trim()).filter(Boolean) : [];
-  const capacities = rawCapacities ? rawCapacities.split(',').map(c => c.trim()).filter(Boolean) : [];
+  // Backwards compatibility for price, quantity (use variant 0 as fallback)
+  const basePrice = (tempVariants[0].priceCents || 0) / 100;
+  const totalStock = tempVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
   
   if (state.selectedProductToEdit) {
     // EDIT SAVE
     const idx = state.products.findIndex(p => p.id === state.selectedProductToEdit);
     if (idx > -1) {
-      const originalQty = state.products[idx].quantity;
-      
       state.products[idx] = {
         ...state.products[idx],
-        name, brand, model, category, condition, description,
-        price, promoPrice, cost,
-        quantity, minQuantity, internalCode, imeis,
-        colors, capacities, warranty, boxContent
+        name, brand, model, category, condition, description, internalCode,
+        price: basePrice, // legacy UI compatibility
+        quantity: totalStock, // legacy UI compatibility
+        minQuantity: tempVariants[0].minimumStock,
+        variants: JSON.parse(JSON.stringify(tempVariants)),
+        mockupStyle: { color: mockupColor, icon: mockupIcon }
       };
-      
-      // Stock log if quantity was altered
-      if (originalQty !== quantity) {
-        const diff = quantity - originalQty;
-        registerStockLog(
-          state.products[idx].name, 
-          Math.abs(diff), 
-          diff > 0 ? 'Entrada' : 'Saída', 
-          'Correção na edição de cadastro do produto'
-        );
-      }
-      
       addActivityLog(`Produto editado: ${name}`, 'success');
-      showAdminToast('Produto atualizado com sucesso.', 'success');
     }
   } else {
     // NEW CREATE
     const newProd = {
       id: `prod-${Date.now()}`,
       internalCode: internalCode || `REF-${Math.floor(100 + Math.random() * 900)}`,
-      barcode: `789${Math.floor(1000000000 + Math.random() * 9000000000)}`,
       name, brand, model, category, condition, description,
-      price, promoPrice, cost,
-      quantity, minQuantity, unit: 'un', imeis,
-      colors, capacities, warranty, boxContent
+      price: basePrice,
+      quantity: totalStock,
+      minQuantity: tempVariants[0].minimumStock,
+      variants: JSON.parse(JSON.stringify(tempVariants)),
+      mockupStyle: { color: mockupColor, icon: mockupIcon },
+      isFeatured: false
     };
-    
     state.products.push(newProd);
-    
-    // Register initial stock log
-    registerStockLog(name, quantity, 'Entrada', 'Lançamento de cadastro inicial');
-    
     addActivityLog(`Novo produto cadastrado: ${name}`, 'success');
-    showAdminToast('Produto cadastrado com sucesso.', 'success');
   }
 
   saveToLocalStorage('products', state.products);

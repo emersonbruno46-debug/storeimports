@@ -44,11 +44,8 @@ const btnCloseDrawer = document.getElementById('btn-close-drawer');
 const productDetailModalOverlay = document.getElementById('product-detail-modal-overlay');
 const productDetailModalBody = document.getElementById('product-detail-modal-body');
 
-const demoModeCheckbox = document.getElementById('demo-mode-checkbox');
-const demoToggleTrigger = document.getElementById('demo-toggle-trigger');
 const productionEmptyState = document.getElementById('production-empty-state');
 const catalogActiveContent = document.getElementById('catalog-active-content');
-const btnActivateDemoEmpty = document.getElementById('btn-activate-demo-empty');
 
 const mainSearchInput = document.getElementById('main-search-input');
 const btnMainSearch = document.getElementById('btn-main-search');
@@ -107,11 +104,39 @@ function initCopyright() {
 
 // Initialize products from shared store
 function initData() {
-  state.products = getStoreData('products');
+  const v3Products = getStoreData('products') || [];
+  state.products = v3Products.map(p => {
+    const v = (p.variants && p.variants.length > 0) ? p.variants[0] : {};
+    return {
+      id: p.id,
+      internalCode: p.sku || '',
+      barcode: p.barcodeDemo || '',
+      name: p.name || '',
+      brand: p.brand || '',
+      model: p.model || '',
+      category: p.categoryId ? p.categoryId.replace('cat-', '') : '',
+      description: p.shortDescription || '',
+      cost: v.costCents ? v.costCents / 100 : 0,
+      price: v.priceCents ? v.priceCents / 100 : 0,
+      promoPrice: v.promotionalPriceCents ? v.promotionalPriceCents / 100 : null,
+      quantity: p.variants ? p.variants.reduce((acc, cv) => acc + (cv.stockQuantity || 0), 0) : 0,
+      minQuantity: v.minimumStock || 1,
+      unit: 'un',
+      colors: p.variants ? Array.from(new Set(p.variants.map(cv => cv.color).filter(Boolean))) : [],
+      selectedColor: v.color || '',
+      capacities: p.variants ? Array.from(new Set(p.variants.map(cv => cv.capacity).filter(Boolean))) : [],
+      selectedCapacity: v.capacity || '',
+      condition: p.condition === 'new' ? 'Novo' : 'Seminovo',
+      warranty: 'Demonstração',
+      boxContent: 'Simulação',
+      imeis: v.demoImeis || []
+    };
+  });
   
-  // Make sure UI shows catalog by default
-  productionEmptyState.classList.add('d-none');
-  catalogActiveContent.classList.remove('d-none');
+  if (productionEmptyState && catalogActiveContent) {
+    productionEmptyState.classList.add('d-none');
+    catalogActiveContent.classList.remove('d-none');
+  }
 }
 
 // ==========================================
@@ -274,22 +299,6 @@ function setupEventListeners() {
     if (e.target === cartDrawerOverlay) closeCartDrawer();
   });
   
-  // Demo Mode Switch
-  demoModeCheckbox.addEventListener('change', (e) => {
-    toggleDemoMode(e.target.checked);
-  });
-  demoToggleTrigger.addEventListener('click', (e) => {
-    // Prevent clicking nested slider elements from double toggling
-    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SPAN') {
-      demoModeCheckbox.checked = !demoModeCheckbox.checked;
-      toggleDemoMode(demoModeCheckbox.checked);
-    }
-  });
-  btnActivateDemoEmpty.addEventListener('click', () => {
-    demoModeCheckbox.checked = true;
-    toggleDemoMode(true);
-  });
-  
   // Search
   btnMainSearch.addEventListener('click', handleSearchSubmit);
   mainSearchInput.addEventListener('keyup', (e) => {
@@ -347,9 +356,6 @@ function closeProductDetailModal() { productDetailModalOverlay.classList.remove(
 // DEMO MODE CONTROLLER
 // ==========================================
 // Demo mode is always active now
-function toggleDemoMode(isActive) {
-  console.log("Demo mode is forced active.");
-}
 
 // ==========================================
 // CATEGORIES & FILTERS RENDERING
@@ -357,7 +363,9 @@ function toggleDemoMode(isActive) {
 function renderCategories() {
   categoriesContainer.innerHTML = '';
   
-  MOCK_CATEGORIES.forEach(cat => {
+  const cats = getCategories() || [];
+  cats.forEach(rawCat => {
+    const cat = { ...rawCat, id: rawCat.id.replace('cat-', '') };
     const card = document.createElement('div');
     card.className = `category-card ${state.filters.category === cat.id ? 'active' : ''} scroll-animate`;
     card.innerHTML = `
@@ -372,11 +380,6 @@ function renderCategories() {
         state.filters.category = '';
       } else {
         state.filters.category = cat.id;
-        // Make sure demo mode is on to see items
-        if (!state.demoMode) {
-          demoModeCheckbox.checked = true;
-          toggleDemoMode(true);
-        }
       }
       window.location.hash = '#catalogo';
       renderCategories();
@@ -399,9 +402,11 @@ function renderSidebarFilters() {
   const catList = document.getElementById('filter-categories-list');
   catList.innerHTML = '';
   
-  MOCK_CATEGORIES.forEach(cat => {
+  const cats = getCategories() || [];
+  cats.forEach(rawCat => {
+    const cat = { ...rawCat, id: rawCat.id.replace('cat-', '') };
     const totalInCat = state.products.filter(p => p.category === cat.id).length;
-    if (totalInCat === 0 && state.demoMode) return; // skip empty categories in filter list
+    if (totalInCat === 0) return; // skip empty categories in filter list
     
     const label = document.createElement('label');
     label.className = 'filter-option-checkbox';
@@ -489,11 +494,7 @@ function handleSearchSubmit() {
   state.filters.search = query;
   
   if (query) {
-    // If not in demo mode, activate it so they can see search working
-    if (!state.demoMode) {
-      demoModeCheckbox.checked = true;
-      toggleDemoMode(true);
-    }
+    // Force search action
   }
   
   window.location.hash = '#catalogo';
@@ -1131,29 +1132,34 @@ function handleReservationFormSubmit(e) {
   const paymentMethodInput = document.querySelector('input[name="payment-method"]:checked');
   const paymentMethod = paymentMethodInput ? paymentMethodInput.value : 'retirada';
   
-  // Create reservation object
+  // Create reservation object (V3 format)
   const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const newReservation = {
     id: `res-${Date.now()}`,
     code: code,
-    nome: nome,
-    whatsapp: whatsapp,
-    email: email,
-    contatoPref: contatoPref,
-    paymentMethod: paymentMethod,
-    dataRetirada: formatDisplayDate(dataRetirada),
-    rawDate: dataRetirada,
-    obs: obs,
-    status: 'Aguardando confirmação',
-    createdAt: new Date().toLocaleString('pt-BR'),
-    items: [...state.cart],
-    total: total
+    demoCustomerName: nome,
+    demoContactLabel: whatsapp,
+    items: state.cart.map(i => ({
+      productId: i.id,
+      variantId: 'v2-legacy',
+      name: i.name, // Keep for legacy whatsapp string building
+      color: i.selectedColor,
+      capacity: i.selectedCapacity,
+      quantity: i.quantity,
+      unitPriceCents: Math.round(i.price * 100)
+    })),
+    estimatedTotalCents: Math.round(total * 100),
+    status: 'new',
+    requestedDate: new Date(dataRetirada + "T12:00:00").toISOString(),
+    displayDate: formatDisplayDate(dataRetirada),
+    demoPaymentMethod: paymentMethod === 'pix' ? 'other_demo' : 'cash_demo',
+    notes: obs,
+    history: [{ from: null, to: 'new', actorUserId: 'customer', at: new Date().toISOString() }],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
   
-  // Save to localStorage under reservations database
-  const stored = getStoreData('reservations');
-  stored.push(newReservation);
-  saveStoreData('reservations', stored);
+  createDemoReservation(newReservation);
   
   // Clear cart
   state.cart = [];
@@ -1186,30 +1192,22 @@ function renderSuccessScreen(codeNum) {
   }
   
   document.getElementById('success-code').textContent = res.code;
-  document.getElementById('success-client-name').textContent = res.nome;
-  document.getElementById('success-client-whatsapp').textContent = res.whatsapp;
-  document.getElementById('success-retrieval-date').textContent = res.dataRetirada;
+  document.getElementById('success-client-name').textContent = res.demoCustomerName;
+  document.getElementById('success-client-whatsapp').textContent = res.demoContactLabel;
+  document.getElementById('success-retrieval-date').textContent = res.displayDate || 'Não informada';
   
   const totalItems = res.items.reduce((sum, item) => sum + item.quantity, 0);
   document.getElementById('success-products-count').textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
-  document.getElementById('success-total-value').textContent = `R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  document.getElementById('success-total-value').textContent = `R$ ${(res.estimatedTotalCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   
-  // Dynamic Pix Container render
+  // Dynamic Pix Container render (Disabled in Demo V3)
   const pixContainer = document.getElementById('success-pix-container');
-  const pixValueHighlight = document.getElementById('success-pix-highlighted-value');
   const wBtn = document.getElementById('btn-success-whatsapp');
   
-  if (res.paymentMethod === 'pix') {
-    if (pixContainer) pixContainer.classList.remove('d-none');
-    if (pixValueHighlight) pixValueHighlight.textContent = `R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-    if (wBtn) {
-      wBtn.innerHTML = `<i data-lucide="message-circle"></i> Enviar comprovante no WhatsApp`;
-    }
-  } else {
-    if (pixContainer) pixContainer.classList.add('d-none');
-    if (wBtn) {
-      wBtn.innerHTML = `<i data-lucide="message-circle"></i> Falar pelo WhatsApp`;
-    }
+  if (pixContainer) pixContainer.classList.add('d-none');
+  
+  if (wBtn) {
+    wBtn.innerHTML = `<i data-lucide="message-circle"></i> Falar pelo WhatsApp (Fictício)`;
   }
   
   // Status Badge Rendering
@@ -1217,21 +1215,15 @@ function renderSuccessScreen(codeNum) {
   badge.className = 'badge-status';
   
   let statusHtml = '';
-  if (res.status === 'Aguardando confirmação') {
+  if (res.status === 'new') {
     badge.classList.add('badge-status-pending');
-    statusHtml = `<i data-lucide="clock" style="width: 12px; height: 12px; display: inline;"></i> Aguardando confirmação`;
-  } else if (res.status === 'Confirmada') {
+    statusHtml = `<i data-lucide="clock" style="width: 12px; height: 12px; display: inline;"></i> Nova Simulação`;
+  } else if (res.status === 'contacted') {
     badge.classList.add('badge-status-confirmed');
-    statusHtml = `<i data-lucide="check" style="width: 12px; height: 12px; display: inline;"></i> Confirmada`;
-  } else if (res.status === 'Aguardando retirada') {
-    badge.classList.add('badge-status-waiting');
-    statusHtml = `<i data-lucide="store" style="width: 12px; height: 12px; display: inline;"></i> Aguardando retirada`;
-  } else if (res.status === 'Finalizada') {
-    badge.classList.add('badge-status-finished');
-    statusHtml = `<i data-lucide="shopping-bag" style="width: 12px; height: 12px; display: inline;"></i> Finalizada`;
+    statusHtml = `<i data-lucide="check" style="width: 12px; height: 12px; display: inline;"></i> Contato Simulado`;
   } else {
-    badge.classList.add('badge-status-cancelled');
-    statusHtml = `<i data-lucide="x-circle" style="width: 12px; height: 12px; display: inline;"></i> Cancelada`;
+    badge.classList.add('badge-status-pending');
+    statusHtml = `<i data-lucide="info" style="width: 12px; height: 12px; display: inline;"></i> Status: ${res.status}`;
   }
   badge.innerHTML = statusHtml;
 
@@ -1243,12 +1235,7 @@ function renderSuccessScreen(codeNum) {
     return `- ${item.name}${spec} x${item.quantity}`;
   }).join('%0A');
   
-  let textMsg = '';
-  if (res.paymentMethod === 'pix') {
-    textMsg = `Olá! Enviei uma solicitação de reserva no site da Store Imports com pagamento via Pix.%0A%0A*Código:* ${res.code}%0A*Cliente:* ${res.nome}%0A*Itens:*%0A${itemsText}%0A%0A*Valor do Pix:* R$ ${res.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%0A%0AAqui está o comprovante do meu Pix.`;
-  } else {
-    textMsg = `Olá! Enviei uma solicitação de reserva no site da Store Imports.%0A%0A*Código:* ${res.code}%0A*Cliente:* ${res.nome}%0A*Itens:*%0A${itemsText}%0A%0A*Data Prevista de Retirada:* ${res.dataRetirada}%0A%0AAguardando confirmação! Obrigado.`;
-  }
+  let textMsg = `Olá! Esta é uma simulação demonstrativa gerada pela plataforma.%0A%0A*Código Fictício:* ${res.code}%0A*Cliente Fictício:* ${res.demoCustomerName}%0A*Itens Simulados:*%0A${itemsText}%0A%0A*Data Demonstrativa:* ${res.displayDate}`;
   
   wBtn.href = `https://wa.me/5511999999999?text=${textMsg}`;
   
