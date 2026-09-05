@@ -68,6 +68,12 @@
           <span class="menu-item-text">Usuários</span>
         </div>
       </li>
+      <li>
+        <div class="menu-item-link" id="tab-settings" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span class="menu-item-text">Configurações Demo</span>
+        </div>
+      </li>
     </ul>
 
     <div class="sidebar-footer">
@@ -90,6 +96,9 @@
           <i data-lucide="menu"></i>
         </button>
         <h2 class="top-navbar-title" id="workspace-title">Painel Operacional</h2>
+        <span class="badge-status badge-status-pending" style="display: flex; align-items: center; gap: 6px; font-size: 0.7rem;">
+          <i data-lucide="shield-alert" style="width: 14px; height: 14px;"></i> AMBIENTE DEMONSTRATIVO
+        </span>
       </div>
 
       <div class="user-profile-badge" id="profile-dropdown-trigger" style="cursor: pointer; position: relative;">
@@ -675,6 +684,22 @@
 
       </div>
 
+      <!-- ==========================================
+           TAB: CONFIGURAÇÕES DEMO
+           ========================================== -->
+      <div id="panel-settings" class="admin-view-tab d-none">
+        <div class="panel-card" style="border-left: 4px solid var(--danger);">
+          <h3 class="panel-card-title" style="color: var(--danger);"><i data-lucide="alert-triangle"></i> Controle de Dados Demonstrativos</h3>
+          <p class="text-muted" style="margin-top: 12px; font-size: 0.85rem;">Utilize as opções abaixo para resetar as informações fictícias populadas no sistema. Isso restaurará todos os produtos, reservas, vendas e logs aos valores originais do template.</p>
+          
+          <div style="margin-top: 24px;">
+            <button class="btn btn-primary" id="btn-reset-demo-data" style="background: var(--danger); border-color: var(--danger);">
+              Resetar Banco de Dados Fictício <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
     </main>
 
   </div>
@@ -814,6 +839,7 @@
   </div>
 
   <!-- Admin logic script -->
+  <script src="./store_data.js"></script>
   <script src="./admin.js"></script>
 </body>
 </html>

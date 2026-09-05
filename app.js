@@ -3,195 +3,11 @@
  */
 
 // ==========================================
-// MOCK DATA FOR DEMO MODE
-// ==========================================
-const MOCK_CATEGORIES = [
-  { id: 'iphones', name: 'iPhones', image: 'iphones.png', count: 6 },
-  { id: 'android', name: 'Android', image: 'androids.png', count: 6 },
-  { id: 'ipads', name: 'iPads', image: 'ipads.png', count: 3 },
-  { id: 'notebooks', name: 'Notebooks', image: 'notebooks.png', count: 4 },
-  { id: 'smartwatches', name: 'Smartwatches', image: 'relógios.png', count: 5 },
-  { id: 'acessorios', name: 'Acessórios', image: 'acessórios.png', count: 20 }
-];
-
-const MOCK_PRODUCTS = [
-  {
-    id: 'prod-001',
-    internalCode: 'IP15P-256-TI',
-    barcode: '7891000200013',
-    name: 'iPhone 15 Pro Max',
-    brand: 'Apple',
-    model: '15 Pro Max',
-    category: 'iphones',
-    description: 'Aparelho em perfeito estado, tela Super Retina XDR OLED com Dynamic Island, chip A17 Pro, câmera de 48MP e acabamento em titânio.',
-    cost: 5800,
-    price: 7499,
-    promoPrice: 6999,
-    quantity: 3,
-    minQuantity: 1,
-    unit: 'un',
-    colors: ['Titânio Natural', 'Titânio Preto', 'Titânio Azul'],
-    selectedColor: 'Titânio Natural',
-    capacities: ['256GB', '512GB'],
-    selectedCapacity: '256GB',
-    condition: 'Novo',
-    warranty: '12 meses Apple',
-    boxContent: 'iPhone 15 Pro Max, Cabo USB-C de recarga rápida, manual',
-    imeis: ['359998887776661', '359998887776662', '359998887776663'],
-    serialNumbers: ['G123456789', 'G123456780', 'G123456781']
-  },
-  {
-    id: 'prod-002',
-    internalCode: 'IP14-128-PR',
-    barcode: '7891000200020',
-    name: 'iPhone 14',
-    brand: 'Apple',
-    model: '14',
-    category: 'iphones',
-    description: 'Ótima relação custo-benefício. Tela de 6.1 polegadas, chip A15 Bionic, câmera dupla avançada de 12MP e excelente bateria.',
-    cost: 3200,
-    price: 4399,
-    promoPrice: null,
-    quantity: 5,
-    minQuantity: 2,
-    unit: 'un',
-    colors: ['Preto-Espacial', 'Estelar', 'Roxo'],
-    selectedColor: 'Preto-Espacial',
-    capacities: ['128GB', '256GB'],
-    selectedCapacity: '128GB',
-    condition: 'Seminovo',
-    warranty: '3 meses loja (Store Imports)',
-    boxContent: 'iPhone 14, Cabo de recarga Lightning para USB-C',
-    imeis: ['357774443332221', '357774443332222', '357774443332223', '357774443332224', '357774443332225'],
-    serialNumbers: ['S987654321', 'S987654322', 'S987654323', 'S987654324', 'S987654325']
-  },
-  {
-    id: 'prod-003',
-    internalCode: 'S23U-256-CR',
-    barcode: '7891000200037',
-    name: 'Galaxy S23 Ultra 5G',
-    brand: 'Samsung',
-    model: 'S23 Ultra',
-    category: 'android',
-    description: 'A câmera de 200MP definitiva com S Pen inclusa. Processador Snapdragon 8 Gen 2, tela Dynamic AMOLED 2X de 120Hz.',
-    cost: 4100,
-    price: 5699,
-    promoPrice: 5199,
-    quantity: 2,
-    minQuantity: 1,
-    unit: 'un',
-    colors: ['Creme', 'Verde', 'Preto'],
-    selectedColor: 'Creme',
-    capacities: ['256GB', '512GB'],
-    selectedCapacity: '256GB',
-    condition: 'Novo',
-    warranty: '12 meses Samsung',
-    boxContent: 'Galaxy S23 Ultra, Caneta S Pen, Carregador 25W, Cabo USB-C',
-    imeis: ['351112223334441', '351112223334442'],
-    serialNumbers: ['R987654321', 'R987654322']
-  },
-  {
-    id: 'prod-004',
-    internalCode: 'REDMI13-256-AZ',
-    barcode: '7891000200044',
-    name: 'Redmi Note 13 Pro 5G',
-    brand: 'Xiaomi',
-    model: 'Note 13 Pro',
-    category: 'android',
-    description: 'Incrível tela AMOLED de 120Hz com sensor biométrico sob a tela, câmera tripla de 200MP e carregamento turbo de 67W.',
-    cost: 1400,
-    price: 2199,
-    promoPrice: null,
-    quantity: 1,
-    minQuantity: 1,
-    unit: 'un',
-    colors: ['Azul Ocean', 'Preto Midnight'],
-    selectedColor: 'Azul Ocean',
-    capacities: ['256GB'],
-    selectedCapacity: '256GB',
-    condition: 'Novo',
-    warranty: '6 meses importador',
-    boxContent: 'Redmi Note 13 Pro, Carregador 67W, Cabo USB-C, Capa de proteção',
-    imeis: ['353334445556661'],
-    serialNumbers: ['X123456789']
-  },
-  {
-    id: 'prod-005',
-    internalCode: 'CASE-IP15P-MAG',
-    barcode: '7891000200051',
-    name: 'Capa Silicone MagSafe iPhone 15 Pro',
-    brand: 'Custom',
-    model: 'Capa MagSafe',
-    category: 'acessorios',
-    description: 'Capa protetora de silicone premium com anel magnético compatível com carregador MagSafe. Toque macio e forro interno de microfibra.',
-    cost: 25,
-    price: 89,
-    promoPrice: 69,
-    quantity: 15,
-    minQuantity: 5,
-    unit: 'un',
-    colors: ['Preto', 'Azul-Escuro', 'Verde-Musgo'],
-    selectedColor: 'Preto',
-    capacities: [],
-    selectedCapacity: '',
-    condition: 'Novo',
-    warranty: 'Garantia contra defeito de fabricação',
-    boxContent: 'Capa de Silicone MagSafe'
-  },
-  {
-    id: 'prod-006',
-    internalCode: 'CHARGER-AN-45W',
-    barcode: '7891000200068',
-    name: 'Carregador USB-C Rápido 45W Duplo',
-    brand: 'Anker',
-    model: 'Carregador 45W',
-    category: 'acessorios',
-    description: 'Carregador de tomada ultra-rápido com duas portas USB-C inteligentes. Tecnologia GaN Prime para controle de temperatura.',
-    cost: 75,
-    price: 189,
-    promoPrice: 149,
-    quantity: 8,
-    minQuantity: 2,
-    unit: 'un',
-    colors: ['Preto', 'Branco'],
-    selectedColor: 'Preto',
-    capacities: [],
-    selectedCapacity: '',
-    condition: 'Novo',
-    warranty: '12 meses Anker',
-    boxContent: 'Carregador de parede Anker 45W, Manual do usuário'
-  },
-  {
-    id: 'prod-007',
-    internalCode: 'FONE-AP3-AP',
-    barcode: '7891000200075',
-    name: 'AirPods 3ª Geração',
-    brand: 'Apple',
-    model: 'AirPods 3',
-    category: 'acessorios',
-    description: 'Fones sem fio com áudio espacial personalizado, equalização adaptativa, maior duração de bateria e resistência à água.',
-    cost: 1100,
-    price: 1699,
-    promoPrice: null,
-    quantity: 0,
-    minQuantity: 1,
-    unit: 'un',
-    colors: ['Branco'],
-    selectedColor: 'Branco',
-    capacities: [],
-    selectedCapacity: '',
-    condition: 'Novo',
-    warranty: '12 meses Apple',
-    boxContent: 'AirPods, Estojo de recarga Lightning, Cabo de Lightning para USB-C'
-  }
-];
-
-// ==========================================
 // STATE MANAGEMENT
 // ==========================================
 let state = {
   cart: [],
-  demoMode: false,
+  demoMode: true,
   activeView: 'home',
   products: [],
   filters: {
@@ -255,7 +71,7 @@ const formWhatsapp = document.getElementById('form-whatsapp');
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   initCopyright();
-  initLocalStorage();
+  initData();
   setupRouting();
   setupEventListeners();
   loadCartFromLocalStorage();
@@ -289,20 +105,13 @@ function initCopyright() {
   }
 }
 
-// Initial LocalStorage setup
-function initLocalStorage() {
-  // Load products database if not existing, or initialize with mock database if they want it
-  const storedProducts = localStorage.getItem('store_imports_products');
-  if (!storedProducts) {
-    // If not existing, keep it empty or prepare it empty for actual admin CRUD.
-    // In our JS, we fallback to MOCK_PRODUCTS when demoMode is active.
-    localStorage.setItem('store_imports_products', JSON.stringify([]));
-  }
+// Initialize products from shared store
+function initData() {
+  state.products = getStoreData('products');
   
-  const storedReservations = localStorage.getItem('store_imports_reservations');
-  if (!storedReservations) {
-    localStorage.setItem('store_imports_reservations', JSON.stringify([]));
-  }
+  // Make sure UI shows catalog by default
+  productionEmptyState.classList.add('d-none');
+  catalogActiveContent.classList.remove('d-none');
 }
 
 // ==========================================
@@ -537,28 +346,9 @@ function closeProductDetailModal() { productDetailModalOverlay.classList.remove(
 // ==========================================
 // DEMO MODE CONTROLLER
 // ==========================================
+// Demo mode is always active now
 function toggleDemoMode(isActive) {
-  state.demoMode = isActive;
-  
-  if (isActive) {
-    productionEmptyState.classList.add('d-none');
-    catalogActiveContent.classList.remove('d-none');
-    
-    // Load products database: mix of localStorage created products + MOCK_PRODUCTS
-    const stored = JSON.parse(localStorage.getItem('store_imports_products')) || [];
-    state.products = [...stored, ...MOCK_PRODUCTS];
-    
-    renderCategories();
-    renderSidebarFilters();
-    renderCatalogGrid();
-    
-    showToast('Modo Demonstração ativado. Catálogo populado.', 'success');
-  } else {
-    productionEmptyState.classList.remove('d-none');
-    catalogActiveContent.classList.add('d-none');
-    state.products = [];
-    showToast('Modo Demonstração desativado.', 'info');
-  }
+  console.log("Demo mode is forced active.");
 }
 
 // ==========================================
@@ -1219,13 +1009,13 @@ function removeCartItem(itemId) {
 }
 
 function saveCartToLocalStorage() {
-  localStorage.setItem('store_imports_cart', JSON.stringify(state.cart));
+  saveStoreData('cart', state.cart);
 }
 
 function loadCartFromLocalStorage() {
-  const stored = localStorage.getItem('store_imports_cart');
-  if (stored) {
-    state.cart = JSON.parse(stored);
+  const stored = getStoreData('cart');
+  if (stored && stored.length > 0) {
+    state.cart = stored;
     renderCartDrawer();
     updateCartBadges();
   }
@@ -1361,9 +1151,9 @@ function handleReservationFormSubmit(e) {
   };
   
   // Save to localStorage under reservations database
-  const stored = JSON.parse(localStorage.getItem('store_imports_reservations')) || [];
+  const stored = getStoreData('reservations');
   stored.push(newReservation);
-  localStorage.setItem('store_imports_reservations', JSON.stringify(stored));
+  saveStoreData('reservations', stored);
   
   // Clear cart
   state.cart = [];
@@ -1384,7 +1174,7 @@ function handleReservationFormSubmit(e) {
 function renderSuccessScreen(codeNum) {
   const code = `#${codeNum}`;
   
-  const reservations = JSON.parse(localStorage.getItem('store_imports_reservations')) || [];
+  const reservations = getStoreData('reservations');
   const res = reservations.find(r => r.code === code);
   
   if (!res) {

@@ -3,204 +3,6 @@
  */
 
 // ==========================================
-// MOCK DATA FOR SEEDING (DEMO DATA TEMPLATE)
-// ==========================================
-const SEED_PRODUCTS = [
-  {
-    id: 'prod-001',
-    internalCode: 'IP15P-256-TI',
-    barcode: '7891000200013',
-    name: 'iPhone 15 Pro Max',
-    brand: 'Apple',
-    model: '15 Pro Max',
-    category: 'iphones',
-    description: 'Aparelho em perfeito estado, tela Super Retina XDR OLED com Dynamic Island, chip A17 Pro, câmera de 48MP e acabamento em titânio.',
-    cost: 5800,
-    price: 7499,
-    promoPrice: 6999,
-    quantity: 3,
-    minQuantity: 1,
-    unit: 'un',
-    colors: ['Titânio Natural', 'Titânio Preto'],
-    selectedColor: 'Titânio Natural',
-    capacities: ['256GB'],
-    selectedCapacity: '256GB',
-    condition: 'Novo',
-    warranty: '12 meses Apple',
-    boxContent: 'iPhone, Cabo USB-C',
-    imeis: ['359998887776661', '359998887776662', '359998887776663']
-  },
-  {
-    id: 'prod-002',
-    internalCode: 'IP14-128-PR',
-    barcode: '7891000200020',
-    name: 'iPhone 14',
-    brand: 'Apple',
-    model: '14',
-    category: 'iphones',
-    description: 'Ótima relação custo-benefício. Tela de 6.1 polegadas, chip A15 Bionic, câmera dupla avançada de 12MP.',
-    cost: 3200,
-    price: 4399,
-    promoPrice: null,
-    quantity: 5,
-    minQuantity: 2,
-    unit: 'un',
-    colors: ['Preto-Espacial', 'Estelar'],
-    selectedColor: 'Preto-Espacial',
-    capacities: ['128GB'],
-    selectedCapacity: '128GB',
-    condition: 'Seminovo',
-    warranty: '3 meses loja',
-    boxContent: 'iPhone, Cabo Lightning',
-    imeis: ['357774443332221', '357774443332222', '357774443332223']
-  },
-  {
-    id: 'prod-003',
-    internalCode: 'S23U-256-CR',
-    barcode: '7891000200037',
-    name: 'Galaxy S23 Ultra 5G',
-    brand: 'Samsung',
-    model: 'S23 Ultra',
-    category: 'android',
-    description: 'A câmera de 200MP definitiva com S Pen inclusa.',
-    cost: 4100,
-    price: 5699,
-    promoPrice: 5199,
-    quantity: 1, // Alerta
-    minQuantity: 2,
-    unit: 'un',
-    colors: ['Creme'],
-    selectedColor: 'Creme',
-    capacities: ['256GB'],
-    selectedCapacity: '256GB',
-    condition: 'Novo',
-    warranty: '12 meses Samsung',
-    boxContent: 'Aparelho, Carregador, Cabo',
-    imeis: ['351112223334441']
-  },
-  {
-    id: 'prod-004',
-    internalCode: 'CASE-IP15P-MAG',
-    barcode: '7891000200051',
-    name: 'Capa Silicone MagSafe iPhone 15 Pro',
-    brand: 'Custom',
-    model: 'Capa MagSafe',
-    category: 'capas',
-    description: 'Capa protetora de silicone premium.',
-    cost: 25,
-    price: 89,
-    promoPrice: 69,
-    quantity: 12,
-    minQuantity: 5,
-    unit: 'un',
-    colors: ['Preto'],
-    selectedColor: 'Preto',
-    capacities: [],
-    selectedCapacity: '',
-    condition: 'Novo',
-    warranty: '3 meses fabricante',
-    boxContent: 'Capa de Silicone'
-  }
-];
-
-const SEED_RESERVATIONS = [
-  {
-    id: 'res-101',
-    code: '#SI-4859',
-    nome: 'Carlos Eduardo Souza',
-    whatsapp: '(11) 98765-4321',
-    email: 'carlos.edu@email.com',
-    contatoPref: 'WhatsApp',
-    dataRetirada: '28/07/2026',
-    rawDate: '2026-07-28',
-    obs: 'Gostaria que o aparelho já viesse com película aplicada se possível.',
-    status: 'Aguardando confirmação',
-    createdAt: '16/07/2026 14:32:10',
-    items: [
-      { productId: 'prod-001', name: 'iPhone 15 Pro Max', price: 6999, color: 'Titânio Natural', capacity: '256GB', quantity: 1 }
-    ],
-    total: 6999
-  },
-  {
-    id: 'res-102',
-    code: '#SI-9012',
-    nome: 'Ana Julia Martins',
-    whatsapp: '(11) 97777-8888',
-    email: 'anajulia@email.com',
-    contatoPref: 'WhatsApp',
-    dataRetirada: '22/07/2026',
-    rawDate: '2026-07-22',
-    obs: 'Vou retirar no horário do almoço.',
-    status: 'Confirmada',
-    createdAt: '15/07/2026 10:15:45',
-    items: [
-      { productId: 'prod-002', name: 'iPhone 14', price: 4399, color: 'Preto-Espacial', capacity: '128GB', quantity: 1 },
-      { productId: 'prod-004', name: 'Capa Silicone MagSafe iPhone 15 Pro', price: 69, color: 'Preto', capacity: '', quantity: 1 }
-    ],
-    total: 4468
-  }
-];
-
-const SEED_SALES = [
-  {
-    id: 'sale-101',
-    code: 'VD-8472',
-    productName: 'iPhone 15 Pro Max',
-    productId: 'prod-001',
-    quantity: 1,
-    client: 'Pedro Henrique Silva',
-    paymentMethod: 'Pix',
-    discount: 100,
-    total: 6899,
-    date: '16/07/2026 11:20:00',
-    seller: 'Lucas (Vendedor)'
-  },
-  {
-    id: 'sale-102',
-    code: 'VD-1290',
-    productName: 'Capa Silicone MagSafe iPhone 15 Pro',
-    productId: 'prod-004',
-    quantity: 2,
-    client: 'Venda rápida avulsa',
-    paymentMethod: 'Dinheiro',
-    discount: 0,
-    total: 138,
-    date: '15/07/2026 16:45:00',
-    seller: 'Mariana (Vendedora)'
-  }
-];
-
-const SEED_STOCK_LOGS = [
-  {
-    id: 'log-101',
-    productName: 'iPhone 15 Pro Max',
-    amount: 5,
-    type: 'Entrada',
-    reason: 'Importação lote fiscal #9482',
-    operator: 'Administrador',
-    timestamp: '15/07/2026 09:00'
-  },
-  {
-    id: 'log-102',
-    productName: 'iPhone 14',
-    amount: 3,
-    type: 'Entrada',
-    reason: 'Lançamento estoque consignado',
-    operator: 'Gerente',
-    timestamp: '15/07/2026 09:12'
-  },
-  {
-    id: 'log-103',
-    productName: 'Galaxy S23 Ultra 5G',
-    amount: 1,
-    type: 'Saída',
-    reason: 'Venda presencial rápida no balcão',
-    operator: 'Administrador',
-    timestamp: '16/07/2026 11:22'
-  }
-];
-
-// ==========================================
 // STATE MANAGEMENT
 // ==========================================
 let state = {
@@ -223,7 +25,7 @@ const btnAdminHamburger = document.getElementById('btn-admin-hamburger');
 const workspaceTitle = document.getElementById('workspace-title');
 
 // Tabs Views
-const tabs = ['overview', 'products', 'stock', 'reservations', 'sales', 'promo', 'users'];
+const tabs = ['overview', 'products', 'stock', 'reservations', 'sales', 'promo', 'users', 'settings'];
 
 // Modals
 const adminProductModalOverlay = document.getElementById('admin-product-modal-overlay');
@@ -259,45 +61,20 @@ document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
 });
 
-// Load variables from localStorage, seed if empty
+// Load variables from shared store
 function loadDatabase() {
-  let products = JSON.parse(localStorage.getItem('store_imports_products')) || [];
-  let reservations = JSON.parse(localStorage.getItem('store_imports_reservations')) || [];
-  let sales = JSON.parse(localStorage.getItem('store_imports_sales')) || [];
-  let stockLogs = JSON.parse(localStorage.getItem('store_imports_stock_logs')) || [];
-  let activityLogs = JSON.parse(localStorage.getItem('store_imports_activity_logs')) || [];
-
-  // Seed default items if databases are completely empty, giving a populated dashboard initial look
-  if (products.length === 0 && reservations.length === 0) {
-    products = SEED_PRODUCTS;
-    reservations = SEED_RESERVATIONS;
-    sales = SEED_SALES;
-    stockLogs = SEED_STOCK_LOGS;
-    
-    activityLogs = [
-      { text: 'Sistema operacional Store Imports inicializado com sucesso.', type: 'info', time: '14/07/2026 08:00' },
-      { text: 'Dados de teste populados para demonstração comercial.', type: 'success', time: '14/07/2026 08:05' }
-    ];
-    
-    saveToLocalStorage('products', products);
-    saveToLocalStorage('reservations', reservations);
-    saveToLocalStorage('sales', sales);
-    saveToLocalStorage('stock_logs', stockLogs);
-    saveToLocalStorage('activity_logs', activityLogs);
-  }
-
-  state.products = products;
-  state.reservations = reservations;
-  state.sales = sales;
-  state.stockLogs = stockLogs;
-  state.activityLogs = activityLogs;
-
+  state.products = getStoreData('products');
+  state.reservations = getStoreData('reservations');
+  state.sales = getStoreData('sales');
+  state.stockLogs = getStoreData('stock_logs');
+  state.activityLogs = getStoreData('activity_logs');
+  
   // Log workspace details
   addActivityLog('Sessão administrativa iniciada.', 'info');
 }
 
 function saveToLocalStorage(key, data) {
-  localStorage.setItem(`store_imports_${key}`, JSON.stringify(data));
+  saveStoreData(key, data);
 }
 
 // ==========================================
@@ -405,6 +182,23 @@ function setupEventListeners() {
   
   // Promo calculator setup
   setupPromoCalculatorListeners();
+
+  // Reset Demo Data
+  const btnReset = document.getElementById('btn-reset-demo-data');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (confirm('ATENÇÃO: Isso removerá TODAS as alterações (produtos editados, vendas, reservas, logs) e restaurará os dados demonstrativos originais. Deseja continuar?')) {
+        localStorage.removeItem('store_imports_demo_v2_initialized');
+        localStorage.removeItem('store_imports_demo_v2_products');
+        localStorage.removeItem('store_imports_demo_v2_reservations');
+        localStorage.removeItem('store_imports_demo_v2_sales');
+        localStorage.removeItem('store_imports_demo_v2_stock_logs');
+        localStorage.removeItem('store_imports_demo_v2_activity_logs');
+        alert('Banco de dados resetado com sucesso! O painel será recarregado.');
+        window.location.reload();
+      }
+    });
+  }
 }
 
 function switchTab(tabName) {
@@ -427,7 +221,8 @@ function switchTab(tabName) {
     reservations: 'Controle de Reservas',
     sales: 'Histórico de Vendas Físicas',
     promo: 'Calculadora de Promoções',
-    users: 'Cargos e Permissões'
+    users: 'Cargos e Permissões',
+    settings: 'Configurações Demo'
   };
   workspaceTitle.textContent = titles[tabName] || 'Painel Operacional';
 
