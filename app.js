@@ -1,5 +1,6 @@
 /**
- * Store Imports - Client Catalog Application Logic
+ * Store Imports - Client Catalog Application Logic (V3)
+ * Optimized for secure DOM rendering, clear demo feedback, and robust routing.
  */
 
 // ==========================================
@@ -72,7 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setupRouting();
   setupEventListeners();
   loadCartFromLocalStorage();
+  
+  // Programmatically reset browser-cached filter checkboxes on initial clean load
+  resetDOMFilterInputs();
+
   renderCategories();
+  renderSidebarFilters();
+  renderCatalogGrid();
+  setupDemoContactButtons();
   
   // Set date picker min value to today
   const dateInput = document.getElementById('form-data');
@@ -90,48 +98,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Cross-tab sync: refresh catalog if another tab updates products
+  window.addEventListener('storage', (e) => {
+    if (e.key && e.key.startsWith('store_imports_demo_v3_')) {
+      initData();
+      renderCategories();
+      renderSidebarFilters();
+      renderCatalogGrid();
+    }
+  });
+
   initScrollAnimations();
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 });
 
-// Update Copyright Year dynamically
 function initCopyright() {
   const cEl = document.getElementById('copyright-text');
   if (cEl) {
-    cEl.textContent = `© ${new Date().getFullYear()} Store Imports. Todos os direitos reservados.`;
+    cEl.textContent = `© ${new Date().getFullYear()} ${DEMO_CONFIG.storeName}. Todos os direitos reservados.`;
   }
 }
 
-// Initialize products from shared store
-function initData() {
-  const v3Products = getStoreData('products') || [];
-  state.products = v3Products.map(p => {
-    const v = (p.variants && p.variants.length > 0) ? p.variants[0] : {};
-    return {
-      id: p.id,
-      internalCode: p.sku || '',
-      barcode: p.barcodeDemo || '',
-      name: p.name || '',
-      brand: p.brand || '',
-      model: p.model || '',
-      category: p.categoryId ? p.categoryId.replace('cat-', '') : '',
-      description: p.shortDescription || '',
-      cost: v.costCents ? v.costCents / 100 : 0,
-      price: v.priceCents ? v.priceCents / 100 : 0,
-      promoPrice: v.promotionalPriceCents ? v.promotionalPriceCents / 100 : null,
-      quantity: p.variants ? p.variants.reduce((acc, cv) => acc + (cv.stockQuantity || 0), 0) : 0,
-      minQuantity: v.minimumStock || 1,
-      unit: 'un',
-      colors: p.variants ? Array.from(new Set(p.variants.map(cv => cv.color).filter(Boolean))) : [],
-      selectedColor: v.color || '',
-      capacities: p.variants ? Array.from(new Set(p.variants.map(cv => cv.capacity).filter(Boolean))) : [],
-      selectedCapacity: v.capacity || '',
-      condition: p.condition === 'new' ? 'Novo' : 'Seminovo',
-      warranty: 'Demonstração',
-      boxContent: 'Simulação',
-      imeis: v.demoImeis || []
-    };
+// Reset DOM checkboxes on page load to prevent browser cache filtering products prematurely
+function resetDOMFilterInputs() {
+  if (mainSearchInput) mainSearchInput.value = '';
+  document.querySelectorAll('.filter-checkbox, input[type="radio"]').forEach(cb => {
+    cb.checked = false;
   });
+}
+
+// Initialize products from shared data store
+function initData() {
+  const v3Products = getProducts() || [];
+  state.products = v3Products.filter(p => p.status === 'active' && getActiveVariants(p).length > 0);
   
   if (productionEmptyState && catalogActiveContent) {
     productionEmptyState.classList.add('d-none');
@@ -139,26 +138,43 @@ function initData() {
   }
 }
 
+// Setup Demo Notice for Fictitious Contacts
+function setupDemoContactButtons() {
+  const ctaButtons = [
+    'top-bar-cta', 'header-whatsapp-cta', 'm-drawer-whatsapp',
+    'btn-hero-contact', 'btn-empty-contact', 'footer-whatsapp-link'
+  ];
+
+  ctaButtons.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', handleDemoContactClick);
+    }
+  });
+}
+
+function handleDemoContactClick(e) {
+  if (DEMO_CONFIG.isDemo && !DEMO_CONFIG.whatsapp) {
+    e.preventDefault();
+    showToast('AMBIENTE DEMONSTRATIVO: Nenhum contato real é enviado nesta versão sem backend ativado.', 'warning');
+  }
+}
+
 // ==========================================
 // ROUTING ENGINE
 // ==========================================
 function setupRouting() {
-  // Hash Routing trigger
   window.addEventListener('hashchange', handleRoute);
-  
-  // Initial route
   handleRoute();
 }
 
 function handleRoute() {
   const hash = window.location.hash || '#home';
   
-  // Close drawer and modals on navigate
   closeMobileDrawer();
   closeCartDrawer();
   closeProductDetailModal();
   
-  // Scroll to target if navigation is internal (e.g. scroll to elements)
   if (hash === '#home' || hash.startsWith('#home-')) {
     navigateToView('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -181,7 +197,6 @@ function handleRoute() {
     navigateToView('home');
     scrollToSection('contato');
   } else if (hash === '#selecao') {
-    // Open selection reservation form view
     if (state.cart.length === 0) {
       window.location.hash = '#catalogo';
       showToast('Adicione itens à sua seleção primeiro.', 'warning');
@@ -194,7 +209,6 @@ function handleRoute() {
     navigateToView('sucesso');
     renderSuccessScreen(resId);
   } else {
-    // Fallback to home
     navigateToView('home');
   }
   
@@ -204,7 +218,6 @@ function handleRoute() {
 function navigateToView(viewName) {
   state.activeView = viewName;
   
-  // Toggle Views in DOM
   const views = {
     home: viewHome,
     reserva: viewReserva,
@@ -212,10 +225,12 @@ function navigateToView(viewName) {
   };
   
   Object.keys(views).forEach(key => {
-    if (key === viewName) {
-      views[key].classList.remove('d-none');
-    } else {
-      views[key].classList.add('d-none');
+    if (views[key]) {
+      if (key === viewName) {
+        views[key].classList.remove('d-none');
+      } else {
+        views[key].classList.add('d-none');
+      }
     }
   });
   
@@ -239,7 +254,6 @@ function scrollToSection(sectionId) {
 }
 
 function updateActiveMenuLinks(hash) {
-  // Update desktop links
   const links = ['home', 'catalogo', 'categorias', 'como-funciona', 'assistencia', 'diferenciais', 'contato'];
   links.forEach(link => {
     const el = document.getElementById(`nav-${link}`);
@@ -252,7 +266,6 @@ function updateActiveMenuLinks(hash) {
     }
   });
 
-  // Update bottom bar items
   const bItems = {
     '#home': 'b-nav-home',
     '#catalogo': 'b-nav-search',
@@ -276,115 +289,151 @@ function updateActiveMenuLinks(hash) {
 // INTERACTIVE EVENT LISTENERS
 // ==========================================
 function setupEventListeners() {
-  // Mobile drawer menu toggles
-  btnHamburger.addEventListener('click', openMobileDrawer);
-  btnCloseDrawer.addEventListener('click', closeMobileDrawer);
-  mobileDrawerOverlay.addEventListener('click', (e) => {
-    if (e.target === mobileDrawerOverlay) closeMobileDrawer();
-  });
+  if (btnHamburger) btnHamburger.addEventListener('click', openMobileDrawer);
+  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeMobileDrawer);
+  if (mobileDrawerOverlay) {
+    mobileDrawerOverlay.addEventListener('click', (e) => {
+      if (e.target === mobileDrawerOverlay) closeMobileDrawer();
+    });
+  }
   
-  // Close drawer links
   document.querySelectorAll('.mobile-nav-link').forEach(link => {
     link.addEventListener('click', closeMobileDrawer);
   });
   
-  // Cart drawer toggles
-  document.getElementById('btn-cart-trigger').addEventListener('click', openCartDrawer);
-  document.getElementById('b-nav-cart').addEventListener('click', (e) => {
-    e.preventDefault();
-    openCartDrawer();
-  });
-  document.getElementById('btn-close-cart-drawer').addEventListener('click', closeCartDrawer);
-  cartDrawerOverlay.addEventListener('click', (e) => {
-    if (e.target === cartDrawerOverlay) closeCartDrawer();
-  });
+  const cartTrigger = document.getElementById('btn-cart-trigger');
+  if (cartTrigger) cartTrigger.addEventListener('click', openCartDrawer);
   
-  // Search
-  btnMainSearch.addEventListener('click', handleSearchSubmit);
-  mainSearchInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') handleSearchSubmit();
-  });
+  const bNavCart = document.getElementById('b-nav-cart');
+  if (bNavCart) {
+    bNavCart.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCartDrawer();
+    });
+  }
   
-  // Modal detail close
-  document.getElementById('btn-close-product-modal').addEventListener('click', closeProductDetailModal);
-  productDetailModalOverlay.addEventListener('click', (e) => {
-    if (e.target === productDetailModalOverlay) closeProductDetailModal();
-  });
+  const btnCloseCart = document.getElementById('btn-close-cart-drawer');
+  if (btnCloseCart) btnCloseCart.addEventListener('click', closeCartDrawer);
   
-  // Clear filters
-  document.getElementById('btn-clear-filters').addEventListener('click', clearAllFilters);
-  document.getElementById('btn-clear-filters-empty').addEventListener('click', clearAllFilters);
+  if (cartDrawerOverlay) {
+    cartDrawerOverlay.addEventListener('click', (e) => {
+      if (e.target === cartDrawerOverlay) closeCartDrawer();
+    });
+  }
   
-  // Checkout button inside cart drawer
-  btnDrawerReserveSubmit.addEventListener('click', () => {
-    window.location.hash = '#selecao';
-  });
+  if (btnMainSearch) btnMainSearch.addEventListener('click', handleSearchSubmit);
+  if (mainSearchInput) {
+    mainSearchInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') handleSearchSubmit();
+    });
+  }
   
-  // Go back button inside reservation form
-  document.getElementById('btn-back-to-cart').addEventListener('click', () => {
-    window.location.hash = '#catalogo';
-    openCartDrawer();
-  });
+  const btnCloseModal = document.getElementById('btn-close-product-modal');
+  if (btnCloseModal) btnCloseModal.addEventListener('click', closeProductDetailModal);
+  if (productDetailModalOverlay) {
+    productDetailModalOverlay.addEventListener('click', (e) => {
+      if (e.target === productDetailModalOverlay) closeProductDetailModal();
+    });
+  }
   
-  // Sort selectors
-  sortSelectInput.addEventListener('change', (e) => {
-    state.sorting = e.target.value;
-    renderCatalogGrid();
-  });
+  const btnClear1 = document.getElementById('btn-clear-filters');
+  if (btnClear1) btnClear1.addEventListener('click', clearAllFilters);
+  const btnClear2 = document.getElementById('btn-clear-filters-empty');
+  if (btnClear2) btnClear2.addEventListener('click', clearAllFilters);
   
-  // Reservation Form submit & formatting
-  formWhatsapp.addEventListener('input', formatPhoneInput);
-  reservationSubmitForm.addEventListener('submit', handleReservationFormSubmit);
+  if (btnDrawerReserveSubmit) {
+    btnDrawerReserveSubmit.addEventListener('click', () => {
+      window.location.hash = '#selecao';
+    });
+  }
+  
+  const btnBackCart = document.getElementById('btn-back-to-cart');
+  if (btnBackCart) {
+    btnBackCart.addEventListener('click', () => {
+      window.location.hash = '#catalogo';
+      openCartDrawer();
+    });
+  }
+  
+  if (sortSelectInput) {
+    sortSelectInput.addEventListener('change', (e) => {
+      state.sorting = e.target.value;
+      renderCatalogGrid();
+    });
+  }
+  
+  if (formWhatsapp) formWhatsapp.addEventListener('input', formatPhoneInput);
+  if (reservationSubmitForm) reservationSubmitForm.addEventListener('submit', handleReservationFormSubmit);
 
-  // Search button header trigger
-  document.getElementById('btn-search-trigger').addEventListener('click', () => {
-    window.location.hash = '#catalogo';
-    setTimeout(() => {
-      mainSearchInput.focus();
-    }, 200);
-  });
+  const btnSearchTrig = document.getElementById('btn-search-trigger');
+  if (btnSearchTrig) {
+    btnSearchTrig.addEventListener('click', () => {
+      window.location.hash = '#catalogo';
+      setTimeout(() => {
+        if (mainSearchInput) mainSearchInput.focus();
+      }, 200);
+    });
+  }
+
+  const btnDemoEmpty = document.getElementById('btn-activate-demo-empty');
+  if (btnDemoEmpty) {
+    btnDemoEmpty.addEventListener('click', () => {
+      initData();
+      renderCatalogGrid();
+      showToast('Modo demonstração ativado com dados locais.', 'success');
+    });
+  }
 }
 
-function openMobileDrawer() { mobileDrawerOverlay.classList.add('active'); }
-function closeMobileDrawer() { mobileDrawerOverlay.classList.remove('active'); }
-function openCartDrawer() { cartDrawerOverlay.classList.add('active'); }
-function closeCartDrawer() { cartDrawerOverlay.classList.remove('active'); }
-function openProductDetailModal() { productDetailModalOverlay.classList.add('active'); }
-function closeProductDetailModal() { productDetailModalOverlay.classList.remove('active'); }
-
-// ==========================================
-// DEMO MODE CONTROLLER
-// ==========================================
-// Demo mode is always active now
+function openMobileDrawer() { if (mobileDrawerOverlay) mobileDrawerOverlay.classList.add('active'); }
+function closeMobileDrawer() { if (mobileDrawerOverlay) mobileDrawerOverlay.classList.remove('active'); }
+function openCartDrawer() { if (cartDrawerOverlay) cartDrawerOverlay.classList.add('active'); }
+function closeCartDrawer() { if (cartDrawerOverlay) cartDrawerOverlay.classList.remove('active'); }
+function openProductDetailModal() { if (productDetailModalOverlay) productDetailModalOverlay.classList.add('active'); }
+function closeProductDetailModal() { if (productDetailModalOverlay) productDetailModalOverlay.classList.remove('active'); }
 
 // ==========================================
 // CATEGORIES & FILTERS RENDERING
 // ==========================================
 function renderCategories() {
+  if (!categoriesContainer) return;
   categoriesContainer.innerHTML = '';
   
   const cats = getCategories() || [];
   cats.forEach(rawCat => {
-    const cat = { ...rawCat, id: rawCat.id.replace('cat-', '') };
+    const catSlug = rawCat.id.replace('cat-', '');
     const card = document.createElement('div');
-    card.className = `category-card ${state.filters.category === cat.id ? 'active' : ''} scroll-animate`;
+    card.className = `category-card ${state.filters.category === catSlug ? 'active' : ''} scroll-animate`;
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Categoria ${rawCat.name}`);
+    
     card.innerHTML = `
       <div class="category-card-img-wrapper">
-        <img src="./assets/${cat.image}" class="category-card-img" alt="${cat.name}">
+        <img src="./assets/${rawCat.image}" class="category-card-img" alt="${rawCat.name}" loading="lazy">
       </div>
-      <span class="category-card-name">${cat.name} <i data-lucide="arrow-right" class="category-card-arrow" style="width: 14px; height: 14px;"></i></span>
+      <span class="category-card-name"><i data-lucide="arrow-right" class="category-card-arrow" style="width: 14px; height: 14px;"></i></span>
     `;
-    
-    card.addEventListener('click', () => {
-      if (state.filters.category === cat.id) {
+    card.querySelector('.category-card-name').prepend(document.createTextNode(rawCat.name + ' '));
+
+    const toggleCat = () => {
+      if (state.filters.category === catSlug) {
         state.filters.category = '';
       } else {
-        state.filters.category = cat.id;
+        state.filters.category = catSlug;
       }
       window.location.hash = '#catalogo';
       renderCategories();
       renderSidebarFilters();
       renderCatalogGrid();
+    };
+
+    card.addEventListener('click', toggleCat);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCat();
+      }
     });
     
     categoriesContainer.appendChild(card);
@@ -393,49 +442,55 @@ function renderCategories() {
   if (typeof initScrollAnimations === 'function') {
     initScrollAnimations();
   }
-  
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function renderSidebarFilters() {
-  // 1. Render Categories Filter list
-  const catList = document.getElementById('filter-categories-list');
-  catList.innerHTML = '';
+  if (!filterCategoriesList) return;
+  filterCategoriesList.innerHTML = '';
   
   const cats = getCategories() || [];
   cats.forEach(rawCat => {
-    const cat = { ...rawCat, id: rawCat.id.replace('cat-', '') };
-    const totalInCat = state.products.filter(p => p.category === cat.id).length;
-    if (totalInCat === 0) return; // skip empty categories in filter list
+    const catSlug = rawCat.id.replace('cat-', '');
+    const totalInCat = state.products.filter(p => p.categoryId === rawCat.id).length;
+    if (totalInCat === 0) return;
     
     const label = document.createElement('label');
     label.className = 'filter-option-checkbox';
-    label.innerHTML = `
-      <span>
-        <input type="radio" name="filter-cat" value="${cat.id}" ${state.filters.category === cat.id ? 'checked' : ''}>
-        ${cat.name}
-      </span>
-      <span class="filter-count">${totalInCat}</span>
-    `;
     
-    label.querySelector('input').addEventListener('change', (e) => {
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'filter-cat';
+    radio.value = catSlug;
+    if (state.filters.category === catSlug) radio.checked = true;
+    
+    const textSpan = document.createElement('span');
+    textSpan.appendChild(radio);
+    textSpan.appendChild(document.createTextNode(` ${rawCat.name}`));
+    
+    const countSpan = document.createElement('span');
+    countSpan.className = 'filter-count';
+    countSpan.textContent = totalInCat;
+    
+    label.appendChild(textSpan);
+    label.appendChild(countSpan);
+    
+    radio.addEventListener('change', (e) => {
       state.filters.category = e.target.value;
       renderCategories();
       renderCatalogGrid();
     });
     
-    catList.appendChild(label);
+    filterCategoriesList.appendChild(label);
   });
 
-  // 2. Render Brands Filter list
-  const brandList = document.getElementById('filter-brands-list');
-  brandList.innerHTML = '';
+  if (!filterBrandsList) return;
+  filterBrandsList.innerHTML = '';
   
-  // Extract unique brands from products database
   const brands = [...new Set(state.products.map(p => p.brand))].filter(Boolean);
   
   if (brands.length === 0) {
-    brandList.innerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sem marcas</span>';
+    filterBrandsList.innerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sem marcas</span>';
   } else {
     brands.forEach(brand => {
       const totalInBrand = state.products.filter(p => p.brand === brand).length;
@@ -443,15 +498,25 @@ function renderSidebarFilters() {
       const label = document.createElement('label');
       label.className = 'filter-option-checkbox';
       const isChecked = state.filters.brands.includes(brand);
-      label.innerHTML = `
-        <span>
-          <input type="checkbox" name="filter-brand" value="${brand}" ${isChecked ? 'checked' : ''}>
-          ${brand}
-        </span>
-        <span class="filter-count">${totalInBrand}</span>
-      `;
       
-      label.querySelector('input').addEventListener('change', (e) => {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'filter-brand';
+      checkbox.value = brand;
+      if (isChecked) checkbox.checked = true;
+      
+      const textSpan = document.createElement('span');
+      textSpan.appendChild(checkbox);
+      textSpan.appendChild(document.createTextNode(` ${brand}`));
+      
+      const countSpan = document.createElement('span');
+      countSpan.className = 'filter-count';
+      countSpan.textContent = totalInBrand;
+      
+      label.appendChild(textSpan);
+      label.appendChild(countSpan);
+      
+      checkbox.addEventListener('change', (e) => {
         if (e.target.checked) {
           state.filters.brands.push(brand);
         } else {
@@ -460,7 +525,7 @@ function renderSidebarFilters() {
         renderCatalogGrid();
       });
       
-      brandList.appendChild(label);
+      filterBrandsList.appendChild(label);
     });
   }
 }
@@ -474,10 +539,8 @@ function clearAllFilters() {
     availabilities: []
   };
   
-  mainSearchInput.value = '';
-  
-  // Reset all sidebar checkbox DOM states
-  document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
+  if (mainSearchInput) mainSearchInput.value = '';
+  resetDOMFilterInputs();
   
   renderCategories();
   renderSidebarFilters();
@@ -490,23 +553,18 @@ function clearAllFilters() {
 // SEARCH & RENDER CATALOG GRID
 // ==========================================
 function handleSearchSubmit() {
-  const query = mainSearchInput.value.trim();
+  const query = mainSearchInput ? mainSearchInput.value.trim() : '';
   state.filters.search = query;
-  
-  if (query) {
-    // Force search action
-  }
   
   window.location.hash = '#catalogo';
   renderCatalogGrid();
 }
 
 function renderCatalogGrid() {
-  if (!state.demoMode) return;
-  
+  if (!productsContainer) return;
   productsContainer.innerHTML = '';
   
-  // Read additional filters from Sidebar DOM inputs
+  // Read additional filters from Sidebar DOM inputs if checked
   const conditionCheckboxes = document.querySelectorAll('input[name="condition"]:checked');
   state.filters.conditions = Array.from(conditionCheckboxes).map(c => c.value);
   
@@ -518,11 +576,11 @@ function renderCatalogGrid() {
     // 1. Search Query Match
     if (state.filters.search) {
       const q = state.filters.search.toLowerCase();
-      const matchName = prod.name.toLowerCase().includes(q);
-      const matchBrand = prod.brand.toLowerCase().includes(q);
-      const matchModel = prod.model.toLowerCase().includes(q);
-      const matchDesc = prod.description ? prod.description.toLowerCase().includes(q) : false;
-      const matchCode = prod.internalCode ? prod.internalCode.toLowerCase().includes(q) : false;
+      const matchName = (prod.name || '').toLowerCase().includes(q);
+      const matchBrand = (prod.brand || '').toLowerCase().includes(q);
+      const matchModel = (prod.model || '').toLowerCase().includes(q);
+      const matchDesc = (prod.shortDescription || '').toLowerCase().includes(q);
+      const matchCode = (prod.sku || '').toLowerCase().includes(q);
       
       if (!matchName && !matchBrand && !matchModel && !matchDesc && !matchCode) {
         return false;
@@ -530,8 +588,9 @@ function renderCatalogGrid() {
     }
     
     // 2. Category Match
-    if (state.filters.category && prod.category !== state.filters.category) {
-      return false;
+    if (state.filters.category) {
+      const catSlug = (prod.categoryId || '').replace('cat-', '');
+      if (catSlug !== state.filters.category) return false;
     }
     
     // 3. Brand Match
@@ -540,20 +599,22 @@ function renderCatalogGrid() {
     }
     
     // 4. Condition Match
-    if (state.filters.conditions.length > 0 && !state.filters.conditions.includes(prod.condition)) {
+    const condLabel = prod.condition === 'new' ? 'Novo' : 'Seminovo';
+    if (state.filters.conditions.length > 0 && !state.filters.conditions.includes(condLabel)) {
       return false;
     }
     
     // 5. Availability Match
     if (state.filters.availabilities.length > 0) {
-      const isAvail = prod.quantity > 2;
-      const isLow = prod.quantity > 0 && prod.quantity <= 2;
-      const isConsult = prod.quantity === 0;
+      const totalStock = getProductTotalStock(prod);
+      const isAvail = totalStock > 2;
+      const isLow = totalStock > 0 && totalStock <= 2;
+      const isConsult = totalStock === 0;
       
       let pass = false;
-      if (state.filters.availabilities.includes('Disponível') && isAvail) pass = true;
-      if (state.filters.availabilities.includes('Poucas unidades') && isLow) pass = true;
-      if (state.filters.availabilities.includes('Consultar') && isConsult) pass = true;
+      if ((state.filters.availabilities.includes('Disponível') || state.filters.availabilities.includes('disponivel')) && isAvail) pass = true;
+      if ((state.filters.availabilities.includes('Poucas unidades') || state.filters.availabilities.includes('Últimas unidades')) && isLow) pass = true;
+      if ((state.filters.availabilities.includes('Consultar') || state.filters.availabilities.includes('Sob consulta')) && isConsult) pass = true;
       
       if (!pass) return false;
     }
@@ -563,114 +624,115 @@ function renderCatalogGrid() {
   
   // Sort results
   filtered.sort((a, b) => {
-    const priceA = a.promoPrice !== null ? a.promoPrice : a.price;
-    const priceB = b.promoPrice !== null ? b.promoPrice : b.price;
+    const priceA = getProductDisplayPriceCents(a);
+    const priceB = getProductDisplayPriceCents(b);
     
     if (state.sorting === 'preco-crescente') {
       return priceA - priceB;
     } else if (state.sorting === 'preco-decrescente') {
       return priceB - priceA;
     } else {
-      // 'recentes' (default mock id order or code ordering)
       return a.id.localeCompare(b.id);
     }
   });
 
   // Update counts
-  catalogResultsCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'produto encontrado' : 'produtos encontrados'}`;
+  if (catalogResultsCount) {
+    catalogResultsCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'produto encontrado' : 'produtos encontrados'}`;
+  }
   
   if (filtered.length === 0) {
-    catalogNoResults.classList.remove('d-none');
+    if (catalogNoResults) catalogNoResults.classList.remove('d-none');
     productsContainer.classList.add('d-none');
   } else {
-    catalogNoResults.classList.add('d-none');
+    if (catalogNoResults) catalogNoResults.classList.add('d-none');
     productsContainer.classList.remove('d-none');
     
-    // Render individual cards
+    // Render product cards
     filtered.forEach(prod => {
       const card = document.createElement('div');
       card.className = 'product-card';
-      
-      // Stock Status text & dot
+
+      const totalStock = getProductTotalStock(prod);
+      const primaryVariant = getPrimaryVariant(prod);
+      const displayPriceCents = getProductDisplayPriceCents(prod);
+      const hasPromo = primaryVariant && primaryVariant.promotionalPriceCents !== null && primaryVariant.promotionalPriceCents !== undefined;
+
+      // Stock Status Badge
       let stockHtml = '';
-      if (prod.quantity > 2) {
+      if (totalStock > 2) {
         stockHtml = `<span class="stock-status stock-available"><span class="stock-dot"></span> Disponível para retirada</span>`;
-      } else if (prod.quantity > 0 && prod.quantity <= 2) {
-        stockHtml = `<span class="stock-status stock-low"><span class="stock-dot"></span> Últimas unidades</span>`;
+      } else if (totalStock > 0) {
+        stockHtml = `<span class="stock-status stock-low"><span class="stock-dot"></span> Últimas unidades (${totalStock})</span>`;
       } else {
         stockHtml = `<span class="stock-status stock-consult"><span class="stock-dot"></span> Sob consulta</span>`;
       }
       
-      // Badges
+      // Floating Badges
       let badgeHtml = '';
-      if (prod.promoPrice) {
+      if (hasPromo) {
         badgeHtml = `<span class="badge-capsule badge-orange-light product-badge-float">OFERTA</span>`;
-      } else if (prod.condition === 'Seminovo') {
+      } else if (prod.condition === 'used_demo') {
         badgeHtml = `<span class="badge-capsule badge-purple-light product-badge-float">SEMINOVO</span>`;
       }
 
       // Display Pricing
       let priceHtml = '';
-      if (prod.promoPrice) {
+      if (hasPromo && primaryVariant) {
         priceHtml = `
-          <div class="product-old-price">R$ ${prod.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          <div class="product-price">R$ ${prod.promoPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div class="product-old-price">${formatBRLFromCents(primaryVariant.priceCents)}</div>
+          <div class="product-price">${formatBRLFromCents(primaryVariant.promotionalPriceCents)}</div>
         `;
       } else {
-        priceHtml = `
-          <div class="product-price" style="margin-top: 18px;">R$ ${prod.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-        `;
+        priceHtml = `<div class="product-price" style="margin-top: 18px;">${formatBRLFromCents(displayPriceCents)}</div>`;
       }
 
-      // Card SVG Mock Image (dynamic color depending on product brand/condition)
-      const colorMap = {
-        'Apple': '#3C1239',
-        'Samsung': '#1D4ED8',
-        'Xiaomi': '#EA580C'
-      };
-      const svgColor = colorMap[prod.brand] || '#6B7280';
-      const isAccessory = ['capas', 'peliculas', 'carregadores', 'acessorios'].includes(prod.category);
-      const iconType = isAccessory ? 'package' : 'smartphone';
+      // Image or icon fallback
+      const primaryImg = (prod.images || []).find(i => i.isPrimary) || (prod.images || [])[0];
+      const colorMap = { 'Apple': '#3C1239', 'Samsung': '#1D4ED8', 'Xiaomi': '#EA580C' };
+      const svgColor = prod.mockupStyle?.color || colorMap[prod.brand] || '#6B7280';
+      const iconType = prod.mockupStyle?.icon || (['cat-acessorios'].includes(prod.categoryId) ? 'package' : 'smartphone');
+
+      const imgSrc = primaryImg ? primaryImg.src : null;
+      const imgHtml = imgSrc
+        ? `<img src="${imgSrc}" alt="${prod.name}" loading="lazy" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px;">`
+        : `<i data-lucide="${iconType}" style="width: 48px; height: 48px; color: ${svgColor};"></i><span style="font-size: 0.65rem; color: var(--text-secondary); font-weight: 700;">STORE IMPORTS</span>`;
+
+      const condLabel = prod.condition === 'new' ? 'Novo' : 'Seminovo';
+      const pVar = primaryVariant;
 
       card.innerHTML = `
         <div class="product-image-container">
           ${badgeHtml}
-          <!-- CSS Mockup Image -->
-          <div class="mockup-placeholder" style="color: ${svgColor}; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-            <i data-lucide="${iconType}" style="width: 48px; height: 48px;"></i>
-            <span style="font-size: 0.65rem; color: var(--text-secondary); font-weight: 700;">STORE IMPORTS</span>
+          <div class="mockup-placeholder" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            ${imgHtml}
           </div>
         </div>
-        
-        <span class="product-brand">${prod.brand}</span>
-        <h3 class="product-name">${prod.name}</h3>
-        
+        <span class="product-brand"></span>
+        <h3 class="product-name"></h3>
         <div class="product-meta-specs">
-          ${prod.condition ? `<span class="badge-capsule badge-purple-light" style="font-size: 0.65rem; padding: 2px 8px;">${prod.condition}</span>` : ''}
-          ${prod.selectedCapacity ? `<span>${prod.selectedCapacity}</span>` : ''}
-          ${prod.selectedColor ? `<span>${prod.selectedColor}</span>` : ''}
+          <span class="badge-capsule badge-purple-light" style="font-size: 0.65rem; padding: 2px 8px;"></span>
+          ${pVar && pVar.capacity ? `<span>${pVar.capacity}</span>` : ''}
+          ${pVar && pVar.color ? `<span>${pVar.color}</span>` : ''}
         </div>
-        
-        <div class="product-price-wrapper">
-          ${priceHtml}
-        </div>
-        
+        <div class="product-price-wrapper">${priceHtml}</div>
         ${stockHtml}
-        
         <div class="product-actions">
-          <button class="btn btn-secondary btn-sm btn-detail" data-id="${prod.id}">Ver detalhes</button>
-          <button class="btn btn-primary btn-sm btn-select" data-id="${prod.id}" ${prod.quantity === 0 ? 'disabled' : ''}>
-            ${prod.quantity === 0 ? 'Indisponível' : 'Selecionar'}
+          <button class="btn btn-secondary btn-sm btn-detail">Ver detalhes</button>
+          <button class="btn btn-primary btn-sm btn-select" ${totalStock === 0 ? 'disabled' : ''}>
+            ${totalStock === 0 ? 'Indisponível' : 'Selecionar'}
           </button>
         </div>
       `;
+      // XSS Safe Text
+      card.querySelector('.product-brand').textContent = prod.brand;
+      card.querySelector('.product-name').textContent = prod.name;
+      card.querySelector('.product-meta-specs .badge-capsule').textContent = condLabel;
       
-      // Detail click
       card.querySelector('.btn-detail').addEventListener('click', () => {
         showProductDetail(prod.id);
       });
       
-      // Select click
       const btnSel = card.querySelector('.btn-select');
       if (btnSel) {
         btnSel.addEventListener('click', (e) => {
@@ -683,112 +745,107 @@ function renderCatalogGrid() {
     });
   }
   
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 // ==========================================
 // PRODUCT DETAIL MODAL CONTROLLER
 // ==========================================
 function showProductDetail(productId) {
-  const prod = state.products.find(p => p.id === productId);
+  const prod = getProductById(productId);
   if (!prod) return;
   
+  const activeVars = getActiveVariants(prod);
+  const primaryVariant = getPrimaryVariant(prod);
+  const totalStock = getProductTotalStock(prod);
+  const hasPromo = primaryVariant && primaryVariant.promotionalPriceCents !== null && primaryVariant.promotionalPriceCents !== undefined;
+
   state.currentProductDetail = {
     ...prod,
-    chosenColor: prod.colors && prod.colors.length > 0 ? prod.colors[0] : null,
-    chosenCapacity: prod.capacities && prod.capacities.length > 0 ? prod.capacities[0] : null
+    chosenVariantId: primaryVariant ? primaryVariant.id : null
   };
   
-  const p = state.currentProductDetail;
-  
-  // Stock Tag HTML
   let stockTag = '';
-  if (p.quantity > 2) {
+  if (totalStock > 2) {
     stockTag = `<span class="badge-capsule" style="background-color: var(--success-bg); color: var(--success);"><i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Disponível para retirada</span>`;
-  } else if (p.quantity > 0 && p.quantity <= 2) {
-    stockTag = `<span class="badge-capsule" style="background-color: var(--orange-light); color: var(--orange-primary);"><i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i> Últimas unidades</span>`;
+  } else if (totalStock > 0) {
+    stockTag = `<span class="badge-capsule" style="background-color: var(--orange-light); color: var(--orange-primary);"><i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i> Últimas unidades (${totalStock})</span>`;
   } else {
     stockTag = `<span class="badge-capsule" style="background-color: var(--purple-light); color: var(--purple-primary);"><i data-lucide="help-circle" style="width: 14px; height: 14px;"></i> Sob consulta</span>`;
   }
   
-  // Price formatting
   let priceHtml = '';
-  if (p.promoPrice) {
+  if (hasPromo && primaryVariant) {
     priceHtml = `
-      <div class="product-old-price" style="font-size: 0.9rem; margin-bottom: 2px;">R$ ${p.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-      <div class="detail-price">R$ ${p.promoPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+      <div class="product-old-price" style="font-size: 0.9rem; margin-bottom: 2px;">${formatBRLFromCents(primaryVariant.priceCents)}</div>
+      <div class="detail-price">${formatBRLFromCents(primaryVariant.promotionalPriceCents)}</div>
     `;
   } else {
-    priceHtml = `
-      <div class="detail-price">R$ ${p.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-    `;
+    priceHtml = `<div class="detail-price">${formatBRLFromCents(primaryVariant ? primaryVariant.priceCents : 0)}</div>`;
   }
 
-  // Variant choices html
+  const colors = [...new Set(activeVars.map(v => v.color).filter(Boolean))];
+  const capacities = [...new Set(activeVars.map(v => v.capacity).filter(Boolean))];
+  
   let colorChoices = '';
-  if (p.colors && p.colors.length > 0) {
+  if (colors.length > 0) {
     colorChoices = `
       <div class="variant-selector">
         <span class="variant-label">Cor disponível:</span>
-        <div class="variant-options">
-          ${p.colors.map(col => `
-            <button class="variant-btn ${p.chosenColor === col ? 'active' : ''}" data-type="color" data-value="${col}">${col}</button>
-          `).join('')}
+        <div class="variant-options" id="detail-color-options">
+          ${colors.map(col => `<button class="variant-btn ${primaryVariant && primaryVariant.color === col ? 'active' : ''}" data-type="color" data-value="${col}"></button>`).join('')}
         </div>
       </div>
     `;
   }
 
   let capacityChoices = '';
-  if (p.capacities && p.capacities.length > 0) {
+  if (capacities.length > 0) {
     capacityChoices = `
       <div class="variant-selector">
         <span class="variant-label">Armazenamento disponível:</span>
-        <div class="variant-options">
-          ${p.capacities.map(cap => `
-            <button class="variant-btn ${p.chosenCapacity === cap ? 'active' : ''}" data-type="capacity" data-value="${cap}">${cap}</button>
-          `).join('')}
+        <div class="variant-options" id="detail-cap-options">
+          ${capacities.map(cap => `<button class="variant-btn ${primaryVariant && primaryVariant.capacity === cap ? 'active' : ''}" data-type="capacity" data-value="${cap}"></button>`).join('')}
         </div>
       </div>
     `;
   }
 
-  const isAccessory = ['capas', 'peliculas', 'carregadores', 'acessorios'].includes(p.category);
-  const iconType = isAccessory ? 'package' : 'smartphone';
+  const primaryImg = (prod.images || []).find(i => i.isPrimary) || (prod.images || [])[0];
+  const imgSrc = primaryImg ? primaryImg.src : null;
+  const colorMap = { 'Apple': '#3C1239', 'Samsung': '#1D4ED8', 'Xiaomi': '#EA580C' };
+  const svgColor = colorMap[prod.brand] || '#6B7280';
+  const iconType = ['cat-acessorios'].includes(prod.categoryId) ? 'package' : 'smartphone';
+  const imgHtml = imgSrc
+    ? `<img src="${imgSrc}" alt="${prod.name}" style="max-width: 85%; max-height: 220px; object-fit: contain;">`
+    : `<i data-lucide="${iconType}" style="width: 80px; height: 80px; color: ${svgColor};"></i><span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px;">STORE IMPORTS</span>`;
+  
+  const condLabel = prod.condition === 'new' ? 'Novo' : 'Seminovo';
 
   productDetailModalBody.innerHTML = `
     <div class="product-detail-grid">
-      <!-- Gallery Column -->
       <div class="product-detail-gallery">
         <div class="gallery-main-image">
-          <div class="mock-main-svg" style="color: var(--purple-primary); display: flex; flex-direction: column; align-items: center; gap: 12px;">
-            <i data-lucide="${iconType}" style="width: 80px; height: 80px;"></i>
-            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px;">STORE IMPORTS</span>
+          <div class="mock-main-svg" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+            ${imgHtml}
           </div>
         </div>
         <div class="detail-condition">
-          <span class="badge-capsule badge-purple-light" style="font-weight: 700;">Condição: ${p.condition}</span>
-          ${p.warranty ? `<span class="badge-capsule badge-orange-light" style="margin-left: 8px;">Garantia: ${p.warranty}</span>` : ''}
+          <span class="badge-capsule badge-purple-light" id="detail-condition-badge" style="font-weight: 700;"></span>
         </div>
       </div>
 
-      <!-- Info Column -->
       <div class="product-detail-info">
         <div>
-          <span class="detail-brand">${p.brand}</span>
-          <h2 class="detail-name">${p.name}</h2>
-          <span style="font-size: 0.75rem; color: var(--text-secondary);">Cód. Ref: ${p.internalCode}</span>
+          <span class="detail-brand" id="detail-brand-text"></span>
+          <h2 class="detail-name" id="detail-name-text"></h2>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">SKU: ${prod.sku || 'N/A'}</span>
         </div>
 
-        <div style="margin: 8px 0;">
-          ${stockTag}
-        </div>
+        <div style="margin: 8px 0;">${stockTag}</div>
 
-        <div class="detail-price-box">
-          ${priceHtml}
-        </div>
+        <div class="detail-price-box">${priceHtml}</div>
 
-        <!-- Variants -->
         ${colorChoices}
         ${capacityChoices}
 
@@ -798,41 +855,44 @@ function showProductDetail(productId) {
         </div>
 
         <div class="detail-actions">
-          <button class="btn btn-primary" id="btn-modal-add-selection" ${p.quantity === 0 ? 'disabled' : ''}>
+          <button class="btn btn-primary" id="btn-modal-add-selection" ${totalStock === 0 ? 'disabled' : ''}>
             <i data-lucide="plus-circle"></i> Adicionar à seleção
           </button>
-          <a href="https://wa.me/5500000000000" target="_blank" class="btn btn-secondary" id="btn-modal-talk-store">
+          <button class="btn btn-secondary" id="btn-modal-talk-store">
             <i data-lucide="phone"></i> Falar com a loja
-          </a>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Description & Specs Box -->
     <div class="product-detail-desc">
       <h4 class="detail-desc-title">Descrição do Produto</h4>
-      <p class="detail-desc-text">${p.description}</p>
-      
-      ${p.boxContent ? `
-        <h4 class="detail-desc-title" style="margin-top: 20px;">Conteúdo da Embalagem</h4>
-        <p class="detail-desc-text" style="font-size: 0.85rem;"><i data-lucide="package-check" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i> ${p.boxContent}</p>
-      ` : ''}
+      <p class="detail-desc-text" id="detail-desc-text"></p>
     </div>
   `;
+  
+  // Safe DOM values
+  productDetailModalBody.querySelector('#detail-brand-text').textContent = prod.brand;
+  productDetailModalBody.querySelector('#detail-name-text').textContent = prod.name;
+  productDetailModalBody.querySelector('#detail-condition-badge').textContent = `Condição: ${condLabel}`;
+  productDetailModalBody.querySelector('#detail-desc-text').textContent = prod.shortDescription || '';
+  
+  if (colors.length > 0) {
+    productDetailModalBody.querySelectorAll('#detail-color-options .variant-btn').forEach((btn, idx) => {
+      btn.textContent = colors[idx];
+    });
+  }
+  if (capacities.length > 0) {
+    productDetailModalBody.querySelectorAll('#detail-cap-options .variant-btn').forEach((btn, idx) => {
+      btn.textContent = capacities[idx];
+    });
+  }
 
-  // Attach button variant handlers
   productDetailModalBody.querySelectorAll('.variant-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const type = e.target.getAttribute('data-type');
       const val = e.target.getAttribute('data-value');
       
-      if (type === 'color') {
-        state.currentProductDetail.chosenColor = val;
-      } else {
-        state.currentProductDetail.chosenCapacity = val;
-      }
-      
-      // Update UI button active states
       productDetailModalBody.querySelectorAll(`.variant-btn[data-type="${type}"]`).forEach(b => {
         if (b.getAttribute('data-value') === val) {
           b.classList.add('active');
@@ -840,57 +900,76 @@ function showProductDetail(productId) {
           b.classList.remove('active');
         }
       });
+      
+      const p = state.currentProductDetail;
+      const matched = getActiveVariants(p).find(v => {
+        if (type === 'color') return v.color === val;
+        return v.capacity === val;
+      });
+      if (matched) state.currentProductDetail.chosenVariantId = matched.id;
     });
   });
 
-  // Attach Add to selection handler
   document.getElementById('btn-modal-add-selection').addEventListener('click', () => {
     const p = state.currentProductDetail;
-    addToCart(p.id, p.chosenColor, p.chosenCapacity);
+    const variantId = p.chosenVariantId;
+    addToCart(p.id, variantId);
     closeProductDetailModal();
   });
 
+  const talkBtn = document.getElementById('btn-modal-talk-store');
+  if (talkBtn) {
+    talkBtn.addEventListener('click', (e) => {
+      handleDemoContactClick(e);
+    });
+  }
+
   openProductDetailModal();
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 // ==========================================
 // CART & SELECTION ENGINE
 // ==========================================
-function addToCart(productId, color = null, capacity = null) {
-  const prod = state.products.find(p => p.id === productId);
+function addToCart(productId, variantId = null) {
+  const prod = getProductById(productId);
   if (!prod) return;
+
+  const activeVars = getActiveVariants(prod);
+  if (activeVars.length === 0) { showToast('Produto sem variações ativas.', 'warning'); return; }
+
+  const chosenVariant = variantId ? activeVars.find(v => v.id === variantId) : activeVars[0];
+  const variant = chosenVariant || activeVars[0];
   
-  // Set default values if not specified
-  const chosenColor = color || (prod.colors && prod.colors.length > 0 ? prod.colors[0] : null);
-  const chosenCapacity = capacity || (prod.capacities && prod.capacities.length > 0 ? prod.capacities[0] : null);
-  
-  // Check if item with exact specs already in selection
+  if (variant.stockQuantity <= 0) {
+    showToast('Produto fora de estoque.', 'warning');
+    return;
+  }
+
   const existingIndex = state.cart.findIndex(item => 
-    item.productId === productId && 
-    item.color === chosenColor && 
-    item.capacity === chosenCapacity
+    item.productId === productId && item.variantId === variant.id
   );
   
   if (existingIndex > -1) {
-    // Check stock limit
-    if (state.cart[existingIndex].quantity < prod.quantity) {
+    if (state.cart[existingIndex].quantity < variant.stockQuantity) {
       state.cart[existingIndex].quantity += 1;
       showToast('Quantidade atualizada na sua seleção.', 'success');
     } else {
-      showToast(`Estoque limite atingido para este item (${prod.quantity} un).`, 'warning');
+      showToast(`Estoque limite atingido para este item (${variant.stockQuantity} un).`, 'warning');
     }
   } else {
+    const priceCents = (variant.promotionalPriceCents !== null && variant.promotionalPriceCents !== undefined) ? variant.promotionalPriceCents : variant.priceCents;
     state.cart.push({
       id: `cart-item-${Date.now()}`,
       productId: productId,
+      variantId: variant.id,
       name: prod.name,
       brand: prod.brand,
-      price: prod.promoPrice !== null ? prod.promoPrice : prod.price,
-      color: chosenColor,
-      capacity: chosenCapacity,
+      priceCents: priceCents,
+      color: variant.color,
+      capacity: variant.capacity,
       quantity: 1,
-      maxQuantity: prod.quantity
+      maxQuantity: variant.stockQuantity
     });
     showToast('Adicionado à sua seleção!', 'success');
   }
@@ -902,17 +981,20 @@ function addToCart(productId, color = null, capacity = null) {
 
 function updateCartBadges() {
   const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-  cartBadgeCount.textContent = totalItems;
-  cartBadgeCountMobile.textContent = totalItems;
+  if (cartBadgeCount) cartBadgeCount.textContent = totalItems;
+  if (cartBadgeCountMobile) cartBadgeCountMobile.textContent = totalItems;
   
-  if (totalItems > 0) {
-    btnDrawerReserveSubmit.removeAttribute('disabled');
-  } else {
-    btnDrawerReserveSubmit.setAttribute('disabled', 'true');
+  if (btnDrawerReserveSubmit) {
+    if (totalItems > 0) {
+      btnDrawerReserveSubmit.removeAttribute('disabled');
+    } else {
+      btnDrawerReserveSubmit.setAttribute('disabled', 'true');
+    }
   }
 }
 
 function renderCartDrawer() {
+  if (!cartItemsContainer) return;
   cartItemsContainer.innerHTML = '';
   
   if (state.cart.length === 0) {
@@ -923,33 +1005,32 @@ function renderCartDrawer() {
         <p style="font-size: 0.85rem; max-width: 240px; margin: 0 auto;">Navegue pelos produtos e adicione os itens que deseja reservar.</p>
       </div>
     `;
-    cartEstimatedTotal.textContent = 'R$ 0,00';
-    lucide.createIcons();
+    if (cartEstimatedTotal) cartEstimatedTotal.textContent = 'R$ 0,00';
+    if (window.lucide) lucide.createIcons();
     return;
   }
   
-  let total = 0;
+  let totalCents = 0;
   
   state.cart.forEach(item => {
-    const itemTotal = item.price * item.quantity;
-    total += itemTotal;
+    const itemTotalCents = (item.priceCents || 0) * item.quantity;
+    totalCents += itemTotalCents;
     
     const card = document.createElement('div');
     card.className = 'cart-item';
     
-    // Meta string colors/capacity
     let metaStr = '';
     if (item.color) metaStr += `Cor: ${item.color}`;
-    if (item.capacity) metaStr += (metaStr ? ' | ' : '') + `Armazenamento: ${item.capacity}`;
+    if (item.capacity) metaStr += (metaStr ? ' | ' : '') + `Arm.: ${item.capacity}`;
     
     card.innerHTML = `
       <div class="cart-item-image">
         <i data-lucide="smartphone" style="width: 24px; height: 24px; color: var(--purple-primary);"></i>
       </div>
       <div class="cart-item-details">
-        <h4 class="cart-item-name">${item.name}</h4>
-        <span class="cart-item-meta">${metaStr}</span>
-        <span class="cart-item-price">R$ ${item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+        <h4 class="cart-item-name"></h4>
+        <span class="cart-item-meta"></span>
+        <span class="cart-item-price">${formatBRLFromCents(item.priceCents)}</span>
       </div>
       <div class="cart-item-actions">
         <button class="btn-remove-item" data-id="${item.id}" title="Remover item">
@@ -962,15 +1043,15 @@ function renderCartDrawer() {
         </div>
       </div>
     `;
+    card.querySelector('.cart-item-name').textContent = item.name;
+    card.querySelector('.cart-item-meta').textContent = metaStr;
     
-    // Quantity handlers
     card.querySelector('.btn-qty-minus').addEventListener('click', () => {
       adjustCartItemQuantity(item.id, -1);
     });
     card.querySelector('.btn-qty-plus').addEventListener('click', () => {
       adjustCartItemQuantity(item.id, 1);
     });
-    // Remove handler
     card.querySelector('.btn-remove-item').addEventListener('click', () => {
       removeCartItem(item.id);
     });
@@ -978,8 +1059,8 @@ function renderCartDrawer() {
     cartItemsContainer.appendChild(card);
   });
   
-  cartEstimatedTotal.textContent = `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-  lucide.createIcons();
+  if (cartEstimatedTotal) cartEstimatedTotal.textContent = formatBRLFromCents(totalCents);
+  if (window.lucide) lucide.createIcons();
 }
 
 function adjustCartItemQuantity(itemId, amount) {
@@ -1026,12 +1107,13 @@ function loadCartFromLocalStorage() {
 // RESERVATION SUBMIT VIEW
 // ==========================================
 function renderReservationPreview() {
+  if (!reservationItemsPreviewList) return;
   reservationItemsPreviewList.innerHTML = '';
   
-  let total = 0;
+  let totalCents = 0;
   state.cart.forEach(item => {
-    const itemTotal = item.price * item.quantity;
-    total += itemTotal;
+    const itemTotalCents = (item.priceCents || 0) * item.quantity;
+    totalCents += itemTotalCents;
     
     const div = document.createElement('div');
     div.className = 'preview-item';
@@ -1040,18 +1122,23 @@ function renderReservationPreview() {
     if (item.color) specs += `(${item.color})`;
     if (item.capacity) specs += (specs ? ' ' : '') + `(${item.capacity})`;
     
-    div.innerHTML = `
-      <span>${item.name} ${specs} <strong>x${item.quantity}</strong></span>
-      <span>R$ ${itemTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-    `;
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = `${item.name} ${specs}`;
+    const qtyBold = document.createElement('strong');
+    qtyBold.textContent = ` x${item.quantity}`;
+    nameSpan.appendChild(qtyBold);
     
+    const priceSpan = document.createElement('span');
+    priceSpan.textContent = formatBRLFromCents(itemTotalCents);
+    
+    div.appendChild(nameSpan);
+    div.appendChild(priceSpan);
     reservationItemsPreviewList.appendChild(div);
   });
   
-  reservationPreviewTotalValue.textContent = `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  if (reservationPreviewTotalValue) reservationPreviewTotalValue.textContent = formatBRLFromCents(totalCents);
 }
 
-// Auto format phone (XX) XXXXX-XXXX
 function formatPhoneInput(e) {
   let val = e.target.value.replace(/\D/g, "");
   
@@ -1074,85 +1161,83 @@ function handleReservationFormSubmit(e) {
   const nome = document.getElementById('form-nome').value.trim();
   const whatsapp = document.getElementById('form-whatsapp').value.trim();
   const email = document.getElementById('form-email').value.trim();
-  const contatoPref = document.getElementById('form-contato-pref').value;
   const dataRetirada = document.getElementById('form-data').value;
   const obs = document.getElementById('form-obs').value.trim();
   const consentimento = document.getElementById('form-consentimento').checked;
   
-  // Reset errors
   document.querySelectorAll('.form-error-msg').forEach(el => el.classList.add('d-none'));
   
   let hasErrors = false;
   
   if (!nome) {
-    document.getElementById('error-nome').classList.remove('d-none');
+    const err = document.getElementById('error-nome');
+    if (err) err.classList.remove('d-none');
     hasErrors = true;
   }
   
-  // Phone regex (XX) XXXXX-XXXX or similar formats
   const cleanPhone = whatsapp.replace(/\D/g, "");
   if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-    document.getElementById('error-whatsapp').classList.remove('d-none');
+    const err = document.getElementById('error-whatsapp');
+    if (err) err.classList.remove('d-none');
     hasErrors = true;
   }
   
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    document.getElementById('error-email').classList.remove('d-none');
+    const err = document.getElementById('error-email');
+    if (err) err.classList.remove('d-none');
     hasErrors = true;
   }
   
   if (!dataRetirada) {
-    document.getElementById('error-data').classList.remove('d-none');
+    const err = document.getElementById('error-data');
+    if (err) err.classList.remove('d-none');
     hasErrors = true;
   } else {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const chosenDate = new Date(dataRetirada + "T00:00:00");
     if (chosenDate < today) {
-      document.getElementById('error-data').textContent = "Selecione uma data futura para a retirada.";
-      document.getElementById('error-data').classList.remove('d-none');
+      const err = document.getElementById('error-data');
+      if (err) {
+        err.textContent = "Selecione uma data futura para a retirada.";
+        err.classList.remove('d-none');
+      }
       hasErrors = true;
     }
   }
   
   if (!consentimento) {
-    document.getElementById('error-consentimento').classList.remove('d-none');
+    const err = document.getElementById('error-consentimento');
+    if (err) err.classList.remove('d-none');
     hasErrors = true;
   }
   
   if (hasErrors) {
-    showToast('Corrija os campos obrigatórios.', 'danger');
+    showToast('Corrija os campos obrigatórios em vermelho.', 'danger');
     return;
   }
   
-  // Generate random order code
   const code = `#SI-${Math.floor(1000 + Math.random() * 9000)}`;
-  
-  // Read payment method choice
   const paymentMethodInput = document.querySelector('input[name="payment-method"]:checked');
-  const paymentMethod = paymentMethodInput ? paymentMethodInput.value : 'retirada';
+  const paymentMethod = paymentMethodInput ? paymentMethodInput.value : 'cash_demo';
   
-  // Create reservation object (V3 format)
-  const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalCents = state.cart.reduce((sum, item) => sum + ((item.priceCents || 0) * item.quantity), 0);
   const newReservation = {
     id: `res-${Date.now()}`,
     code: code,
     demoCustomerName: nome,
     demoContactLabel: whatsapp,
     items: state.cart.map(i => ({
-      productId: i.id,
-      variantId: 'v2-legacy',
-      name: i.name, // Keep for legacy whatsapp string building
-      color: i.selectedColor,
-      capacity: i.selectedCapacity,
+      productId: i.productId,
+      variantId: i.variantId || null,
       quantity: i.quantity,
-      unitPriceCents: Math.round(i.price * 100)
+      unitPriceCents: i.priceCents || 0
     })),
-    estimatedTotalCents: Math.round(total * 100),
+    estimatedTotalCents: totalCents,
     status: 'new',
     requestedDate: new Date(dataRetirada + "T12:00:00").toISOString(),
     displayDate: formatDisplayDate(dataRetirada),
-    demoPaymentMethod: paymentMethod === 'pix' ? 'other_demo' : 'cash_demo',
+    demoPaymentMethod: paymentMethod,
     notes: obs,
     history: [{ from: null, to: 'new', actorUserId: 'customer', at: new Date().toISOString() }],
     createdAt: new Date().toISOString(),
@@ -1161,16 +1246,13 @@ function handleReservationFormSubmit(e) {
   
   createDemoReservation(newReservation);
   
-  // Clear cart
   state.cart = [];
   saveCartToLocalStorage();
   renderCartDrawer();
   updateCartBadges();
   
-  // Reset form inputs
   reservationSubmitForm.reset();
   
-  // Go to success view
   window.location.hash = `#sucesso/${newReservation.code.slice(1)}`;
 }
 
@@ -1180,81 +1262,75 @@ function handleReservationFormSubmit(e) {
 function renderSuccessScreen(codeNum) {
   const code = `#${codeNum}`;
   
-  const reservations = getStoreData('reservations');
+  const reservations = getReservations();
   const res = reservations.find(r => r.code === code);
   
+  const codeEl = document.getElementById('success-code');
+  const nameEl = document.getElementById('success-client-name');
+  const phoneEl = document.getElementById('success-client-whatsapp');
+  const dateEl = document.getElementById('success-retrieval-date');
+  const countEl = document.getElementById('success-products-count');
+  const totalEl = document.getElementById('success-total-value');
+  const payEl = document.getElementById('success-payment-method');
+  const badge = document.getElementById('success-status-badge');
+  const wBtn = document.getElementById('btn-success-whatsapp');
+
   if (!res) {
-    // If not found, show dummy placeholders
-    document.getElementById('success-code').textContent = code;
-    document.getElementById('success-client-name').textContent = 'Erro ao carregar';
-    document.getElementById('success-total-value').textContent = 'R$ 0,00';
+    if (codeEl) codeEl.textContent = code;
+    if (nameEl) nameEl.textContent = 'Erro ao carregar';
+    if (totalEl) totalEl.textContent = 'R$ 0,00';
     return;
   }
   
-  document.getElementById('success-code').textContent = res.code;
-  document.getElementById('success-client-name').textContent = res.demoCustomerName;
-  document.getElementById('success-client-whatsapp').textContent = res.demoContactLabel;
-  document.getElementById('success-retrieval-date').textContent = res.displayDate || 'Não informada';
+  if (codeEl) codeEl.textContent = res.code;
+  if (nameEl) nameEl.textContent = res.demoCustomerName;
+  if (phoneEl) phoneEl.textContent = res.demoContactLabel || 'N/A';
+  if (dateEl) dateEl.textContent = res.displayDate || formatDateTimePtBr(res.requestedDate) || 'Não informada';
   
-  const totalItems = res.items.reduce((sum, item) => sum + item.quantity, 0);
-  document.getElementById('success-products-count').textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
-  document.getElementById('success-total-value').textContent = `R$ ${(res.estimatedTotalCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  const totalItems = (res.items || []).reduce((sum, item) => sum + item.quantity, 0);
+  if (countEl) countEl.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
+  if (totalEl) totalEl.textContent = formatBRLFromCents(res.estimatedTotalCents);
   
-  // Dynamic Pix Container render (Disabled in Demo V3)
-  const pixContainer = document.getElementById('success-pix-container');
-  const wBtn = document.getElementById('btn-success-whatsapp');
-  
-  if (pixContainer) pixContainer.classList.add('d-none');
-  
-  if (wBtn) {
-    wBtn.innerHTML = `<i data-lucide="message-circle"></i> Falar pelo WhatsApp (Fictício)`;
+  if (payEl) {
+    payEl.textContent = `Forma escolhida: ${getPaymentMethodLabel(res.demoPaymentMethod)}. Nenhuma cobrança foi realizada nesta simulação.`;
   }
   
-  // Status Badge Rendering
-  const badge = document.getElementById('success-status-badge');
-  badge.className = 'badge-status';
-  
-  let statusHtml = '';
-  if (res.status === 'new') {
-    badge.classList.add('badge-status-pending');
-    statusHtml = `<i data-lucide="clock" style="width: 12px; height: 12px; display: inline;"></i> Nova Simulação`;
-  } else if (res.status === 'contacted') {
-    badge.classList.add('badge-status-confirmed');
-    statusHtml = `<i data-lucide="check" style="width: 12px; height: 12px; display: inline;"></i> Contato Simulado`;
-  } else {
-    badge.classList.add('badge-status-pending');
-    statusHtml = `<i data-lucide="info" style="width: 12px; height: 12px; display: inline;"></i> Status: ${res.status}`;
+  if (badge) {
+    badge.className = 'badge-status';
+    let statusHtml = '';
+    if (res.status === 'new') {
+      badge.classList.add('badge-status-pending');
+      statusHtml = `<i data-lucide="clock" style="width: 12px; height: 12px; display: inline;"></i> Nova Simulação`;
+    } else if (res.status === 'contacted') {
+      badge.classList.add('badge-status-confirmed');
+      statusHtml = `<i data-lucide="check" style="width: 12px; height: 12px; display: inline;"></i> Contato Simulado`;
+    } else {
+      badge.classList.add('badge-status-pending');
+      statusHtml = `<i data-lucide="info" style="width: 12px; height: 12px; display: inline;"></i> Status: ${res.status}`;
+    }
+    badge.innerHTML = statusHtml;
   }
-  badge.innerHTML = statusHtml;
 
-  // Configure Whatsapp button link dynamically with custom reservation text!
-  const itemsText = res.items.map(item => {
-    let spec = '';
-    if (item.color) spec += ` (${item.color})`;
-    if (item.capacity) spec += ` (${item.capacity})`;
-    return `- ${item.name}${spec} x${item.quantity}`;
-  }).join('%0A');
+  if (wBtn) {
+    wBtn.onclick = (e) => {
+      handleDemoContactClick(e);
+    };
+  }
   
-  let textMsg = `Olá! Esta é uma simulação demonstrativa gerada pela plataforma.%0A%0A*Código Fictício:* ${res.code}%0A*Cliente Fictício:* ${res.demoCustomerName}%0A*Itens Simulados:*%0A${itemsText}%0A%0A*Data Demonstrativa:* ${res.displayDate}`;
-  
-  wBtn.href = `https://wa.me/5511999999999?text=${textMsg}`;
-  
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 // ==========================================
 // HELPER UTILITIES
 // ==========================================
 function formatDisplayDate(dateStr) {
-  // input is YYYY-MM-DD -> output DD/MM/YYYY
   if (!dateStr) return '';
   const parts = dateStr.split('-');
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return dateStr;
 }
 
-// Dynamic Toast Notifications
 function showToast(message, type = 'info') {
-  // Simple custom toast utilizing framer-motion-like CSS animations
   const toast = document.createElement('div');
   toast.style.position = 'fixed';
   toast.style.bottom = '24px';
@@ -1287,17 +1363,16 @@ function showToast(message, type = 'info') {
   };
   
   toast.style.backgroundColor = colors[type] || colors.info;
-  toast.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
+  toast.innerHTML = `${icons[type] || icons.info} <span></span>`;
+  toast.querySelector('span').textContent = message;
   
   document.body.appendChild(toast);
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
   
-  // Animate in
   setTimeout(() => {
     toast.style.transform = 'translateX(-50%) translateY(0)';
   }, 10);
   
-  // Animate out & remove
   setTimeout(() => {
     toast.style.transform = 'translateX(-50%) translateY(100px)';
     setTimeout(() => {
@@ -1306,9 +1381,6 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
-// ==========================================
-// SCROLL ANIMATIONS IMPLEMENTATION
-// ==========================================
 function initScrollAnimations() {
   const animatedElements = document.querySelectorAll('.benefit-item, .category-card, .step-card, .diferencial-card, .contato-cta, .reservation-form-container');
   
@@ -1316,7 +1388,7 @@ function initScrollAnimations() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('animate-in');
-        observer.unobserve(entry.target); // Animate only once
+        observer.unobserve(entry.target);
       }
     });
   }, {
