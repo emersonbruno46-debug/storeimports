@@ -283,27 +283,6 @@ function updateActiveMenuLinks(hash) {
       }
     }
   });
-
-  // Floating Bottom NavBar (BottomNavBar component)
-  const fItems = {
-    '#home': 'f-nav-home',
-    '#catalogo': 'f-nav-catalogo',
-    '#categorias': 'f-nav-categorias',
-    '#assistencia': 'f-nav-assistencia',
-    '#selecao': 'f-nav-cart'
-  };
-
-  const activeHash = hash || '#home';
-  Object.keys(fItems).forEach(key => {
-    const item = document.getElementById(fItems[key]);
-    if (item) {
-      if (activeHash === key || (key === '#home' && activeHash === '#home')) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    }
-  });
 }
 
 // ==========================================
@@ -328,14 +307,6 @@ function setupEventListeners() {
   const bNavCart = document.getElementById('b-nav-cart');
   if (bNavCart) {
     bNavCart.addEventListener('click', (e) => {
-      e.preventDefault();
-      openCartDrawer();
-    });
-  }
-
-  const fNavCart = document.getElementById('f-nav-cart');
-  if (fNavCart) {
-    fNavCart.addEventListener('click', (e) => {
       e.preventDefault();
       openCartDrawer();
     });
@@ -1156,16 +1127,6 @@ function updateCartBadges() {
   if (cartBadgeCount) cartBadgeCount.textContent = totalItems;
   if (cartBadgeCountMobile) cartBadgeCountMobile.textContent = totalItems;
   
-  const cartBadgeFloating = document.getElementById('cart-badge-count-floating');
-  if (cartBadgeFloating) {
-    cartBadgeFloating.textContent = totalItems;
-    if (totalItems > 0) {
-      cartBadgeFloating.classList.remove('d-none');
-    } else {
-      cartBadgeFloating.classList.add('d-none');
-    }
-  }
-
   if (btnDrawerReserveSubmit) {
     if (totalItems > 0) {
       btnDrawerReserveSubmit.removeAttribute('disabled');
