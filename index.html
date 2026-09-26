@@ -898,6 +898,53 @@
     </div>
   </footer>
 
+  <!-- ==========================================
+       FLOATING BOTTOM NAVBAR (BottomNavBar)
+       ========================================== -->
+  <nav class="floating-bottom-nav" role="navigation" aria-label="Bottom Navigation">
+    <div class="floating-nav-container">
+      
+      <a href="#home" class="floating-nav-item active" id="f-nav-home" data-target="home" aria-label="Início">
+        <i data-lucide="home" class="nav-icon"></i>
+        <div class="nav-label-wrapper">
+          <span class="nav-label" title="Início">Início</span>
+        </div>
+      </a>
+
+      <a href="#catalogo" class="floating-nav-item" id="f-nav-catalogo" data-target="catalogo" aria-label="Produtos">
+        <i data-lucide="smartphone" class="nav-icon"></i>
+        <div class="nav-label-wrapper">
+          <span class="nav-label" title="Produtos">Produtos</span>
+        </div>
+      </a>
+
+      <a href="#categorias" class="floating-nav-item" id="f-nav-categorias" data-target="categorias" aria-label="Categorias">
+        <i data-lucide="folder-tree" class="nav-icon"></i>
+        <div class="nav-label-wrapper">
+          <span class="nav-label" title="Categorias">Categorias</span>
+        </div>
+      </a>
+
+      <a href="#assistencia" class="floating-nav-item" id="f-nav-assistencia" data-target="assistencia" aria-label="Assistência">
+        <i data-lucide="wrench" class="nav-icon"></i>
+        <div class="nav-label-wrapper">
+          <span class="nav-label" title="Assistência">Assistência</span>
+        </div>
+      </a>
+
+      <button type="button" class="floating-nav-item" id="f-nav-cart" aria-label="Seleção">
+        <div class="nav-icon-wrapper" style="position: relative; display: flex; align-items: center; justify-content: center;">
+          <i data-lucide="shopping-bag" class="nav-icon"></i>
+          <span class="cart-badge floating-cart-badge d-none" id="cart-badge-count-floating">0</span>
+        </div>
+        <div class="nav-label-wrapper">
+          <span class="nav-label" title="Seleção">Seleção</span>
+        </div>
+      </button>
+
+    </div>
+  </nav>
+
   <!-- Application Logic JS -->
   <script src="./store_data.js"></script>
   <script src="./app.js"></script>
