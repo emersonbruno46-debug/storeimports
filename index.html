@@ -195,9 +195,14 @@
       <!-- STICKY SEARCH SECTION -->
       <div class="container search-section" id="sticky-search-anchor">
         <div class="search-bar-wrapper">
-          <div class="search-input-container">
+          <div class="search-input-container" style="position: relative;">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" class="search-bar-input" id="main-search-input" placeholder="Qual produto você está procurando?">
+            <input type="text" class="search-bar-input" id="main-search-input" placeholder="Qual produto você está procurando?" autocomplete="off">
+            
+            <!-- Autocomplete Search Suggestions Dropdown -->
+            <div class="search-autocomplete-dropdown d-none" id="search-autocomplete-dropdown">
+              <!-- Dynamically populated via JS -->
+            </div>
           </div>
           <button class="btn btn-primary search-btn" id="btn-main-search">
             Buscar

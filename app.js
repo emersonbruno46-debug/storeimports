@@ -321,17 +321,44 @@ function setupEventListeners() {
     });
   }
   
-  if (btnMainSearch) btnMainSearch.addEventListener('click', handleSearchSubmit);
+  if (btnMainSearch) btnMainSearch.addEventListener('click', () => {
+    handleSearchSubmit();
+    const dropdown = document.getElementById('search-autocomplete-dropdown');
+    if (dropdown) dropdown.classList.add('d-none');
+  });
   if (mainSearchInput) {
     mainSearchInput.addEventListener('input', (e) => {
-      state.filters.search = e.target.value.trim();
+      const q = e.target.value;
+      state.filters.search = q.trim();
       renderCatalogGrid();
+      renderSearchAutocomplete(q);
+    });
+    mainSearchInput.addEventListener('focus', (e) => {
+      if (e.target.value.trim()) {
+        renderSearchAutocomplete(e.target.value);
+      }
     });
     mainSearchInput.addEventListener('keyup', (e) => {
-      state.filters.search = e.target.value.trim();
-      renderCatalogGrid();
+      if (e.key === 'Escape') {
+        const dropdown = document.getElementById('search-autocomplete-dropdown');
+        if (dropdown) dropdown.classList.add('d-none');
+      } else {
+        const q = e.target.value;
+        state.filters.search = q.trim();
+        renderCatalogGrid();
+        renderSearchAutocomplete(q);
+      }
     });
   }
+
+  // Close search suggestions dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('search-autocomplete-dropdown');
+    const container = document.querySelector('.search-input-container');
+    if (dropdown && container && !container.contains(e.target)) {
+      dropdown.classList.add('d-none');
+    }
+  });
   
   const btnCloseModal = document.getElementById('btn-close-product-modal');
   if (btnCloseModal) btnCloseModal.addEventListener('click', closeProductDetailModal);
@@ -555,12 +582,118 @@ function clearAllFilters() {
 }
 
 // ==========================================
-// SEARCH & RENDER CATALOG GRID
+// AUTOCOMPLETE SEARCH SUGGESTIONS & GRID RENDER
 // ==========================================
+function renderSearchAutocomplete(query) {
+  const dropdown = document.getElementById('search-autocomplete-dropdown');
+  if (!dropdown) return;
+
+  const q = query ? query.toLowerCase().trim() : '';
+  if (!q) {
+    dropdown.classList.add('d-none');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  // Filter active products whose name, brand or model contains the typed word
+  const allProds = getProducts() || [];
+  const activeProds = allProds.filter(p => p.status === 'active' && getActiveVariants(p).length > 0);
+  
+  const matches = activeProds.filter(p => {
+    const nameStr = (p.name || '').toLowerCase();
+    const brandStr = (p.brand || '').toLowerCase();
+    const modelStr = (p.model || '').toLowerCase();
+    return nameStr.includes(q) || brandStr.includes(q) || modelStr.includes(q);
+  }).slice(0, 8); // Display max 8 matching suggestions
+
+  dropdown.innerHTML = '';
+
+  if (matches.length === 0) {
+    dropdown.innerHTML = `
+      <div class="search-autocomplete-empty">
+        <i data-lucide="search-x" style="width: 20px; height: 20px; margin-bottom: 4px; display: inline-block;"></i>
+        <div>Nenhum produto encontrado com o nome "<strong>${escapeHtml(query)}</strong>"</div>
+      </div>
+    `;
+    dropdown.classList.remove('d-none');
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'search-autocomplete-header';
+  header.textContent = `Produtos com "${query}" (${matches.length})`;
+  dropdown.appendChild(header);
+
+  matches.forEach(prod => {
+    const primaryVariant = getPrimaryVariant(prod);
+    const displayPriceCents = getProductDisplayPriceCents(prod);
+    const primaryImg = (prod.images || []).find(i => i.isPrimary) || (prod.images || [])[0];
+    const imgSrc = primaryImg ? primaryImg.src : null;
+
+    const itemEl = document.createElement('div');
+    itemEl.className = 'search-autocomplete-item';
+
+    const colorMap = { 'Apple': '#3C1239', 'Samsung': '#1D4ED8', 'Xiaomi': '#EA580C' };
+    const svgColor = colorMap[prod.brand] || '#6B7280';
+    const iconType = ['cat-acessorios'].includes(prod.categoryId) ? 'package' : 'smartphone';
+
+    const imgMarkup = imgSrc
+      ? `<img src="${imgSrc}" class="search-autocomplete-img" alt="${escapeHtml(prod.name)}">`
+      : `<div class="search-autocomplete-img flex-center" style="background: var(--bg-secondary);"><i data-lucide="${iconType}" style="width: 22px; height: 22px; color: ${svgColor};"></i></div>`;
+
+    const highlightedName = highlightQueryText(prod.name, q);
+
+    itemEl.innerHTML = `
+      ${imgMarkup}
+      <div class="search-autocomplete-info">
+        <div class="search-autocomplete-name">${highlightedName}</div>
+        <div class="search-autocomplete-meta">
+          <span>${escapeHtml(prod.brand)}</span>
+          ${prod.model ? `• <span>${escapeHtml(prod.model)}</span>` : ''}
+        </div>
+      </div>
+      <div class="search-autocomplete-price">${formatBRLFromCents(displayPriceCents)}</div>
+    `;
+
+    itemEl.addEventListener('click', () => {
+      if (mainSearchInput) mainSearchInput.value = prod.name;
+      state.filters.search = prod.name;
+      dropdown.classList.add('d-none');
+      window.location.hash = '#catalogo';
+      renderCatalogGrid();
+      showProductDetail(prod.id);
+    });
+
+    dropdown.appendChild(itemEl);
+  });
+
+  dropdown.classList.remove('d-none');
+  if (window.lucide) lucide.createIcons();
+}
+
+function highlightQueryText(text, query) {
+  if (!text || !query) return escapeHtml(text || '');
+  const escapedText = escapeHtml(text);
+  const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+  return escapedText.replace(regex, '<mark>$1</mark>');
+}
+
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function handleSearchSubmit() {
   const query = mainSearchInput ? mainSearchInput.value.trim() : '';
   state.filters.search = query;
   
+  const dropdown = document.getElementById('search-autocomplete-dropdown');
+  if (dropdown) dropdown.classList.add('d-none');
+
   window.location.hash = '#catalogo';
   renderCatalogGrid();
 }
