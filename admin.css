@@ -886,3 +886,170 @@ body.sidebar-collapsed .sidebar-logo {
   letter-spacing: 0.3px;
   border-radius: 6px;
 }
+
+/* ==========================================
+   MARKETPLACE IMAGE UPLOAD DROPZONE
+   ========================================== */
+.image-upload-dropzone {
+  border: 2px dashed #C084FC;
+  background-color: rgba(109, 40, 217, 0.03);
+  border-radius: var(--radius-md);
+  padding: 32px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  outline: none;
+}
+
+.image-upload-dropzone:hover,
+.image-upload-dropzone:focus,
+.image-upload-dropzone.drag-active {
+  border-color: var(--purple-primary);
+  background-color: rgba(109, 40, 217, 0.08);
+  box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.12);
+}
+
+.preview-thumb-card {
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.preview-thumb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.preview-thumb-card img {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 6px;
+  background-color: #FAFAFA;
+}
+
+.preview-thumb-card .primary-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: var(--purple-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.preview-thumb-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.btn-thumb-action {
+  background: #F3F4F6;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-thumb-action:hover {
+  background: #E5E7EB;
+}
+
+.btn-thumb-action.delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* ==========================================
+   MAINTENANCE STATUS BADGES
+   ========================================== */
+.maint-badge-aberto {
+  background-color: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FCD34D;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.maint-badge-nao-iniciado {
+  background-color: #E0F2FE;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.maint-badge-finalizado {
+  background-color: #D1FAE5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================
+   CATEGORY SALES BREAKDOWN WIDGET
+   ========================================== */
+.cat-sales-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cat-sales-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cat-sales-bar-wrapper {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cat-sales-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+

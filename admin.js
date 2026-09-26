@@ -12,13 +12,18 @@ let state = {
   categories: [],
   reservations: [],
   sales: [],
+  maintenances: [],
   stockLogs: [],
   activityLogs: [],
   selectedProductToEdit: null,
   selectedCategoryToEdit: null,
+  selectedMaintenanceToEdit: null,
   activeFormTab: 'form-general',
   activeProfile: 'Thallys'
 };
+
+let stateProductFormImages = [];
+let categorySalesChartInstance = null;
 
 // TAB ALIASES MAPPING FOR PORTUGUESE/ENGLISH COMPATIBILITY
 const TAB_ALIASES = {
@@ -30,6 +35,9 @@ const TAB_ALIASES = {
   'categorias': 'categories',
   'stock': 'stock',
   'estoque': 'stock',
+  'maintenances': 'maintenances',
+  'manutencoes': 'maintenances',
+  'assistencia': 'maintenances',
   'reservations': 'reservations',
   'reservas': 'reservations',
   'sales': 'sales',
@@ -44,7 +52,7 @@ const TAB_ALIASES = {
   'configuracoes': 'settings'
 };
 
-const tabs = ['overview', 'products', 'categories', 'stock', 'reservations', 'sales', 'promo', 'users', 'settings'];
+const tabs = ['overview', 'products', 'categories', 'stock', 'maintenances', 'reservations', 'sales', 'promo', 'users', 'settings'];
 
 // ==========================================
 // DOM ELEMENTS
@@ -114,6 +122,7 @@ function loadDatabase() {
   state.categories = getCategories();
   state.reservations = getReservations();
   state.sales = getSales();
+  state.maintenances = getMaintenances();
   state.stockLogs = getStockMovements();
   state.activityLogs = getActivityLog();
   
@@ -185,6 +194,28 @@ function setupEventListeners() {
   if (adminSearchReservations) adminSearchReservations.addEventListener('input', renderReservationsTable);
   if (adminFilterReservationsStatus) adminFilterReservationsStatus.addEventListener('change', renderReservationsTable);
 
+  // Maintenances search & filter listeners
+  const searchMaint = document.getElementById('admin-search-maintenances');
+  if (searchMaint) searchMaint.addEventListener('input', renderMaintenancesTab);
+  const filterMaintStatus = document.getElementById('admin-filter-maintenances-status');
+  if (filterMaintStatus) filterMaintStatus.addEventListener('change', renderMaintenancesTab);
+
+  const btnAddMaint = document.getElementById('btn-admin-add-maintenance');
+  if (btnAddMaint) btnAddMaint.addEventListener('click', () => openMaintenanceModal());
+
+  const btnCancelMaint = document.getElementById('btn-admin-maint-cancel');
+  if (btnCancelMaint) btnCancelMaint.addEventListener('click', closeMaintenanceModal);
+
+  const maintModalOverlay = document.getElementById('admin-maintenance-modal-overlay');
+  if (maintModalOverlay) {
+    maintModalOverlay.addEventListener('click', (e) => {
+      if (e.target === maintModalOverlay) closeMaintenanceModal();
+    });
+  }
+
+  const formMaint = document.getElementById('admin-add-maintenance-form');
+  if (formMaint) formMaint.addEventListener('submit', handleMaintenanceSubmit);
+
   const btnAddProd = document.getElementById('btn-admin-add-product');
   if (btnAddProd) btnAddProd.addEventListener('click', () => openProductFormModal());
 
@@ -237,6 +268,7 @@ function setupEventListeners() {
   if (adminSalesRegistryForm) adminSalesRegistryForm.addEventListener('submit', handleSalesRegistry);
   
   setupPromoCalculatorListeners();
+  setupProductImageUploadListeners();
 
   const btnReset = document.getElementById('btn-reset-demo-data');
   if (btnReset) {
@@ -268,7 +300,8 @@ function switchTab(rawTabName) {
     overview: 'Visão Geral',
     products: 'Gestão de Produtos',
     categories: 'Gestão de Categorias',
-    stock: 'Controle de Estoque',
+    stock: 'Controle de Estoque & Vendas por Categoria',
+    maintenances: 'Controle de Manutenções',
     reservations: 'Controle de Reservas',
     sales: 'Histórico de Vendas Físicas',
     promo: 'Calculadora de Promoções',
@@ -320,6 +353,9 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'stock') {
     populateProductSelects();
     renderStockLogsTable();
+    renderCategorySalesChart();
+  } else if (state.currentTab === 'maintenances') {
+    renderMaintenancesTab();
   } else if (state.currentTab === 'reservations') {
     renderReservationsTable();
   } else if (state.currentTab === 'sales') {
@@ -734,6 +770,7 @@ function openProductFormModal(prodId = null) {
   populateCategorySelects();
   
   tempVariants = [];
+  stateProductFormImages = [];
   const vCont = document.getElementById('variants-container');
   const pCont = document.getElementById('variants-pricing-container');
   if (vCont) vCont.innerHTML = '';
@@ -762,15 +799,19 @@ function openProductFormModal(prodId = null) {
       if (p.variants) {
         tempVariants = JSON.parse(JSON.stringify(p.variants));
       }
+      if (p.images) {
+        stateProductFormImages = JSON.parse(JSON.stringify(p.images));
+      }
     }
   } else {
     state.selectedProductToEdit = null;
     const titleEl = document.getElementById('admin-product-modal-title');
-    if (titleEl) titleEl.textContent = 'Cadastrar Novo Produto (V3)';
+    if (titleEl) titleEl.textContent = 'Cadastrar Novo Produto';
   }
   
   renderVariantsBuilder();
   renderPricingBuilder();
+  renderProductImagePreviews();
   switchFormStep(1);
   openModal(adminProductModalOverlay);
 }
@@ -778,6 +819,7 @@ function openProductFormModal(prodId = null) {
 function closeProductFormModal() {
   closeModal(adminProductModalOverlay);
   state.selectedProductToEdit = null;
+  stateProductFormImages = [];
 }
 
 document.getElementById('btn-add-variant')?.addEventListener('click', () => {
@@ -814,7 +856,7 @@ function renderVariantsBuilder() {
     div.style.gap = '8px';
     
     div.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; justify-space-between; align-items:center;">
         <strong>Variação #${index+1}</strong>
         <button type="button" class="btn btn-secondary btn-sm" onclick="removeVariant(${index})" style="padding:4px 8px; color:var(--danger);"><i data-lucide="trash-2"></i></button>
       </div>
@@ -907,11 +949,13 @@ function buildReviewStep() {
   const rName = document.getElementById('review-product-name');
   const rVar = document.getElementById('review-variants-count');
   const rStock = document.getElementById('review-total-stock');
+  const rImg = document.getElementById('review-images-count');
   
   if (rName) rName.textContent = document.getElementById('p-name').value || 'N/A';
   if (rVar) rVar.textContent = `${tempVariants.length} Variações Mapeadas`;
   const totalStock = tempVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
   if (rStock) rStock.textContent = `Estoque Total: ${totalStock} un`;
+  if (rImg) rImg.textContent = `${stateProductFormImages.length} Fotos Anexadas`;
 }
 
 document.getElementById('btn-admin-modal-next')?.addEventListener('click', () => {
@@ -952,6 +996,10 @@ function handleProductFormSubmit(e) {
     return;
   }
   
+  const finalImages = stateProductFormImages.length > 0 ? stateProductFormImages : [
+    { id: `img-${Date.now()}`, src: './assets/placeholder.png', alt: name, isPrimary: true }
+  ];
+
   if (state.selectedProductToEdit) {
     const idx = state.products.findIndex(p => p.id === state.selectedProductToEdit);
     if (idx > -1) {
@@ -962,6 +1010,7 @@ function handleProductFormSubmit(e) {
         condition,
         shortDescription: description,
         sku: internalCode,
+        images: finalImages,
         variants: JSON.parse(JSON.stringify(tempVariants.map(v => ({
           ...v,
           color: v.color || v.colorName || '',
@@ -987,7 +1036,7 @@ function handleProductFormSubmit(e) {
       condition,
       shortDescription: description,
       status: 'active',
-      images: [{ id: `img-${Date.now()}`, src: './assets/placeholder.png', alt: name, isPrimary: true }],
+      images: finalImages,
       variants: JSON.parse(JSON.stringify(tempVariants.map(v => ({
         id: `var-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,
         sku: `${internalCode || 'PROD'}-${v.color || ''}${v.capacity || ''}`.replace(/\s/g,''),
@@ -1007,11 +1056,11 @@ function handleProductFormSubmit(e) {
     };
     createProduct(newProd);
     state.products = getProducts();
-    createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Novo produto cadastrado: ${name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+    createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Novo produto cadastrado com foto: ${name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
   }
   renderCurrentTab();
   closeProductFormModal();
-  showAdminToast('Produto salvo com sucesso!', 'success');
+  showAdminToast('Produto e imagens salvos com sucesso!', 'success');
 }
 
 function deleteProduct(prodId) {
@@ -1898,4 +1947,495 @@ function showAdminToast(message, type = 'info') {
       toast.remove();
     }, 300);
   }, 3500);
+}
+
+// ==========================================
+// MAINTENANCES TAB & MANAGEMENT CONTROLLER
+// ==========================================
+function renderMaintenancesTab() {
+  state.maintenances = getMaintenances();
+  
+  // KPIs
+  const kpiTotal = document.getElementById('kpi-maint-total');
+  const kpiOpen = document.getElementById('kpi-maint-open');
+  const kpiNotStarted = document.getElementById('kpi-maint-not-started');
+  const kpiFinished = document.getElementById('kpi-maint-finished');
+  
+  const total = state.maintenances.length;
+  const openCount = state.maintenances.filter(m => m.status === 'Aberto').length;
+  const notStartedCount = state.maintenances.filter(m => m.status === 'Não iniciado').length;
+  const finishedCount = state.maintenances.filter(m => m.status === 'Finalizado').length;
+
+  if (kpiTotal) kpiTotal.textContent = total;
+  if (kpiOpen) kpiOpen.textContent = openCount;
+  if (kpiNotStarted) kpiNotStarted.textContent = notStartedCount;
+  if (kpiFinished) kpiFinished.textContent = finishedCount;
+
+  // Filter list
+  const searchVal = (document.getElementById('admin-search-maintenances')?.value || '').toLowerCase().trim();
+  const statusFilter = document.getElementById('admin-filter-maintenances-status')?.value || '';
+
+  let filtered = state.maintenances.filter(m => {
+    if (searchVal) {
+      const matchDevice = (m.device || '').toLowerCase().includes(searchVal);
+      const matchClient = (m.customerName || '').toLowerCase().includes(searchVal);
+      const matchCode = (m.code || '').toLowerCase().includes(searchVal);
+      const matchProb = (m.problem || '').toLowerCase().includes(searchVal);
+      if (!matchDevice && !matchClient && !matchCode && !matchProb) return false;
+    }
+    if (statusFilter && m.status !== statusFilter) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('admin-maintenances-table-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center; padding: 24px;">Nenhuma manutenção cadastrada ou encontrada.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(m => {
+    const tr = document.createElement('tr');
+    
+    let statusClass = 'maint-badge-aberto';
+    let iconName = 'clock';
+    if (m.status === 'Não iniciado') {
+      statusClass = 'maint-badge-nao-iniciado';
+      iconName = 'pause-circle';
+    } else if (m.status === 'Finalizado') {
+      statusClass = 'maint-badge-finalizado';
+      iconName = 'check-circle-2';
+    }
+
+    const costFormatted = formatBRLFromCents(m.estimatedCostCents || 0);
+
+    tr.innerHTML = `
+      <td><strong>${m.code || 'N/A'}</strong></td>
+      <td style="font-weight: 700; color: var(--purple-primary);">${m.device}</td>
+      <td>
+        <div style="display: flex; flex-direction: column;">
+          <span>${m.customerName}</span>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">${m.customerPhone || 'Sem tel.'}</span>
+        </div>
+      </td>
+      <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${m.problem}</td>
+      <td style="font-weight: 700; color: var(--purple-primary);">${costFormatted}</td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${m.status}</span>
+          <select class="form-control btn-sm status-quick-select" data-id="${m.id}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+            <option value="Aberto" ${m.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
+            <option value="Não iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
+            <option value="Finalizado" ${m.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+          </select>
+        </div>
+      </td>
+      <td class="text-muted" style="font-size: 0.8rem;">${formatDateTimePtBr(m.entryDate)}</td>
+      <td>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-secondary btn-sm btn-edit-maint" data-id="${m.id}" title="Editar"><i data-lucide="edit-3"></i></button>
+          <button class="btn btn-secondary btn-sm btn-delete-maint" data-id="${m.id}" title="Excluir" style="color: var(--danger); border-color: var(--danger);"><i data-lucide="trash-2"></i></button>
+        </div>
+      </td>
+    `;
+
+    // Quick status select event
+    const selectEl = tr.querySelector('.status-quick-select');
+    selectEl.addEventListener('change', (e) => {
+      const newStatus = e.target.value;
+      updateMaintenanceStatus(m.id, newStatus);
+      showAdminToast(`Status da manutenção ${m.code} alterado para "${newStatus}".`, 'success');
+      createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: `Manutenção ${m.code} (${m.device}) atualizada para: ${newStatus}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+      renderMaintenancesTab();
+      renderCategorySalesChart();
+    });
+
+    // Edit event
+    tr.querySelector('.btn-edit-maint').addEventListener('click', () => {
+      openMaintenanceModal(m.id);
+    });
+
+    // Delete event
+    tr.querySelector('.btn-delete-maint').addEventListener('click', () => {
+      if (confirm(`Deseja excluir a manutenção "${m.code} - ${m.device}"?`)) {
+        deleteMaintenance(m.id);
+        showAdminToast('Manutenção removida com sucesso.', 'warning');
+        renderMaintenancesTab();
+        renderCategorySalesChart();
+      }
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function openMaintenanceModal(maintId = null) {
+  state.selectedMaintenanceToEdit = maintId;
+  const overlay = document.getElementById('admin-maintenance-modal-overlay');
+  const title = document.getElementById('admin-maintenance-modal-title');
+  const form = document.getElementById('admin-add-maintenance-form');
+
+  if (maintId) {
+    const item = state.maintenances.find(m => m.id === maintId);
+    if (item) {
+      if (title) title.textContent = `Editar Manutenção (${item.code})`;
+      document.getElementById('m-device').value = item.device || '';
+      document.getElementById('m-customer-name').value = item.customerName || '';
+      document.getElementById('m-customer-phone').value = item.customerPhone || '';
+      document.getElementById('m-problem').value = item.problem || '';
+      document.getElementById('m-cost').value = item.estimatedCostCents ? (item.estimatedCostCents / 100).toFixed(2) : '';
+      document.getElementById('m-status').value = item.status || 'Aberto';
+      document.getElementById('m-notes').value = item.notes || '';
+    }
+  } else {
+    if (title) title.textContent = 'Cadastrar Nova Manutenção';
+    if (form) form.reset();
+  }
+
+  openModal(overlay);
+}
+
+function closeMaintenanceModal() {
+  const overlay = document.getElementById('admin-maintenance-modal-overlay');
+  closeModal(overlay);
+  state.selectedMaintenanceToEdit = null;
+}
+
+function handleMaintenanceSubmit(e) {
+  e.preventDefault();
+
+  const device = document.getElementById('m-device').value.trim();
+  const customerName = document.getElementById('m-customer-name').value.trim();
+  const customerPhone = document.getElementById('m-customer-phone').value.trim();
+  const problem = document.getElementById('m-problem').value.trim();
+  const costVal = parseFloat(document.getElementById('m-cost').value) || 0;
+  const status = document.getElementById('m-status').value;
+  const notes = document.getElementById('m-notes').value.trim();
+
+  if (!device || !customerName || !problem) {
+    showAdminToast('Preencha os campos obrigatórios: Aparelho, Cliente e Defeito.', 'danger');
+    return;
+  }
+
+  const estimatedCostCents = Math.round(costVal * 100);
+
+  if (state.selectedMaintenanceToEdit) {
+    updateMaintenance({
+      id: state.selectedMaintenanceToEdit,
+      device, customerName, customerPhone, problem, estimatedCostCents, status, notes
+    });
+    showAdminToast('Manutenção atualizada com sucesso!', 'success');
+  } else {
+    createMaintenance({
+      device, customerName, customerPhone, problem, estimatedCostCents, status, notes
+    });
+    showAdminToast('Nova manutenção cadastrada com sucesso!', 'success');
+  }
+
+  closeMaintenanceModal();
+  renderMaintenancesTab();
+  renderCategorySalesChart();
+}
+
+// ==========================================
+// CATEGORY SALES BREAKDOWN & CHART CONTROLLER
+// ==========================================
+function renderCategorySalesChart() {
+  const listContainer = document.getElementById('category-sales-breakdown-list');
+  const canvas = document.getElementById('category-sales-chart');
+  if (!canvas) return;
+
+  const sales = getSales().filter(s => s.status === 'completed');
+  const products = getProducts();
+  const categories = getCategories();
+  const finishedMaintenances = getMaintenances().filter(m => m.status === 'Finalizado');
+
+  let totalCelularesCents = 0;
+  let totalAcessoriosCents = 0;
+  let totalManutencaoCents = 0;
+  let totalOutrosCents = 0;
+
+  sales.forEach(sale => {
+    (sale.items || []).forEach(item => {
+      const prod = products.find(p => p.id === item.productId);
+      const itemTotal = item.totalCents || (item.unitPriceCents * item.quantity);
+      
+      if (prod) {
+        const catSlug = prod.categoryId || '';
+        if (['cat-iphones', 'cat-android'].includes(catSlug)) {
+          totalCelularesCents += itemTotal;
+        } else if (['cat-acessorios'].includes(catSlug)) {
+          totalAcessoriosCents += itemTotal;
+        } else {
+          totalOutrosCents += itemTotal;
+        }
+      } else {
+        totalOutrosCents += itemTotal;
+      }
+    });
+  });
+
+  // Include finished maintenances revenue
+  finishedMaintenances.forEach(m => {
+    totalManutencaoCents += (m.estimatedCostCents || 0);
+  });
+
+  const grandTotalCents = totalCelularesCents + totalAcessoriosCents + totalManutencaoCents + totalOutrosCents;
+
+  // Render Breakdown List
+  if (listContainer) {
+    const categoriesData = [
+      { name: 'Celulares (iPhones & Android)', amountCents: totalCelularesCents, color: '#6D28D9' },
+      { name: 'Acessórios & Periféricos', amountCents: totalAcessoriosCents, color: '#F97316' },
+      { name: 'Manutenção & Assistência', amountCents: totalManutencaoCents, color: '#059669' }
+    ];
+
+    if (totalOutrosCents > 0) {
+      categoriesData.push({ name: 'Outros (Smartwatches, Notebooks, etc.)', amountCents: totalOutrosCents, color: '#2563EB' });
+    }
+
+    listContainer.innerHTML = '';
+    
+    categoriesData.forEach(item => {
+      const pct = grandTotalCents > 0 ? Math.round((item.amountCents / grandTotalCents) * 100) : 0;
+      const div = document.createElement('div');
+      div.className = 'cat-sales-item';
+      div.innerHTML = `
+        <div class="cat-sales-header">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${item.color};"></span>
+            ${item.name}
+          </span>
+          <span style="color: var(--purple-primary); font-weight: 700;">${formatBRLFromCents(item.amountCents)} (${pct}%)</span>
+        </div>
+        <div class="cat-sales-bar-wrapper">
+          <div class="cat-sales-bar-fill" style="width: ${pct}%; background-color: ${item.color};"></div>
+        </div>
+      `;
+      listContainer.appendChild(div);
+    });
+
+    const totalDiv = document.createElement('div');
+    totalDiv.style.marginTop = '12px';
+    totalDiv.style.paddingTop = '12px';
+    totalDiv.style.borderTop = '1px solid var(--border-color)';
+    totalDiv.style.display = 'flex';
+    totalDiv.style.justifyContent = 'space-between';
+    totalDiv.style.fontWeight = '800';
+    totalDiv.style.fontSize = '0.95rem';
+    totalDiv.innerHTML = `
+      <span>Total Faturado</span>
+      <span style="color: var(--purple-primary);">${formatBRLFromCents(grandTotalCents)}</span>
+    `;
+    listContainer.appendChild(totalDiv);
+  }
+
+  // Render Chart.js Chart
+  if (window.Chart) {
+    if (categorySalesChartInstance) {
+      categorySalesChartInstance.destroy();
+    }
+
+    const labels = ['Celulares', 'Acessórios', 'Manutenção'];
+    const dataValues = [
+      totalCelularesCents / 100,
+      totalAcessoriosCents / 100,
+      totalManutencaoCents / 100
+    ];
+    const bgColors = ['#6D28D9', '#F97316', '#059669'];
+
+    if (totalOutrosCents > 0) {
+      labels.push('Outros');
+      dataValues.push(totalOutrosCents / 100);
+      bgColors.push('#2563EB');
+    }
+
+    const ctx = canvas.getContext('2d');
+    categorySalesChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { family: 'Inter', size: 12, weight: '600' },
+              padding: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const val = context.raw || 0;
+                return ` ${context.label}: R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              }
+            }
+          }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+}
+
+// ==========================================
+// MARKETPLACE IMAGE UPLOAD CONTROLLER
+// ==========================================
+function setupProductImageUploadListeners() {
+  const dropzone = document.getElementById('image-upload-dropzone');
+  const fileInput = document.getElementById('product-image-file-input');
+
+  if (!dropzone || !fileInput) return;
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('drag-active');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('drag-active');
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-active');
+    if (e.dataTransfer && e.dataTransfer.files) {
+      handleProductImageFiles(e.dataTransfer.files);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files) {
+      handleProductImageFiles(e.target.files);
+    }
+  });
+}
+
+function handleProductImageFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) {
+      showAdminToast('Apenas arquivos de imagem são permitidos.', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      
+      compressImage(rawDataUrl, 1000, 1000, 0.85, (compressedDataUrl) => {
+        const isPrimary = stateProductFormImages.length === 0;
+        stateProductFormImages.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          src: compressedDataUrl,
+          alt: file.name,
+          isPrimary: isPrimary
+        });
+        renderProductImagePreviews();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(src, maxWidth, maxHeight, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth || height > maxHeight) {
+      if (width > height) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      } else {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.src = src;
+}
+
+function renderProductImagePreviews() {
+  const grid = document.getElementById('product-images-preview-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (stateProductFormImages.length === 0) {
+    grid.innerHTML = '<span class="text-muted" style="font-size: 0.8rem; grid-column: 1/-1;">Nenhuma imagem enviada ainda.</span>';
+    return;
+  }
+
+  stateProductFormImages.forEach((imgObj, idx) => {
+    const card = document.createElement('div');
+    card.className = 'preview-thumb-card';
+    
+    if (idx === 0) {
+      imgObj.isPrimary = true;
+    } else {
+      imgObj.isPrimary = false;
+    }
+
+    const primaryBadge = imgObj.isPrimary ? '<span class="primary-badge">Principal</span>' : '';
+
+    card.innerHTML = `
+      ${primaryBadge}
+      <img src="${imgObj.src}" alt="${imgObj.alt || 'Foto'}">
+      <div class="preview-thumb-actions">
+        ${!imgObj.isPrimary ? `<button type="button" class="btn-thumb-action btn-make-primary" data-idx="${idx}" title="Definir como Principal"><i data-lucide="star" style="width:12px;height:12px;"></i></button>` : '<span></span>'}
+        <button type="button" class="btn-thumb-action delete btn-remove-img" data-idx="${idx}" title="Remover Foto"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
+      </div>
+    `;
+
+    const btnPrimary = card.querySelector('.btn-make-primary');
+    if (btnPrimary) {
+      btnPrimary.addEventListener('click', () => {
+        const item = stateProductFormImages.splice(idx, 1)[0];
+        stateProductFormImages.unshift(item);
+        renderProductImagePreviews();
+      });
+    }
+
+    const btnRemove = card.querySelector('.btn-remove-img');
+    if (btnRemove) {
+      btnRemove.addEventListener('click', () => {
+        stateProductFormImages.splice(idx, 1);
+        renderProductImagePreviews();
+      });
+    }
+
+    grid.appendChild(card);
+  });
+
+  if (window.lucide) lucide.createIcons();
 }

@@ -244,6 +244,51 @@ const SEED_SALES = [
   }
 ];
 
+const SEED_MAINTENANCES = [
+  {
+    id: 'maint-101',
+    code: 'MNT-1001',
+    device: 'iPhone 17',
+    customerName: 'Carlos Eduardo',
+    customerPhone: '(38) 99888-1234',
+    problem: 'Troca de Tela OLED Frontal + Bateria',
+    estimatedCostCents: 45000,
+    status: 'Aberto',
+    entryDate: new Date(Date.now() - 86400000 * 2).toISOString(),
+    notes: 'Aparelho deixado para reparo urgente.',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
+  },
+  {
+    id: 'maint-102',
+    code: 'MNT-1002',
+    device: 'Galaxy S23 Ultra',
+    customerName: 'Fernanda Lima',
+    customerPhone: '(38) 99111-5544',
+    problem: 'Troca de Conector de Carga USB-C',
+    estimatedCostCents: 18000,
+    status: 'Não iniciado',
+    entryDate: new Date(Date.now() - 86400000).toISOString(),
+    notes: 'Aguardando chegada da peça de reposição.',
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 'maint-103',
+    code: 'MNT-1003',
+    device: 'iPhone 13 Pro',
+    customerName: 'Roberto Alves',
+    customerPhone: '(38) 98877-3322',
+    problem: 'Substituição de Bateria Saúde 100%',
+    estimatedCostCents: 28000,
+    status: 'Finalizado',
+    entryDate: new Date(Date.now() - 86400000 * 4).toISOString(),
+    notes: 'Serviço concluído e testado.',
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+  }
+];
+
 const SEED_STOCK_MOVEMENTS = [
   { id: 'mov-1', productId: 'prod-001', variantId: 'var-1', type: 'entry', quantity: 5, previousQuantity: 0, resultingQuantity: 5, reason: 'Estoque inicial', demoImeis: ['IMEI-DEMO-000001', 'IMEI-DEMO-000002', 'IMEI-DEMO-000003'], relatedSaleId: null, actorUserId: 'user-4', createdAt: new Date(Date.now() - 259200000).toISOString() },
   { id: 'mov-2', productId: 'prod-001', variantId: 'var-1', type: 'exit', quantity: 2, previousQuantity: 5, resultingQuantity: 3, reason: 'Venda demonstrativa balcão', demoImeis: [], relatedSaleId: 'sale-100', actorUserId: 'user-3', createdAt: new Date(Date.now() - 172800000).toISOString() }
@@ -463,6 +508,7 @@ function ensureDemoDataIntegrity() {
   mergeCollection('products', SEED_PRODUCTS, normalizeProduct);
   mergeCollection('reservations', SEED_RESERVATIONS, normalizeReservation);
   mergeCollection('sales', SEED_SALES, normalizeSale);
+  mergeCollection('maintenances', SEED_MAINTENANCES);
   mergeCollection('stockMovements', SEED_STOCK_MOVEMENTS);
   mergeCollection('promotions', SEED_PROMOTIONS);
   mergeCollection('users', SEED_USERS);
@@ -504,6 +550,49 @@ function setCategoryStatus(id, status) {
   const list = getCategories(); 
   const idx = list.findIndex(c => c.id === id); 
   if(idx > -1) { list[idx].status = status; saveStoreData('categories', list); } 
+}
+
+function getMaintenances() { return getStoreData('maintenances'); }
+function createMaintenance(maint) {
+  const list = getMaintenances();
+  const newItem = {
+    id: maint.id || generateId('maint'),
+    code: maint.code || `MNT-${Math.floor(1000 + Math.random() * 9000)}`,
+    device: maint.device || 'Aparelho sem nome',
+    customerName: maint.customerName || 'Cliente',
+    customerPhone: maint.customerPhone || '',
+    problem: maint.problem || '',
+    estimatedCostCents: Math.max(0, parseInt(maint.estimatedCostCents) || 0),
+    status: maint.status || 'Aberto',
+    entryDate: maint.entryDate || new Date().toISOString(),
+    notes: maint.notes || '',
+    createdAt: maint.createdAt || new Date().toISOString(),
+    updatedAt: maint.updatedAt || new Date().toISOString()
+  };
+  list.push(newItem);
+  saveStoreData('maintenances', list);
+  return newItem;
+}
+function updateMaintenance(maint) {
+  const list = getMaintenances();
+  const idx = list.findIndex(m => m.id === maint.id);
+  if (idx > -1) {
+    list[idx] = { ...list[idx], ...maint, updatedAt: new Date().toISOString() };
+    saveStoreData('maintenances', list);
+  }
+}
+function updateMaintenanceStatus(id, status) {
+  const list = getMaintenances();
+  const m = list.find(item => item.id === id);
+  if (m) {
+    m.status = status;
+    m.updatedAt = new Date().toISOString();
+    saveStoreData('maintenances', list);
+  }
+}
+function deleteMaintenance(id) {
+  const list = getMaintenances().filter(m => m.id !== id);
+  saveStoreData('maintenances', list);
 }
 
 function getProducts() { return getStoreData('products'); }

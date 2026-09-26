@@ -323,8 +323,13 @@ function setupEventListeners() {
   
   if (btnMainSearch) btnMainSearch.addEventListener('click', handleSearchSubmit);
   if (mainSearchInput) {
+    mainSearchInput.addEventListener('input', (e) => {
+      state.filters.search = e.target.value.trim();
+      renderCatalogGrid();
+    });
     mainSearchInput.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') handleSearchSubmit();
+      state.filters.search = e.target.value.trim();
+      renderCatalogGrid();
     });
   }
   
@@ -561,6 +566,7 @@ function handleSearchSubmit() {
 }
 
 function renderCatalogGrid() {
+  initData();
   if (!productsContainer) return;
   productsContainer.innerHTML = '';
   
@@ -571,6 +577,8 @@ function renderCatalogGrid() {
   const availabilityCheckboxes = document.querySelectorAll('input[name="availability"]:checked');
   state.filters.availabilities = Array.from(availabilityCheckboxes).map(c => c.value);
   
+  const allCats = getCategories() || [];
+
   // Filter products
   let filtered = state.products.filter(prod => {
     // 1. Search Query Match
@@ -581,8 +589,10 @@ function renderCatalogGrid() {
       const matchModel = (prod.model || '').toLowerCase().includes(q);
       const matchDesc = (prod.shortDescription || '').toLowerCase().includes(q);
       const matchCode = (prod.sku || '').toLowerCase().includes(q);
+      const catObj = allCats.find(c => c.id === prod.categoryId);
+      const matchCat = catObj && (catObj.name || '').toLowerCase().includes(q);
       
-      if (!matchName && !matchBrand && !matchModel && !matchDesc && !matchCode) {
+      if (!matchName && !matchBrand && !matchModel && !matchDesc && !matchCode && !matchCat) {
         return false;
       }
     }

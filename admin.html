@@ -11,6 +11,8 @@
 
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@0.292.0"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="admin-body">
 
@@ -48,6 +50,12 @@
         <div class="menu-item-link" id="tab-stock" data-tab="stock">
           <i data-lucide="clipboard-list"></i>
           <span class="menu-item-text">Estoque</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-maintenances" data-tab="maintenances">
+          <i data-lucide="wrench"></i>
+          <span class="menu-item-text">Manutenções</span>
         </div>
       </li>
       <li>
@@ -394,6 +402,26 @@
            ========================================== -->
       <div id="panel-stock" class="admin-view-tab d-none">
         
+        <!-- VENDAS POR CATEGORIA DE PRODUTO / SERVIÇO -->
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por Categoria de Produto / Serviço</h3>
+            <span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">Faturamento Real</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: center;">
+            <!-- Category Totals Breakdown List -->
+            <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Chart Canvas Container -->
+            <div style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="panel-card" style="margin-bottom: 24px;">
           <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="sliders-horizontal"></i> Realizar Ajuste Manual de Estoque</h3>
           
@@ -454,6 +482,94 @@
                 </tr>
               </thead>
               <tbody id="admin-stock-logs-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================
+           TAB: MANUTENÇÕES (CONTROLE OPERACIONAL DE ASSISTÊNCIA)
+           ========================================== -->
+      <div id="panel-maintenances" class="admin-view-tab d-none">
+        
+        <!-- KPIs Row -->
+        <section class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Total de Manutenções</span>
+              <span class="kpi-value" id="kpi-maint-total">0</span>
+            </div>
+            <div class="kpi-icon-box purple flex-center"><i data-lucide="wrench"></i></div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Em Aberto</span>
+              <span class="kpi-value" id="kpi-maint-open" style="color: #D97706;">0</span>
+            </div>
+            <div class="kpi-icon-box orange flex-center"><i data-lucide="clock"></i></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Não Iniciados</span>
+              <span class="kpi-value" id="kpi-maint-not-started" style="color: #0284C7;">0</span>
+            </div>
+            <div class="kpi-icon-box flex-center" style="background-color: #E0F2FE; color: #0284C7;"><i data-lucide="pause-circle"></i></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-details">
+              <span class="kpi-label">Finalizados</span>
+              <span class="kpi-value" id="kpi-maint-finished" style="color: #059669;">0</span>
+            </div>
+            <div class="kpi-icon-box flex-center" style="background-color: #D1FAE5; color: #059669;"><i data-lucide="check-circle-2"></i></div>
+          </div>
+        </section>
+
+        <!-- Search and Action Bar -->
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center;">
+            <div class="grid-2-col" style="flex-grow: 1; max-width: 600px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" class="form-control" id="admin-search-maintenances" placeholder="Buscar por Aparelho, Cliente ou ID...">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <select class="form-control" id="admin-filter-maintenances-status">
+                  <option value="">Todos os Status</option>
+                  <option value="Aberto">Aberto</option>
+                  <option value="Não iniciado">Não iniciado</option>
+                  <option value="Finalizado">Finalizado</option>
+                </select>
+              </div>
+            </div>
+            
+            <button class="btn btn-primary" id="btn-admin-add-maintenance">
+              <i data-lucide="plus"></i> Nova Manutenção
+            </button>
+          </div>
+        </div>
+
+        <!-- Maintenances Table -->
+        <div class="panel-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Cód. Manutenção</th>
+                  <th>Aparelho</th>
+                  <th>Cliente</th>
+                  <th>Defeito / Serviço</th>
+                  <th>Valor Estimado</th>
+                  <th>Status Atual</th>
+                  <th>Data Entrada</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-maintenances-table-tbody">
                 <!-- Dynamically populated -->
               </tbody>
             </table>
@@ -843,19 +959,50 @@
 
         <!-- Step 2: Mídia -->
         <div id="form-step-2" class="form-step-pane d-none">
-          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">(Demonstração) O upload de imagens reais está desabilitado. Defina a cor da mockup.</p>
-          <div class="form-group">
-            <label class="form-label">Cor principal do SVG (Hex ou Nome)</label>
-            <input type="text" class="form-control" id="p-svg-color" placeholder="Ex: #3C1239 ou blue" value="#6B7280">
+          <div style="margin-bottom: 16px;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--purple-primary); margin-bottom: 4px;">Fotos do Produto</h4>
+            <p class="text-muted" style="font-size: 0.82rem;">Adicione fotos de alta qualidade do dispositivo. A primeira imagem enviada será definida como a imagem principal no catálogo da loja.</p>
           </div>
-          <div class="form-group">
-            <label class="form-label">Ícone do Mockup</label>
-            <select class="form-control" id="p-svg-icon">
-              <option value="smartphone">Smartphone</option>
-              <option value="package">Pacote (Acessórios)</option>
-              <option value="headphones">Fones</option>
-              <option value="watch">Smartwatch</option>
-            </select>
+
+          <!-- Drag & Drop Upload Zone -->
+          <div class="image-upload-dropzone" id="image-upload-dropzone" tabindex="0" role="button" aria-label="Clique ou arraste para fazer upload de imagens">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+              <i data-lucide="upload-cloud" style="width: 44px; height: 44px; color: var(--purple-primary);"></i>
+              <div style="font-size: 0.9rem; color: var(--text-primary); text-align: center;">
+                <strong>Arraste e solte fotos aqui</strong> ou <span style="color: var(--purple-primary); text-decoration: underline; font-weight: 600;">clique para selecionar do dispositivo</span>
+              </div>
+              <span class="text-muted" style="font-size: 0.75rem; text-align: center;">Suporta PNG, JPG, JPEG, WEBP. Você pode enviar múltiplas imagens.</span>
+            </div>
+            <input type="file" id="product-image-file-input" accept="image/*" multiple style="display: none;">
+          </div>
+
+          <!-- Preview Gallery -->
+          <div id="product-images-preview-grid" class="product-images-preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 20px;">
+            <!-- Populated dynamically via JS -->
+          </div>
+
+          <!-- Legacy SVG Fallback (collapsible / secondary) -->
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;" onclick="document.getElementById('svg-fallback-group').classList.toggle('d-none')">
+              <i data-lucide="palette" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle;"></i> Personalizar Cor do Ícone Fallback (Opcional)
+            </span>
+            <div id="svg-fallback-group" class="d-none" style="margin-top: 12px;">
+              <div class="grid-2-col">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.75rem;">Cor do Ícone (Hex/Nome)</label>
+                  <input type="text" class="form-control" id="p-svg-color" placeholder="Ex: #3C1239" value="#6B7280">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.75rem;">Tipo de Ícone Fallback</label>
+                  <select class="form-control" id="p-svg-icon">
+                    <option value="smartphone">Smartphone</option>
+                    <option value="package">Pacote (Acessórios)</option>
+                    <option value="headphones">Fones</option>
+                    <option value="watch">Smartwatch</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -889,6 +1036,7 @@
             <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
               <span id="review-variants-count">0 Variações Mapeadas</span>
               <span id="review-total-stock">Estoque Total: 0 un</span>
+              <span id="review-images-count">0 Imagens Anexadas</span>
             </div>
           </div>
         </div>
@@ -938,6 +1086,63 @@
         <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-cat-cancel">Cancelar</button>
           <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-cat-submit">Salvar Categoria</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ADMIN ADD/EDIT MAINTENANCE MODAL
+       ========================================== -->
+  <div class="admin-modal-overlay d-none" id="admin-maintenance-modal-overlay">
+    <div class="admin-modal" style="max-width: 560px;">
+      <h3 class="panel-card-title" id="admin-maintenance-modal-title" style="margin-bottom: 24px;">Cadastrar Manutenção</h3>
+      
+      <form id="admin-add-maintenance-form" novalidate>
+        <div class="form-group">
+          <label for="m-device" class="form-label">Aparelho *</label>
+          <input type="text" class="form-control" id="m-device" placeholder="Ex: iPhone 17 256GB" required>
+        </div>
+        
+        <div class="grid-2-col">
+          <div class="form-group">
+            <label for="m-customer-name" class="form-label">Nome do Cliente *</label>
+            <input type="text" class="form-control" id="m-customer-name" placeholder="Ex: João Silva" required>
+          </div>
+          <div class="form-group">
+            <label for="m-customer-phone" class="form-label">Telefone / WhatsApp</label>
+            <input type="text" class="form-control" id="m-customer-phone" placeholder="Ex: (38) 99999-8888">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="m-problem" class="form-label">Defeito / Serviço a Realizar *</label>
+          <textarea class="form-control" id="m-problem" rows="2" placeholder="Ex: Troca de Tela Frontal OLED + Bateria" required></textarea>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="form-group">
+            <label for="m-cost" class="form-label">Valor Estimado (R$) *</label>
+            <input type="number" step="0.01" class="form-control" id="m-cost" placeholder="Ex: 350.00" required min="0">
+          </div>
+          <div class="form-group">
+            <label for="m-status" class="form-label">Status da Manutenção *</label>
+            <select class="form-control" id="m-status" required>
+              <option value="Aberto">Aberto</option>
+              <option value="Não iniciado">Não iniciado</option>
+              <option value="Finalizado">Finalizado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="m-notes" class="form-label">Observações Internas (Opcional)</label>
+          <input type="text" class="form-control" id="m-notes" placeholder="Ex: Peça sob encomenda">
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-maint-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-maint-submit">Salvar Manutenção</button>
         </div>
       </form>
     </div>
