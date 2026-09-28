@@ -180,6 +180,26 @@
           </div>
         </section>
 
+        <!-- VENDAS POR CATEGORIA DE PRODUTO / SERVIÇO -->
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por Categoria de Produto / Serviço</h3>
+            <span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">Faturamento Real</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: center;">
+            <!-- Category Totals Breakdown List -->
+            <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Chart Canvas Container -->
+            <div style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
+            </div>
+          </div>
+        </div>
+
         <!-- Charts Mock & Activity Timeline -->
         <div class="dashboard-grid">
           
@@ -349,6 +369,7 @@
                   <th>Preço Base</th>
                   <th>Preço Promo</th>
                   <th>Estoque Atual</th>
+                  <th>Status</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -402,26 +423,6 @@
            ========================================== -->
       <div id="panel-stock" class="admin-view-tab d-none">
         
-        <!-- VENDAS POR CATEGORIA DE PRODUTO / SERVIÇO -->
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por Categoria de Produto / Serviço</h3>
-            <span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">Faturamento Real</span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: center;">
-            <!-- Category Totals Breakdown List -->
-            <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;">
-              <!-- Dynamically populated via JS -->
-            </div>
-
-            <!-- Chart Canvas Container -->
-            <div style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-              <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
-            </div>
-          </div>
-        </div>
-
         <div class="panel-card" style="margin-bottom: 24px;">
           <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="sliders-horizontal"></i> Realizar Ajuste Manual de Estoque</h3>
           
@@ -630,22 +631,6 @@
            ========================================== -->
       <div id="panel-sales" class="admin-view-tab d-none">
         
-        <!-- Sales Timeline Chart (Real Data) -->
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div class="panel-card-header">
-            <h3 class="panel-card-title"><i data-lucide="trending-up"></i> Evolução de Vendas (Últimos 30 dias)</h3>
-            <span class="results-count" id="sales-chart-period">Dados reais do sistema</span>
-          </div>
-          <div style="position:relative; height: 260px; width: 100%;">
-            <canvas id="sales-timeline-chart" style="display:none;"></canvas>
-            <div id="sales-chart-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-secondary);font-size:0.9rem;">
-              <i data-lucide="bar-chart-2" style="width:40px;height:40px;opacity:0.3;"></i>
-              <span>Nenhuma venda registrada nos últimos 30 dias.</span>
-              <span style="font-size:0.78rem;opacity:0.6;">Registre uma venda abaixo para visualizar o gráfico.</span>
-            </div>
-          </div>
-        </div>
-
         <div class="panel-card" style="margin-bottom: 24px;">
           <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="plus-circle"></i> Registrar Nova Venda Física Direta</h3>
           
@@ -962,6 +947,14 @@
                 <option value="used_demo">Seminovo (Vitrine)</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label for="p-status" class="form-label">Status do Produto *</label>
+            <select class="form-control" id="p-status" required>
+              <option value="active">Ativo (Visível no Catálogo)</option>
+              <option value="inactive">Inativo (Oculto no Catálogo)</option>
+            </select>
           </div>
 
           <div class="form-group">

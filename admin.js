@@ -396,6 +396,7 @@ function renderCurrentTab() {
   
   if (state.currentTab === 'overview') {
     renderDashboardOverview();
+    renderCategorySalesChart();
   } else if (state.currentTab === 'products') {
     renderProductsTable();
   } else if (state.currentTab === 'categories') {
@@ -403,7 +404,6 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'stock') {
     populateProductSelects();
     renderStockLogsTable();
-    renderCategorySalesChart();
   } else if (state.currentTab === 'maintenances') {
     renderMaintenancesTab();
   } else if (state.currentTab === 'reservations') {
@@ -411,7 +411,6 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'sales') {
     populateProductSelects();
     renderSalesLogsTable();
-    renderSalesChart();
   } else if (state.currentTab === 'promo') {
     const previewCard = document.getElementById('promo-preview-card');
     if (previewCard) previewCard.classList.add('d-none');
@@ -845,7 +844,7 @@ function renderProductsTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center;">Nenhum produto cadastrado correspondente aos filtros.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Nenhum produto cadastrado correspondente aos filtros.</td></tr>';
   } else {
     filtered.forEach(p => {
       const tr = document.createElement('tr');
@@ -857,6 +856,9 @@ function renderProductsTable() {
       const hasPromo = primaryVar && primaryVar.promotionalPriceCents !== null && primaryVar.promotionalPriceCents !== undefined;
       const condLabel = p.condition === 'new' ? 'Novo' : 'Seminovo';
       const catName = (state.categories.find(c => c.id === p.categoryId) || {}).name || p.categoryId;
+      const isInactive = p.status === 'inactive';
+      const statusLabel = isInactive ? 'Inativo' : 'Ativo';
+      const statusBadgeColor = isInactive ? 'var(--danger)' : 'var(--success)';
       
       let stockColorStyle = '';
       if (totalStock <= minStock && totalStock > 0) stockColorStyle = 'color: var(--alert); font-weight: 700;';
@@ -870,9 +872,10 @@ function renderProductsTable() {
         <td></td>
         <td class="text-orange" style="font-weight: 700;"></td>
         <td style="${stockColorStyle}"></td>
+        <td><span class="badge-capsule" style="background: ${statusBadgeColor}; font-size: 0.65rem; color: #fff;">${statusLabel}</span></td>
         <td>
           <button class="table-action-btn edit-btn" data-id="${p.id}" title="Editar"><i data-lucide="edit"></i></button>
-          <button class="table-action-btn delete-btn" data-id="${p.id}" title="Inativar"><i data-lucide="archive"></i></button>
+          <button class="table-action-btn delete-btn" data-id="${p.id}" title="${isInactive ? 'Ativar Produto' : 'Inativar Produto'}"><i data-lucide="${isInactive ? 'check-circle' : 'archive'}"></i></button>
         </td>
       `;
       const cells = tr.querySelectorAll('td');
@@ -955,6 +958,8 @@ function openProductFormModal(prodId = null) {
       document.getElementById('p-model').value = p.model || '';
       document.getElementById('p-category').value = p.categoryId || '';
       document.getElementById('p-condition').value = p.condition;
+      const statusSelect = document.getElementById('p-status');
+      if (statusSelect) statusSelect.value = p.status || 'active';
       document.getElementById('p-description').value = p.shortDescription || '';
       document.getElementById('p-sku').value = p.sku || '';
       
@@ -1148,6 +1153,8 @@ function handleProductFormSubmit(e) {
   const model = document.getElementById('p-model').value.trim();
   const category = document.getElementById('p-category').value;
   const condition = document.getElementById('p-condition').value;
+  const statusSelect = document.getElementById('p-status');
+  const prodStatus = statusSelect ? statusSelect.value : 'active';
   const description = document.getElementById('p-description').value.trim();
   const internalCode = document.getElementById('p-sku').value.trim();
   
@@ -1176,6 +1183,7 @@ function handleProductFormSubmit(e) {
         categoryId: category,
         condition,
         shortDescription: description,
+        status: prodStatus,
         sku: internalCode,
         images: finalImages,
         variants: JSON.parse(JSON.stringify(tempVariants.map(v => ({
@@ -1234,11 +1242,15 @@ function deleteProduct(prodId) {
   const p = state.products.find(item => item.id === prodId);
   if (!p) return;
   
-  if (confirm(`Inativar o produto "${p.name}"? Ele não aparecerá no catálogo publico.`)) {
-    setProductStatus(prodId, 'inactive');
+  const isInactive = p.status === 'inactive';
+  const newStatus = isInactive ? 'active' : 'inactive';
+  const actionText = isInactive ? 'Ativar' : 'Inativar';
+  
+  if (confirm(`${actionText} o produto "${p.name}"?`)) {
+    setProductStatus(prodId, newStatus);
     state.products = getProducts();
-    createActivityLog({ id: `act-${Date.now()}`, type: 'warning', message: `Produto inativado: ${p.name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
-    showAdminToast('Produto inativado.', 'warning');
+    createActivityLog({ id: `act-${Date.now()}`, type: isInactive ? 'success' : 'warning', message: `Produto ${isInactive ? 'ativado' : 'inativado'}: ${p.name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+    showAdminToast(`Produto ${isInactive ? 'ativado' : 'inativado'}.`, isInactive ? 'success' : 'warning');
     renderCurrentTab();
   }
 }

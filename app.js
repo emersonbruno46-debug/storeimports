@@ -729,6 +729,9 @@ function renderCatalogGrid() {
 
   // Filter products
   let filtered = state.products.filter(prod => {
+    // 0. Status Match (only active products shown in public catalog)
+    if (prod.status === 'inactive') return false;
+
     // 1. Search Query Match
     if (state.filters.search) {
       const q = state.filters.search.toLowerCase();
