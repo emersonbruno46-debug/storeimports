@@ -630,6 +630,22 @@
            ========================================== -->
       <div id="panel-sales" class="admin-view-tab d-none">
         
+        <!-- Sales Timeline Chart (Real Data) -->
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div class="panel-card-header">
+            <h3 class="panel-card-title"><i data-lucide="trending-up"></i> Evolução de Vendas (Últimos 30 dias)</h3>
+            <span class="results-count" id="sales-chart-period">Dados reais do sistema</span>
+          </div>
+          <div style="position:relative; height: 260px; width: 100%;">
+            <canvas id="sales-timeline-chart" style="display:none;"></canvas>
+            <div id="sales-chart-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-secondary);font-size:0.9rem;">
+              <i data-lucide="bar-chart-2" style="width:40px;height:40px;opacity:0.3;"></i>
+              <span>Nenhuma venda registrada nos últimos 30 dias.</span>
+              <span style="font-size:0.78rem;opacity:0.6;">Registre uma venda abaixo para visualizar o gráfico.</span>
+            </div>
+          </div>
+        </div>
+
         <div class="panel-card" style="margin-bottom: 24px;">
           <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="plus-circle"></i> Registrar Nova Venda Física Direta</h3>
           
@@ -683,6 +699,7 @@
             </button>
           </form>
         </div>
+
 
         <div class="panel-card">
           <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="history"></i> Vendas Físicas Registradas</h3>
@@ -1072,9 +1089,25 @@
           <input type="text" class="form-control" id="c-slug" placeholder="Ex: capas-premium" required>
         </div>
         <div class="form-group">
-          <label for="c-image" class="form-label">Nome da Imagem (Na pasta assets) *</label>
-          <input type="text" class="form-control" id="c-image" placeholder="Ex: capas.png" required>
+          <label class="form-label">Imagem da Categoria</label>
+          <!-- Upload zone -->
+          <div id="cat-img-upload-zone" style="border: 2px dashed var(--border-color); border-radius: var(--radius-sm); padding: 20px; text-align: center; cursor: pointer; background: var(--bg-secondary); transition: border-color 0.2s;" onclick="document.getElementById('cat-img-file-input').click()">
+            <i data-lucide="image-plus" style="width:28px;height:28px;color:var(--purple-primary);display:block;margin:0 auto 6px;"></i>
+            <span style="font-size:0.82rem;color:var(--text-secondary);">Clique para selecionar uma imagem do dispositivo</span><br>
+            <span style="font-size:0.72rem;color:var(--text-secondary);">PNG, JPG, WEBP — max. 2 MB</span>
+          </div>
+          <input type="file" id="cat-img-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+          <!-- Preview -->
+          <div id="cat-img-preview-wrapper" style="display:none;margin-top:12px;position:relative;text-align:center;">
+            <img id="cat-img-preview" src="" alt="Preview" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:contain;border:1px solid var(--border-color);">
+            <button type="button" id="cat-img-remove" style="position:absolute;top:4px;right:4px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Remover imagem">✕</button>
+          </div>
+          <!-- Status -->
+          <div id="cat-img-status" style="font-size:0.75rem;margin-top:6px;color:var(--text-secondary);"></div>
+          <!-- Hidden value storage -->
+          <input type="hidden" id="c-image" name="c-image">
         </div>
+
         <div class="form-group">
           <label class="form-label">Visível no Catálogo?</label>
           <select class="form-control" id="c-visible">

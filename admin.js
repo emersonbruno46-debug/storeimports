@@ -55,6 +55,54 @@ const TAB_ALIASES = {
 const tabs = ['overview', 'products', 'categories', 'stock', 'maintenances', 'reservations', 'sales', 'promo', 'users', 'settings'];
 
 // ==========================================
+// WHATSAPP LINK UTILITIES
+// ==========================================
+/**
+ * Build a wa.me URL from a raw phone string.
+ * Strips non-digits, prepends 55 if needed.
+ * Returns null if the number is too short.
+ */
+function buildWhatsappLink(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  const number = digits.startsWith('55') ? digits : '55' + digits;
+  return `https://wa.me/${number}`;
+}
+
+/**
+ * Return a DOM node: either a clickable <a> WhatsApp link or a plain text node.
+ */
+function renderWhatsappCell(phone, label) {
+  const link = buildWhatsappLink(phone);
+  if (!link) {
+    return document.createTextNode(label || 'Sem telefone');
+  }
+  const a = document.createElement('a');
+  a.href = link;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.title = 'Abrir WhatsApp';
+  a.style.cssText = 'display:inline-flex;align-items:center;gap:5px;color:#16a34a;font-weight:600;text-decoration:none;white-space:nowrap;';
+  // Inline WhatsApp SVG icon
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('xmlns', svgNS);
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'currentColor');
+  const path = document.createElementNS(svgNS, 'path');
+  path.setAttribute('d', 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z');
+  svg.appendChild(path);
+  a.appendChild(svg);
+  a.appendChild(document.createTextNode('\u00a0' + (label || phone)));
+  return a;
+}
+
+
+
+// ==========================================
 // DOM ELEMENTS
 // ==========================================
 const adminSidebar = document.getElementById('admin-sidebar');
@@ -269,6 +317,8 @@ function setupEventListeners() {
   
   setupPromoCalculatorListeners();
   setupProductImageUploadListeners();
+  setupCategoryImageUpload();
+
 
   const btnReset = document.getElementById('btn-reset-demo-data');
   if (btnReset) {
@@ -361,6 +411,7 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'sales') {
     populateProductSelects();
     renderSalesLogsTable();
+    renderSalesChart();
   } else if (state.currentTab === 'promo') {
     const previewCard = document.getElementById('promo-preview-card');
     if (previewCard) previewCard.classList.add('d-none');
@@ -532,8 +583,11 @@ function renderCategoriesTable() {
       const statusBadgeColor = c.status === 'active' ? 'var(--success)' : 'var(--danger)';
       const productCount = state.products.filter(p => p.categoryId === c.id && p.status === 'active').length;
       
+      const imgSrc = c.image
+        ? (c.image.startsWith('data:') || c.image.startsWith('http') ? c.image : `./assets/${c.image}`)
+        : '';
       tr.innerHTML = `
-        <td><div style="width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><img src="./assets/${c.image}" alt="" style="max-width: 24px; max-height: 24px;"></div></td>
+        <td><div style="width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center;">${imgSrc ? `<img src="${imgSrc}" alt="" style="max-width: 36px; max-height: 36px; object-fit: contain; border-radius: 4px;">` : '<i data-lucide="image" style="width:18px;height:18px;opacity:0.3;"></i>'}</div></td>
         <td><strong></strong></td>
         <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;"></span></td>
         <td>${productCount} produto${productCount !== 1 ? 's' : ''}</td>
@@ -543,6 +597,7 @@ function renderCategoriesTable() {
           <button class="table-action-btn delete-btn-cat" data-id="${c.id}"><i data-lucide="trash-2"></i></button>
         </td>
       `;
+
       tr.querySelector('td:nth-child(2) strong').textContent = c.name;
       tr.querySelector('.badge-purple-light').textContent = c.id;
 
@@ -559,6 +614,16 @@ function openCategoryFormModal(catId = null) {
   const form = document.getElementById('admin-add-category-form');
   if (form) form.reset();
   state.selectedCategoryToEdit = catId;
+
+  // Reset upload UI
+  const imgInput = document.getElementById('c-image');
+  const preview = document.getElementById('cat-img-preview');
+  const previewWrapper = document.getElementById('cat-img-preview-wrapper');
+  const statusEl = document.getElementById('cat-img-status');
+  if (imgInput) imgInput.value = '';
+  if (preview) preview.src = '';
+  if (previewWrapper) previewWrapper.style.display = 'none';
+  if (statusEl) statusEl.textContent = '';
   
   const titleEl = document.getElementById('admin-category-modal-title');
   if (titleEl) titleEl.textContent = catId ? 'Editar Categoria' : 'Cadastrar Categoria';
@@ -569,8 +634,24 @@ function openCategoryFormModal(catId = null) {
       document.getElementById('c-name').value = cat.name;
       document.getElementById('c-slug').value = cat.id;
       document.getElementById('c-slug').disabled = true;
-      document.getElementById('c-image').value = cat.image;
       document.getElementById('c-visible').value = cat.status === 'active' ? 'true' : 'false';
+      // Restore existing image
+      if (cat.image) {
+        const isBase64 = cat.image.startsWith('data:');
+        const isUrl = cat.image.startsWith('http') || cat.image.startsWith('./') || cat.image.startsWith('/');
+        if (isBase64 || isUrl) {
+          if (imgInput) imgInput.value = cat.image;
+          if (preview) preview.src = isBase64 ? cat.image : `./assets/${cat.image}`;
+          if (previewWrapper) previewWrapper.style.display = 'block';
+          if (statusEl) statusEl.textContent = 'Imagem atual carregada.';
+        } else {
+          // Legacy filename reference
+          if (imgInput) imgInput.value = cat.image;
+          if (preview) preview.src = `./assets/${cat.image}`;
+          if (previewWrapper) previewWrapper.style.display = 'block';
+          if (statusEl) statusEl.textContent = `Imagem: ${cat.image}`;
+        }
+      }
     }
   } else {
     const slugInp = document.getElementById('c-slug');
@@ -578,12 +659,98 @@ function openCategoryFormModal(catId = null) {
   }
   
   openModal(document.getElementById('admin-category-modal-overlay'));
+  if (window.lucide) lucide.createIcons();
 }
+
 
 function closeCategoryFormModal() {
   closeModal(document.getElementById('admin-category-modal-overlay'));
   state.selectedCategoryToEdit = null;
 }
+
+// ==========================================
+// CATEGORY IMAGE UPLOAD (Base64 / FileReader)
+// ==========================================
+function setupCategoryImageUpload() {
+  const fileInput = document.getElementById('cat-img-file-input');
+  const zone = document.getElementById('cat-img-upload-zone');
+  const preview = document.getElementById('cat-img-preview');
+  const previewWrapper = document.getElementById('cat-img-preview-wrapper');
+  const statusEl = document.getElementById('cat-img-status');
+  const removeBtn = document.getElementById('cat-img-remove');
+  const hiddenInput = document.getElementById('c-image');
+
+  if (!fileInput) return;
+
+  const ACCEPTED = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+  const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+  function processFile(file) {
+    if (!file) return;
+
+    if (!ACCEPTED.includes(file.type)) {
+      if (statusEl) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Formato inválido. Use PNG, JPG ou WEBP.'; }
+      return;
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      if (statusEl) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Imagem muito grande. Limite: 2 MB.'; }
+      return;
+    }
+
+    if (statusEl) { statusEl.style.color = 'var(--text-secondary)'; statusEl.textContent = 'Carregando imagem…'; }
+    if (zone) zone.style.borderColor = 'var(--purple-primary)';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      if (hiddenInput) hiddenInput.value = dataUrl;
+      if (preview) preview.src = dataUrl;
+      if (previewWrapper) previewWrapper.style.display = 'block';
+      if (statusEl) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(0)} KB)`; }
+      if (zone) zone.style.borderColor = 'var(--success)';
+    };
+    reader.onerror = () => {
+      if (statusEl) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Erro ao ler a imagem. Tente novamente.'; }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      processFile(fileInput.files[0]);
+    }
+  });
+
+  // Drag & drop support
+  if (zone) {
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.style.borderColor = 'var(--purple-primary)';
+    });
+    zone.addEventListener('dragleave', () => {
+      zone.style.borderColor = 'var(--border-color)';
+    });
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.style.borderColor = 'var(--border-color)';
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      if (hiddenInput) hiddenInput.value = '';
+      if (preview) preview.src = '';
+      if (previewWrapper) previewWrapper.style.display = 'none';
+      if (statusEl) { statusEl.style.color = 'var(--text-secondary)'; statusEl.textContent = ''; }
+      if (zone) zone.style.borderColor = 'var(--border-color)';
+      if (fileInput) fileInput.value = '';
+    });
+  }
+}
+
+
 
 function handleCategorySubmit(e) {
   e.preventDefault();
@@ -593,8 +760,8 @@ function handleCategorySubmit(e) {
   const imgVal = document.getElementById('c-image').value.trim();
   const visVal = document.getElementById('c-visible').value === 'true';
   
-  if (!idVal || !nameVal || !imgVal) {
-    showAdminToast("Preencha todos os campos obrigatórios.", "danger");
+  if (!idVal || !nameVal) {
+    showAdminToast("Preencha o nome e o identificador da categoria.", "danger");
     return;
   }
   
@@ -1289,7 +1456,9 @@ function renderReservationsTable() {
       const cells = tr.querySelectorAll('td');
       cells[0].querySelector('strong').textContent = res.code || 'N/A';
       cells[1].textContent = res.demoCustomerName || 'N/A';
-      cells[2].textContent = res.demoContactLabel || 'Demo';
+      // Clickable WhatsApp link for contact number
+      cells[2].innerHTML = '';
+      cells[2].appendChild(renderWhatsappCell(res.demoContactLabel, res.demoContactLabel));
       cells[3].textContent = formatDateTimePtBr(res.requestedDate);
       cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
       cells[5].querySelector('span').textContent = statusLabel;
@@ -1496,9 +1665,142 @@ function renderSalesLogsTable() {
 }
 
 /**
+ * Render a real-data Chart.js line chart in the Vendas tab.
+ * Groups sales by day over the last 30 days and plots quantity and revenue.
+ */
+let salesChartInstance = null;
+
+function renderSalesChart() {
+  const canvas = document.getElementById('sales-timeline-chart');
+  if (!canvas) return;
+
+  const sales = (getSales() || []).filter(s => s.status === 'completed');
+
+  // Build last-30-days date labels
+  const labels = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    labels.push(d.toISOString().split('T')[0]);
+  }
+
+  // Aggregate data per day
+  const revenueByDay = {};
+  const quantityByDay = {};
+  labels.forEach(l => { revenueByDay[l] = 0; quantityByDay[l] = 0; });
+
+  sales.forEach(sale => {
+    const day = (sale.createdAt || '').split('T')[0];
+    if (revenueByDay[day] !== undefined) {
+      revenueByDay[day] += (sale.totalCents || 0) / 100;
+      quantityByDay[day] += (sale.items || []).reduce((s, i) => s + (i.quantity || 0), 0);
+    }
+  });
+
+  const revenueData = labels.map(l => revenueByDay[l]);
+  const quantityData = labels.map(l => quantityByDay[l]);
+
+  // Short date labels for display (DD/MM)
+  const shortLabels = labels.map(l => {
+    const [, mm, dd] = l.split('-');
+    return `${dd}/${mm}`;
+  });
+
+  // Empty state
+  const totalRevenue = revenueData.reduce((a, b) => a + b, 0);
+  const emptyEl = document.getElementById('sales-chart-empty');
+  if (emptyEl) {
+    emptyEl.style.display = totalRevenue === 0 ? 'flex' : 'none';
+  }
+  canvas.style.display = totalRevenue === 0 ? 'none' : 'block';
+
+  // Destroy previous instance
+  if (salesChartInstance) {
+    salesChartInstance.destroy();
+    salesChartInstance = null;
+  }
+
+  if (totalRevenue === 0) return;
+
+  salesChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: shortLabels,
+      datasets: [
+        {
+          label: 'Faturamento (R$)',
+          data: revenueData,
+          borderColor: '#6D28D9',
+          backgroundColor: 'rgba(109,40,217,0.08)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          yAxisID: 'yRevenue'
+        },
+        {
+          label: 'Qtd. Vendida',
+          data: quantityData,
+          borderColor: '#F97316',
+          backgroundColor: 'rgba(249,115,22,0.07)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          yAxisID: 'yQty'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 }, color: '#374151' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.yAxisID === 'yRevenue') {
+                return ` R$ ${ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+              }
+              return ` ${ctx.parsed.y} un`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#6B7280', font: { size: 11 }, maxTicksLimit: 10 },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        },
+        yRevenue: {
+          type: 'linear',
+          position: 'left',
+          ticks: {
+            color: '#6D28D9',
+            callback: v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })
+          },
+          grid: { color: 'rgba(109,40,217,0.07)' }
+        },
+        yQty: {
+          type: 'linear',
+          position: 'right',
+          ticks: { color: '#F97316', callback: v => v + ' un' },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
+}
+
+/**
  * Prompt Administrative Sale Reversal
  */
 function promptSaleReversal(saleId) {
+
   const reason = prompt("Informe o motivo do estorno administrativo (ex: Erro de lançamento pelo operador, cliente desistiu no balcão):");
   if (reason === null) return; // Cancelled prompt
   
@@ -2017,7 +2319,7 @@ function renderMaintenancesTab() {
       <td>
         <div style="display: flex; flex-direction: column;">
           <span>${m.customerName}</span>
-          <span style="font-size: 0.75rem; color: var(--text-secondary);">${m.customerPhone || 'Sem tel.'}</span>
+          <span class="whatsapp-cell-maint" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
         </div>
       </td>
       <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${m.problem}</td>
@@ -2027,7 +2329,7 @@ function renderMaintenancesTab() {
           <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${m.status}</span>
           <select class="form-control btn-sm status-quick-select" data-id="${m.id}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
             <option value="Aberto" ${m.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
-            <option value="Não iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
+            <option value="N\u00e3o iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
             <option value="Finalizado" ${m.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
           </select>
         </div>
@@ -2040,6 +2342,12 @@ function renderMaintenancesTab() {
         </div>
       </td>
     `;
+
+    // Render clickable WhatsApp phone link in maintenance table
+    const whatsappCellMaint = tr.querySelector('.whatsapp-cell-maint');
+    if (whatsappCellMaint) {
+      whatsappCellMaint.appendChild(renderWhatsappCell(m.customerPhone, m.customerPhone || 'Sem tel.'));
+    }
 
     // Quick status select event
     const selectEl = tr.querySelector('.status-quick-select');

@@ -127,10 +127,11 @@ function resetDOMFilterInputs() {
   });
 }
 
-// Initialize products from shared data store
+// Initialize products from shared data store — includes all statuses so inactive/out-of-stock are shown
 function initData() {
   const v3Products = getProducts() || [];
-  state.products = v3Products.filter(p => p.status === 'active' && getActiveVariants(p).length > 0);
+  // Show all products (active, inactive, out-of-stock) so their status is visible in catalog
+  state.products = v3Products;
   
   if (productionEmptyState && catalogActiveContent) {
     productionEmptyState.classList.add('d-none');
@@ -154,10 +155,19 @@ function setupDemoContactButtons() {
 }
 
 function handleDemoContactClick(e) {
-  if (DEMO_CONFIG.isDemo && !DEMO_CONFIG.whatsapp) {
-    e.preventDefault();
-    showToast('AMBIENTE DEMONSTRATIVO: Nenhum contato real é enviado nesta versão sem backend ativado.', 'warning');
+  e.preventDefault();
+  const whatsappNumber = DEMO_CONFIG.whatsapp || '5538991344656';
+  let message = 'Olá! Gostaria de saber mais sobre os produtos da Store Imports.';
+
+  // If called from within the product detail modal, include the product name
+  if (state.currentProductDetail && state.currentProductDetail.name) {
+    const productName = state.currentProductDetail.name;
+    message = `Olá! Tenho interesse no ${productName}. Poderia me passar mais informações?`;
   }
+
+  const encoded = encodeURIComponent(message);
+  const url = `https://wa.me/${whatsappNumber}?text=${encoded}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // ==========================================
@@ -440,12 +450,17 @@ function renderCategories() {
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Categoria ${rawCat.name}`);
     
+    const catImgSrc = rawCat.image
+      ? (rawCat.image.startsWith('data:') || rawCat.image.startsWith('http') ? rawCat.image : `./assets/${rawCat.image}`)
+      : '';
+
     card.innerHTML = `
       <div class="category-card-img-wrapper">
-        <img src="./assets/${rawCat.image}" class="category-card-img" alt="${rawCat.name}" loading="lazy">
+        ${catImgSrc ? `<img src="${catImgSrc}" class="category-card-img" alt="${rawCat.name}" loading="lazy">` : `<i data-lucide="image" style="width:40px;height:40px;opacity:0.3;"></i>`}
       </div>
       <span class="category-card-name"><i data-lucide="arrow-right" class="category-card-arrow" style="width: 14px; height: 14px;"></i></span>
     `;
+
     card.querySelector('.category-card-name').prepend(document.createTextNode(rawCat.name + ' '));
 
     const toggleCat = () => {
@@ -747,8 +762,8 @@ function renderCatalogGrid() {
       return false;
     }
     
-    // 5. Availability Match
-    if (state.filters.availabilities.length > 0) {
+    // 5. Availability Match (only applies to active products)
+    if (state.filters.availabilities.length > 0 && prod.status === 'active') {
       const totalStock = getProductTotalStock(prod);
       const isAvail = totalStock > 2;
       const isLow = totalStock > 0 && totalStock <= 2;
@@ -796,24 +811,38 @@ function renderCatalogGrid() {
       const card = document.createElement('div');
       card.className = 'product-card';
 
+      const isInactive = prod.status === 'inactive';
       const totalStock = getProductTotalStock(prod);
+      const isOutOfStock = !isInactive && totalStock === 0;
       const primaryVariant = getPrimaryVariant(prod);
       const displayPriceCents = getProductDisplayPriceCents(prod);
-      const hasPromo = primaryVariant && primaryVariant.promotionalPriceCents !== null && primaryVariant.promotionalPriceCents !== undefined;
+      const hasPromo = !isInactive && primaryVariant && primaryVariant.promotionalPriceCents !== null && primaryVariant.promotionalPriceCents !== undefined;
 
-      // Stock Status Badge
+      // Apply visual dimming for inactive/out-of-stock products
+      if (isInactive) {
+        card.style.opacity = '0.65';
+        card.style.filter = 'grayscale(50%)';
+      }
+
+      // Stock/Status Badge — Inativo has priority
       let stockHtml = '';
-      if (totalStock > 2) {
+      if (isInactive) {
+        stockHtml = `<span class="stock-status" style="background-color:#fef2f2;color:#dc2626;border-color:#fca5a5;"><span class="stock-dot" style="background:#dc2626;"></span> Inativo</span>`;
+      } else if (totalStock === 0) {
+        stockHtml = `<span class="stock-status" style="background-color:#f3f4f6;color:#6b7280;border-color:#d1d5db;"><span class="stock-dot" style="background:#9ca3af;"></span> Sem estoque</span>`;
+      } else if (totalStock > 2) {
         stockHtml = `<span class="stock-status stock-available"><span class="stock-dot"></span> Disponível para retirada</span>`;
-      } else if (totalStock > 0) {
-        stockHtml = `<span class="stock-status stock-low"><span class="stock-dot"></span> Últimas unidades (${totalStock})</span>`;
       } else {
-        stockHtml = `<span class="stock-status stock-consult"><span class="stock-dot"></span> Sob consulta</span>`;
+        stockHtml = `<span class="stock-status stock-low"><span class="stock-dot"></span> Últimas unidades (${totalStock})</span>`;
       }
       
       // Floating Badges
       let badgeHtml = '';
-      if (hasPromo) {
+      if (isInactive) {
+        badgeHtml = `<span class="badge-capsule product-badge-float" style="background:#dc2626;color:#fff;font-size:0.65rem;">INATIVO</span>`;
+      } else if (isOutOfStock) {
+        badgeHtml = `<span class="badge-capsule product-badge-float" style="background:#6b7280;color:#fff;font-size:0.65rem;">SEM ESTOQUE</span>`;
+      } else if (hasPromo) {
         badgeHtml = `<span class="badge-capsule badge-orange-light product-badge-float">OFERTA</span>`;
       } else if (prod.condition === 'used_demo') {
         badgeHtml = `<span class="badge-capsule badge-purple-light product-badge-float">SEMINOVO</span>`;
@@ -862,8 +891,8 @@ function renderCatalogGrid() {
         ${stockHtml}
         <div class="product-actions">
           <button class="btn btn-secondary btn-sm btn-detail">Ver detalhes</button>
-          <button class="btn btn-primary btn-sm btn-select" ${totalStock === 0 ? 'disabled' : ''}>
-            ${totalStock === 0 ? 'Indisponível' : 'Selecionar'}
+          <button class="btn btn-primary btn-sm btn-select" ${(isInactive || totalStock === 0) ? 'disabled' : ''}>
+            ${isInactive ? 'Inativo' : totalStock === 0 ? 'Sem estoque' : 'Selecionar'}
           </button>
         </div>
       `;
