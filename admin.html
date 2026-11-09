@@ -574,16 +574,16 @@
        ADMIN ADD/EDIT PRODUCT MODAL
        ========================================== -->
   <div class="admin-modal-overlay" id="admin-product-modal-overlay">
-    <div class="admin-modal" style="max-width: 700px;">
-      <h3 class="panel-card-title" id="admin-product-modal-title" style="margin-bottom: 24px;">Cadastrar Novo Produto (V3)</h3>
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-product-modal-title">
+      <h3 class="panel-card-title" id="admin-product-modal-title">Novo produto</h3>
       
       <!-- Stepper Header -->
-      <div class="admin-tabs" style="margin-bottom: 20px; display: flex; overflow-x: auto; white-space: nowrap;">
-        <button type="button" class="admin-tab-btn active" data-form-step="1">1. Básicos</button>
-        <button type="button" class="admin-tab-btn" data-form-step="2">2. Mídia</button>
-        <button type="button" class="admin-tab-btn" data-form-step="3">3. Variações & Estoque</button>
-        <button type="button" class="admin-tab-btn" data-form-step="4">4. Preços</button>
-        <button type="button" class="admin-tab-btn" data-form-step="5">5. Revisão</button>
+      <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" data-form-step="1">Básicos</button>
+        <button type="button" class="admin-tab-btn" data-form-step="2">Fotos</button>
+        <button type="button" class="admin-tab-btn" data-form-step="3">Variações e estoque</button>
+        <button type="button" class="admin-tab-btn" data-form-step="4">Preços</button>
+        <button type="button" class="admin-tab-btn" data-form-step="5">Revisão</button>
       </div>
 
       <!-- Add Form -->
@@ -592,7 +592,7 @@
         <!-- Step 1: Geral -->
         <div id="form-step-1" class="form-step-pane">
           <div class="form-group">
-            <label for="p-name" class="form-label">Nome do Produto *</label>
+            <label for="p-name" class="form-label">Nome do produto *</label>
             <input type="text" class="form-control" id="p-name" placeholder="Ex: iPhone 15 Pro Max 256GB" required>
           </div>
           
@@ -609,7 +609,7 @@
 
           <div class="grid-2-col">
             <div class="form-group">
-              <label for="p-category" class="form-label">Categoria * (ID V3)</label>
+              <label for="p-category" class="form-label">Categoria *</label>
               <select class="form-control" id="p-category" required>
                 <!-- Populated via JS -->
               </select>
@@ -617,124 +617,85 @@
             <div class="form-group">
               <label for="p-condition" class="form-label">Condição *</label>
               <select class="form-control" id="p-condition" required>
-                <option value="new">Novo (Lacrado)</option>
-                <option value="used_demo">Seminovo (Vitrine)</option>
+                <option value="new">Novo, lacrado</option>
+                <option value="used_demo">Seminovo</option>
               </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="p-status" class="form-label">Status do Produto *</label>
+            <label for="p-status" class="form-label">Situação no catálogo *</label>
             <select class="form-control" id="p-status" required>
-              <option value="active">Ativo (Visível no Catálogo)</option>
-              <option value="inactive">Inativo (Oculto no Catálogo)</option>
+              <option value="active">Visível no catálogo</option>
+              <option value="inactive">Oculto do catálogo</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="p-description" class="form-label">Descrição Comercial</label>
-            <textarea class="form-control" id="p-description" rows="2" placeholder="Ficha ou detalhes do produto..."></textarea>
+            <label for="p-description" class="form-label">Descrição</label>
+            <textarea class="form-control" id="p-description" rows="2" placeholder="Detalhes que aparecem para o cliente"></textarea>
           </div>
           <div class="form-group">
-            <label for="p-sku" class="form-label">SKU Base (Opcional)</label>
+            <label for="p-sku" class="form-label">Código base <small>(opcional)</small></label>
             <input type="text" class="form-control" id="p-sku" placeholder="Ex: IP15PM-BASE">
           </div>
         </div>
 
         <!-- Step 2: Mídia -->
         <div id="form-step-2" class="form-step-pane d-none">
-          <div style="margin-bottom: 16px;">
-            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--purple-primary); margin-bottom: 4px;">Fotos do Produto</h4>
-            <p class="text-muted" style="font-size: 0.82rem;">Adicione fotos de alta qualidade do dispositivo. A primeira imagem enviada será definida como a imagem principal no catálogo da loja.</p>
-          </div>
-
-          <!-- Drag & Drop Upload Zone -->
-          <div class="image-upload-dropzone" id="image-upload-dropzone" tabindex="0" role="button" aria-label="Clique ou arraste para fazer upload de imagens">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-              <i data-lucide="upload-cloud" style="width: 44px; height: 44px; color: var(--purple-primary);"></i>
-              <div style="font-size: 0.9rem; color: var(--text-primary); text-align: center;">
-                <strong>Arraste e solte fotos aqui</strong> ou <span style="color: var(--purple-primary); text-decoration: underline; font-weight: 600;">clique para selecionar do dispositivo</span>
-              </div>
-              <span class="text-muted" style="font-size: 0.75rem; text-align: center;">Suporta PNG, JPG, JPEG, WEBP. Você pode enviar múltiplas imagens.</span>
-            </div>
+          <p class="hint" style="margin:0 0 12px;">A primeira foto vira a imagem principal do produto no catálogo.</p>
+          <div class="image-upload-dropzone" id="image-upload-dropzone" tabindex="0" role="button" aria-label="Clique ou arraste para enviar fotos">
+            <i data-lucide="image-plus" style="width:22px;height:22px;"></i>
+            <strong>Arraste as fotos aqui ou clique para escolher</strong>
+            <span>PNG, JPG ou WEBP. Pode enviar várias.</span>
             <input type="file" id="product-image-file-input" accept="image/*" multiple style="display: none;">
           </div>
 
           <!-- Preview Gallery -->
-          <div id="product-images-preview-grid" class="product-images-preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 20px;">
+          <div id="product-images-preview-grid" class="product-images-preview-grid">
             <!-- Populated dynamically via JS -->
           </div>
 
-          <!-- Legacy SVG Fallback (collapsible / secondary) -->
-          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
-            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;" onclick="document.getElementById('svg-fallback-group').classList.toggle('d-none')">
-              <i data-lucide="palette" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle;"></i> Personalizar Cor do Ícone Fallback (Opcional)
-            </span>
-            <div id="svg-fallback-group" class="d-none" style="margin-top: 12px;">
+          <details class="fallback-opt">
+            <summary>Ícone alternativo, quando não há foto <small>(opcional)</small></summary>
+            <div id="svg-fallback-group">
               <div class="grid-2-col">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" style="font-size: 0.75rem;">Cor do Ícone (Hex/Nome)</label>
-                  <input type="text" class="form-control" id="p-svg-color" placeholder="Ex: #3C1239" value="#6B7280">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" style="font-size: 0.75rem;">Tipo de Ícone Fallback</label>
-                  <select class="form-control" id="p-svg-icon">
-                    <option value="smartphone">Smartphone</option>
-                    <option value="package">Pacote (Acessórios)</option>
-                    <option value="headphones">Fones</option>
-                    <option value="watch">Smartwatch</option>
-                  </select>
-                </div>
+                <div class="form-group" style="margin-bottom:0;"><label class="form-label">Cor do ícone</label><input type="text" class="form-control" id="p-svg-color" placeholder="#3C1239" value="#6B7280"></div>
+                <div class="form-group" style="margin-bottom:0;"><label class="form-label">Tipo de ícone</label>
+                  <select class="form-control" id="p-svg-icon"><option value="smartphone">Smartphone</option><option value="package">Pacote (acessórios)</option><option value="headphones">Fones</option><option value="watch">Smartwatch</option></select></div>
               </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <!-- Step 3: Variações & Estoque -->
         <div id="form-step-3" class="form-step-pane d-none">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label class="form-label" style="margin-bottom: 0;">Lista de Variações *</label>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-variant"><i data-lucide="plus"></i> Adicionar Variação</button>
-          </div>
-          <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 16px;">Adicione ao menos uma variação (Ex: Cor e Capacidade). Estoque e preço são definidos por variação.</p>
-          
-          <div id="variants-container" style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- Variants will be injected here via JS -->
-          </div>
+          <div class="step-head"><div><strong>Variações</strong><p class="hint" style="margin:2px 0 0;">Cada cor ou capacidade tem seu próprio estoque e preço.</p></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-variant"><i data-lucide="plus"></i> Adicionar variação</button></div>
+          <div id="variants-container" class="var-list"></div>
         </div>
 
-        <!-- Step 4: Preços -->
         <div id="form-step-4" class="form-step-pane d-none">
-          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">Defina a precificação para cada variação.</p>
-          
-          <div id="variants-pricing-container" style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- Pricing per variant injected via JS -->
-          </div>
+          <p class="hint" style="margin:0 0 12px;">Informe o preço de cada variação. O custo é interno e nunca aparece no catálogo.</p>
+          <div id="variants-pricing-container" class="var-list"></div>
         </div>
 
-        <!-- Step 5: Revisão -->
         <div id="form-step-5" class="form-step-pane d-none">
-          <div class="panel-card" style="background-color: var(--bg-secondary); border: 1px dashed var(--border-color);">
-            <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Resumo do Produto</h4>
-            <p id="review-product-name" style="font-weight: 700; color: var(--purple-primary); margin-bottom: 12px;">iPhone Exemplo</p>
-            <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
-              <span id="review-variants-count">0 Variações Mapeadas</span>
-              <span id="review-total-stock">Estoque Total: 0 un</span>
-              <span id="review-images-count">0 Imagens Anexadas</span>
-            </div>
+          <div class="review-box">
+            <strong id="review-product-name">Produto</strong>
+            <span id="review-variants-count">0 variações</span>
+            <span id="review-total-stock">Estoque total: 0 un</span>
+            <span id="review-images-count">0 fotos</span>
           </div>
         </div>
 
-        <!-- Navigation Buttons -->
-        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: space-between;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-modal-cancel">Cancelar</button>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn btn-secondary btn-sm d-none" id="btn-admin-modal-prev">Voltar</button>
-            <button type="button" class="btn btn-primary btn-sm" id="btn-admin-modal-next">Próximo</button>
-            <button type="submit" class="btn btn-primary btn-sm d-none" id="btn-admin-modal-submit" style="background: var(--success); border-color: var(--success);">Confirmar e Salvar</button>
-          </div>
-        </div>
-
+        <footer class="drawer-foot">
+          <button type="button" class="btn btn-secondary" id="btn-admin-modal-cancel">Cancelar</button>
+          <span class="grow"></span>
+          <button type="button" class="btn btn-secondary d-none" id="btn-admin-modal-prev">Voltar</button>
+          <button type="button" class="btn btn-primary" id="btn-admin-modal-next">Próximo</button>
+          <button type="submit" class="btn btn-primary success d-none" id="btn-admin-modal-submit">Salvar produto</button>
+        </footer>
       </form>
     </div>
   </div>
@@ -743,25 +704,25 @@
        ADMIN ADD/EDIT CATEGORY MODAL
        ========================================== -->
   <div class="admin-modal-overlay d-none" id="admin-category-modal-overlay">
-    <div class="admin-modal" style="max-width: 500px;">
-      <h3 class="panel-card-title" id="admin-category-modal-title" style="margin-bottom: 24px;">Cadastrar Categoria</h3>
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-category-modal-title">
+      <h3 class="panel-card-title" id="admin-category-modal-title">Nova categoria</h3>
       
       <form id="admin-add-category-form" novalidate>
         <div class="form-group">
-          <label for="c-name" class="form-label">Nome da Categoria *</label>
-          <input type="text" class="form-control" id="c-name" placeholder="Ex: Capas Premium" required>
+          <label for="c-name" class="form-label">Nome da categoria *</label>
+          <input type="text" class="form-control" id="c-name" placeholder="Ex.: Capas premium" required>
         </div>
         <div class="form-group">
-          <label for="c-slug" class="form-label">Identificador (Slug) *</label>
-          <input type="text" class="form-control" id="c-slug" placeholder="Ex: capas-premium" required>
+          <label for="c-slug" class="form-label">Endereço no site *</label>
+          <input type="text" class="form-control" id="c-slug" placeholder="capas-premium" required>
         </div>
         <div class="form-group">
           <label class="form-label">Imagem da Categoria</label>
           <!-- Upload zone -->
-          <div id="cat-img-upload-zone" style="border: 2px dashed var(--border-color); border-radius: var(--radius-sm); padding: 20px; text-align: center; cursor: pointer; background: var(--bg-secondary); transition: border-color 0.2s;" onclick="document.getElementById('cat-img-file-input').click()">
-            <i data-lucide="image-plus" style="width:28px;height:28px;color:var(--purple-primary);display:block;margin:0 auto 6px;"></i>
-            <span style="font-size:0.82rem;color:var(--text-secondary);">Clique para selecionar uma imagem do dispositivo</span><br>
-            <span style="font-size:0.72rem;color:var(--text-secondary);">PNG, JPG, WEBP — max. 2 MB</span>
+          <div id="cat-img-upload-zone" class="image-upload-dropzone" tabindex="0" role="button" aria-label="Escolher imagem da categoria">
+            <i data-lucide="image-plus" style="width:22px;height:22px;"></i>
+            <strong>Clique para escolher uma imagem</strong>
+            <span>PNG, JPG ou WEBP, até 2 MB</span>
           </div>
           <input type="file" id="cat-img-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
           <!-- Preview -->
@@ -776,17 +737,17 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Visível no Catálogo?</label>
+          <label class="form-label">Aparece no catálogo?</label>
           <select class="form-control" id="c-visible">
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
+            <option value="true">Sim, visível</option>
+            <option value="false">Não, oculta</option>
           </select>
         </div>
 
-        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-cat-cancel">Cancelar</button>
-          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-cat-submit">Salvar Categoria</button>
-        </div>
+        <footer class="drawer-foot">
+          <button type="button" class="btn btn-secondary" id="btn-admin-cat-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-admin-cat-submit">Salvar categoria</button>
+        </footer>
       </form>
     </div>
   </div>
@@ -795,8 +756,8 @@
        ADMIN ADD/EDIT MAINTENANCE MODAL
        ========================================== -->
   <div class="admin-modal-overlay d-none" id="admin-maintenance-modal-overlay">
-    <div class="admin-modal" style="max-width: 560px;">
-      <h3 class="panel-card-title" id="admin-maintenance-modal-title" style="margin-bottom: 24px;">Cadastrar Manutenção</h3>
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-maintenance-modal-title">
+      <h3 class="panel-card-title" id="admin-maintenance-modal-title">Nova manutenção</h3>
       
       <form id="admin-add-maintenance-form" novalidate>
         <div class="form-group">
@@ -806,44 +767,44 @@
         
         <div class="grid-2-col">
           <div class="form-group">
-            <label for="m-customer-name" class="form-label">Nome do Cliente *</label>
+            <label for="m-customer-name" class="form-label">Cliente *</label>
             <input type="text" class="form-control" id="m-customer-name" placeholder="Ex: João Silva" required>
           </div>
           <div class="form-group">
-            <label for="m-customer-phone" class="form-label">Telefone / WhatsApp</label>
+            <label for="m-customer-phone" class="form-label">WhatsApp do cliente</label>
             <input type="text" class="form-control" id="m-customer-phone" placeholder="Ex: (38) 99999-8888">
           </div>
         </div>
 
         <div class="form-group">
-          <label for="m-problem" class="form-label">Defeito / Serviço a Realizar *</label>
+          <label for="m-problem" class="form-label">Defeito ou serviço *</label>
           <textarea class="form-control" id="m-problem" rows="2" placeholder="Ex: Troca de Tela Frontal OLED + Bateria" required></textarea>
         </div>
 
         <div class="grid-2-col">
           <div class="form-group">
-            <label for="m-cost" class="form-label">Valor Estimado (R$) *</label>
+            <label for="m-cost" class="form-label">Valor combinado (R$) *</label>
             <input type="number" step="0.01" class="form-control" id="m-cost" placeholder="Ex: 350.00" required min="0">
           </div>
           <div class="form-group">
-            <label for="m-status" class="form-label">Status da Manutenção *</label>
+            <label for="m-status" class="form-label">Etapa *</label>
             <select class="form-control" id="m-status" required>
-              <option value="Aberto">Aberto</option>
-              <option value="Não iniciado">Não iniciado</option>
-              <option value="Finalizado">Finalizado</option>
+              <option value="Não iniciado">Na fila</option>
+              <option value="Aberto">Em andamento</option>
+              <option value="Finalizado">Pronto</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="m-notes" class="form-label">Observações Internas (Opcional)</label>
+          <label for="m-notes" class="form-label">Observações internas <small>(opcional)</small></label>
           <input type="text" class="form-control" id="m-notes" placeholder="Ex: Peça sob encomenda">
         </div>
 
-        <div style="display: flex; gap: 16px; margin-top: 32px; justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-admin-maint-cancel">Cancelar</button>
-          <button type="submit" class="btn btn-primary btn-sm" id="btn-admin-maint-submit">Salvar Manutenção</button>
-        </div>
+        <footer class="drawer-foot">
+          <button type="button" class="btn btn-secondary" id="btn-admin-maint-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-admin-maint-submit">Salvar manutenção</button>
+        </footer>
       </form>
     </div>
   </div>

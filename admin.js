@@ -790,7 +790,7 @@ function openCategoryFormModal(catId = null) {
   if (statusEl) statusEl.textContent = '';
   
   const titleEl = document.getElementById('admin-category-modal-title');
-  if (titleEl) titleEl.textContent = catId ? 'Editar Categoria' : 'Cadastrar Categoria';
+  if (titleEl) titleEl.textContent = catId ? 'Editar categoria' : 'Nova categoria';
   
   if (catId) {
     const cat = state.categories.find(c => c.id === catId);
@@ -1041,7 +1041,7 @@ function openProductFormModal(prodId = null) {
   if (prodId) {
     state.selectedProductToEdit = prodId;
     const titleEl = document.getElementById('admin-product-modal-title');
-    if (titleEl) titleEl.textContent = 'Editar Produto';
+    if (titleEl) titleEl.textContent = 'Editar produto';
     
     const p = state.products.find(item => item.id === prodId);
     if (p) {
@@ -1070,7 +1070,7 @@ function openProductFormModal(prodId = null) {
   } else {
     state.selectedProductToEdit = null;
     const titleEl = document.getElementById('admin-product-modal-title');
-    if (titleEl) titleEl.textContent = 'Cadastrar Novo Produto';
+    if (titleEl) titleEl.textContent = 'Novo produto';
   }
   
   renderVariantsBuilder();
@@ -1102,112 +1102,10 @@ document.getElementById('btn-add-variant')?.addEventListener('click', () => {
   renderVariantsBuilder();
 });
 
-function renderVariantsBuilder() {
-  const c = document.getElementById('variants-container');
-  if (!c) return;
-  c.innerHTML = '';
-  if (tempVariants.length === 0) {
-    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Nenhuma variação adicionada. Clique em "Adicionar Variação" acima.</div>';
-    return;
-  }
-  tempVariants.forEach((v, index) => {
-    const div = document.createElement('div');
-    div.style.padding = '12px';
-    div.style.border = '1px solid var(--border-color)';
-    div.style.borderRadius = 'var(--radius-md)';
-    div.style.display = 'flex';
-    div.style.flexDirection = 'column';
-    div.style.gap = '8px';
-    
-    div.innerHTML = `
-      <div style="display:flex; justify-space-between; align-items:center;">
-        <strong>Variação #${index+1}</strong>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="removeVariant(${index})" style="padding:4px 8px; color:var(--danger);"><i data-lucide="trash-2"></i></button>
-      </div>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Cor</label>
-          <input type="text" class="form-control var-color" value="${v.color || v.colorName || ''}" placeholder="Ex: Preto" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Capacidade</label>
-          <input type="text" class="form-control var-cap" value="${v.capacity || v.capacityName || ''}" placeholder="Ex: 256 GB" data-idx="${index}">
-        </div>
-      </div>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Estoque Inicial (un)</label>
-          <input type="number" class="form-control var-stock" value="${v.stockQuantity}" placeholder="Ex: 5" min="0" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Mín. Estoque</label>
-          <input type="number" class="form-control var-min-stock" value="${v.minimumStock}" min="0" data-idx="${index}">
-        </div>
-      </div>
-      <div>
-        <label class="form-label" style="font-size:0.75rem;">IMEIs / Serials (Separados por vírgula)</label>
-        <textarea class="form-control var-imeis" rows="1" placeholder="Ex: IMEI-001, IMEI-002" data-idx="${index}">${(v.demoImeis || []).join(', ')}</textarea>
-      </div>
-    `;
-    c.appendChild(div);
-  });
-  
-  c.querySelectorAll('.var-color').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].color = e.target.value));
-  c.querySelectorAll('.var-cap').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].capacity = e.target.value));
-  c.querySelectorAll('.var-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].stockQuantity = Math.max(0, parseInt(e.target.value) || 0)));
-  c.querySelectorAll('.var-min-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].minimumStock = Math.max(0, parseInt(e.target.value) || 0)));
-  c.querySelectorAll('.var-imeis').forEach(el => el.addEventListener('input', e => {
-    tempVariants[e.target.dataset.idx].demoImeis = e.target.value.split(',').map(i=>i.trim()).filter(Boolean);
-  }));
-  if (window.lucide) lucide.createIcons();
-}
-
 window.removeVariant = function(idx) {
   tempVariants.splice(idx, 1);
   renderVariantsBuilder();
 };
-
-function renderPricingBuilder() {
-  const c = document.getElementById('variants-pricing-container');
-  if (!c) return;
-  c.innerHTML = '';
-  if (tempVariants.length === 0) {
-    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Adicione variações na etapa 3 primeiro.</div>';
-    return;
-  }
-  tempVariants.forEach((v, index) => {
-    const div = document.createElement('div');
-    div.style.padding = '12px';
-    div.style.border = '1px solid var(--border-color)';
-    div.style.borderRadius = 'var(--radius-md)';
-    const label = `${v.color || v.colorName || ''} ${v.capacity || v.capacityName || ''}`.trim() || `Variação #${index+1}`;
-    
-    div.innerHTML = `
-      <strong style="display:block; margin-bottom: 8px;">${label}</strong>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Preço Base (R$)</label>
-          <input type="number" step="0.01" class="form-control var-price" value="${v.priceCents ? (v.priceCents / 100).toFixed(2) : ''}" placeholder="Ex: 5000.00" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Preço Promo (R$)</label>
-          <input type="number" step="0.01" class="form-control var-promo" value="${v.promotionalPriceCents ? (v.promotionalPriceCents / 100).toFixed(2) : ''}" placeholder="Ex: 4800.00 (opcional)" data-idx="${index}">
-        </div>
-      </div>
-      <div class="grid-2-col" style="margin-top:8px;">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Custo Interno (R$)</label>
-          <input type="number" step="0.01" class="form-control var-cost" value="${v.costCents ? (v.costCents / 100).toFixed(2) : ''}" placeholder="Ex: 4000.00 (opcional)" data-idx="${index}">
-        </div>
-      </div>
-    `;
-    c.appendChild(div);
-  });
-  
-  c.querySelectorAll('.var-price').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].priceCents = Math.round(parseFloat(e.target.value) * 100) || 0));
-  c.querySelectorAll('.var-promo').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].promotionalPriceCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
-  c.querySelectorAll('.var-cost').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].costCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
-}
 
 function buildReviewStep() {
   const rName = document.getElementById('review-product-name');
@@ -1216,10 +1114,10 @@ function buildReviewStep() {
   const rImg = document.getElementById('review-images-count');
   
   if (rName) rName.textContent = document.getElementById('p-name').value || 'N/A';
-  if (rVar) rVar.textContent = `${tempVariants.length} Variações Mapeadas`;
+  if (rVar) rVar.textContent = `${tempVariants.length} variaç${tempVariants.length === 1 ? 'ão' : 'ões'}`;
   const totalStock = tempVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
-  if (rStock) rStock.textContent = `Estoque Total: ${totalStock} un`;
-  if (rImg) rImg.textContent = `${stateProductFormImages.length} Fotos Anexadas`;
+  if (rStock) rStock.textContent = `Estoque total: ${totalStock} un`;
+  if (rImg) rImg.textContent = `${stateProductFormImages.length} foto${stateProductFormImages.length === 1 ? '' : 's'}`;
 }
 
 document.getElementById('btn-admin-modal-next')?.addEventListener('click', () => {
@@ -1919,7 +1817,7 @@ function setupPromoCalculatorListeners() {
       if (scopeDetailGroup) scopeDetailGroup.classList.remove('d-none');
       if (manualSelectGroup) manualSelectGroup.classList.add('d-none');
       const label = document.getElementById('promo-scope-detail-label');
-      if (label) label.textContent = 'Selecione a Categoria:';
+      if (label) label.textContent = 'Categoria';
       
       if (scopeDetailSelect) {
         scopeDetailSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
@@ -2099,7 +1997,7 @@ function openMaintenanceModal(maintId = null) {
   if (maintId) {
     const item = state.maintenances.find(m => m.id === maintId);
     if (item) {
-      if (title) title.textContent = `Editar Manutenção (${item.code})`;
+      if (title) title.textContent = `Editar manutenção ${item.code}`;
       document.getElementById('m-device').value = item.device || '';
       document.getElementById('m-customer-name').value = item.customerName || '';
       document.getElementById('m-customer-phone').value = item.customerPhone || '';
@@ -2109,7 +2007,7 @@ function openMaintenanceModal(maintId = null) {
       document.getElementById('m-notes').value = item.notes || '';
     }
   } else {
-    if (title) title.textContent = 'Cadastrar Nova Manutenção';
+    if (title) title.textContent = 'Nova manutenção';
     if (form) form.reset();
   }
 

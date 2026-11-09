@@ -435,3 +435,42 @@ body.admin-body .promo-summary { position: sticky; top: 64px; padding: 20px; }
   .drawer { width: 100vw; }
 }
 @media (prefers-reduced-motion: reduce) { .drawer, .drawer-backdrop, .ui-switch i, body.admin-body .admin-sidebar { transition: none; } }
+
+/* ---------- Forms as side drawers (product, category, maintenance) ---------- */
+body.admin-body .admin-modal-overlay { padding: 0; justify-content: flex-end; align-items: stretch; background: rgba(23, 21, 26, .4); }
+body.admin-body .admin-modal {
+  width: min(560px, 100vw); max-width: none !important; max-height: none; height: 100vh; border-radius: 0; padding: 0;
+  display: flex; flex-direction: column; overflow: hidden; box-shadow: none; animation: none;
+  transform: translateX(24px); opacity: 0; transition: transform .2s ease-out, opacity .2s;
+}
+body.admin-body #admin-product-modal-overlay .admin-modal { width: min(640px, 100vw); }
+body.admin-body .admin-modal-overlay.active .admin-modal { transform: none; opacity: 1; box-shadow: -8px 0 24px rgba(23, 21, 26, .12); }
+body.admin-body .admin-modal > .panel-card-title { margin: 0 !important; padding: 14px 24px; border-bottom: 1px solid var(--ui-line); font-size: 16px; flex: none; }
+body.admin-body .admin-modal > form { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; }
+body.admin-body .admin-modal > form .drawer-foot { margin-top: auto; }
+body.admin-body .admin-tabs { display: flex; gap: 20px; padding: 0 24px; margin: 0 !important; border-bottom: 1px solid var(--ui-line); overflow-x: auto; flex: none; }
+body.admin-body .admin-tab-btn { border: 0; background: none; padding: 10px 0; font: 500 14px var(--ui-font); color: var(--ui-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; border-radius: 0; }
+body.admin-body .admin-tab-btn.active { color: var(--ui-ink); border-bottom-color: var(--ui-data); font-weight: 600; background: none; }
+.form-step-pane { min-height: 200px; }
+.step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.step-head strong { font-size: 15px; font-weight: 600; }
+.var-list { display: flex; flex-direction: column; gap: 12px; }
+.var-card { border: 1px solid var(--ui-line); border-radius: 8px; padding: 14px 16px 16px; margin: 0; min-width: 0; }
+.var-head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; float: left; margin-bottom: 10px; }
+.var-head + * { clear: both; }
+.var-head strong { font-size: 14px; font-weight: 600; }
+.var-card .form-label { font-size: 13px; margin-bottom: 6px; font-weight: 500; }
+.margin-line { margin: 0; }
+.review-box { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--ui-line); border-radius: 8px; background: var(--ui-raised); font-size: 14px; color: var(--ui-muted); }
+.review-box strong { font-size: 16px; font-weight: 600; color: var(--ui-ink); margin-bottom: 4px; }
+.image-upload-dropzone { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 16px; border: 1px dashed var(--ui-control); border-radius: 8px; background: var(--ui-raised); text-align: center; cursor: pointer; color: var(--ui-muted); font-size: 13px; transition: border-color .12s; }
+.image-upload-dropzone svg { color: var(--ui-faint); margin-bottom: 4px; }
+.image-upload-dropzone strong { color: var(--ui-ink); font-size: 14px; font-weight: 500; }
+.image-upload-dropzone:hover, .image-upload-dropzone:focus, .image-upload-dropzone.drag-active { border-color: var(--ui-ink); background: #fff; outline: 0; }
+.product-images-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+body.admin-body .preview-thumb-card { border: 1px solid var(--ui-line); border-radius: 8px; box-shadow: none; background: #fff; }
+body.admin-body .preview-thumb-card .primary-badge { background: var(--ui-ink); color: #fff; border-radius: 4px; font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.fallback-opt { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--ui-rule); }
+.fallback-opt summary { cursor: pointer; font-size: 13px; color: var(--ui-muted); } .fallback-opt summary small { color: var(--ui-faint); }
+.fallback-opt > div { margin-top: 12px; }
+#cat-img-preview-wrapper { text-align: left !important; }

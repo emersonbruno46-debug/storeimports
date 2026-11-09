@@ -986,3 +986,71 @@ function renderCategorySalesChart() {
     return `<div class="cat-cell"><span class="kpi-l">${r.n}</span><strong class="kpi-v num${r.v ? '' : ' zero'}">${formatBRLFromCents(r.v)}</strong><span class="kpi-d flat">${pct}% do total</span><div class="thin-bar"><i style="width:${Math.round(r.v / max * 100)}%"></i></div></div>`;
   }).join('');
 }
+
+// ==========================================
+// FORMULÁRIO DE PRODUTO: variações e preços
+// ==========================================
+function renderVariantsBuilder() {
+  const c = document.getElementById('variants-container');
+  if (!c) return;
+  if (!tempVariants.length) {
+    c.innerHTML = `<div class="ui-empty"><strong>Nenhuma variação ainda</strong><span>Toque em “Adicionar variação” para informar cor, capacidade e estoque.</span></div>`;
+    refreshIcons();
+    return;
+  }
+  c.innerHTML = tempVariants.map((v, i) => `
+    <fieldset class="var-card">
+      <legend class="var-head"><strong>${esc([v.color || v.colorName, v.capacity || v.capacityName].filter(Boolean).join(' · ') || 'Variação ' + (i + 1))}</strong>
+        <button type="button" class="icon-btn danger" data-remove-var="${i}" title="Remover variação" aria-label="Remover variação ${i + 1}">${icon('trash-2')}</button></legend>
+      <div class="grid-2-col">
+        <div class="form-group"><label class="form-label">Cor</label><input type="text" class="form-control var-color" value="${esc(v.color || v.colorName || '')}" placeholder="Ex.: Preto" data-idx="${i}"></div>
+        <div class="form-group"><label class="form-label">Capacidade</label><input type="text" class="form-control var-cap" value="${esc(v.capacity || v.capacityName || '')}" placeholder="Ex.: 256 GB" data-idx="${i}"></div>
+      </div>
+      <div class="grid-2-col">
+        <div class="form-group"><label class="form-label">Estoque (un)</label><input type="number" class="form-control var-stock" value="${esc(v.stockQuantity)}" min="0" data-idx="${i}"></div>
+        <div class="form-group"><label class="form-label">Avisar abaixo de</label><input type="number" class="form-control var-min-stock" value="${esc(v.minimumStock)}" min="0" data-idx="${i}"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">IMEIs ou seriais <small>(separe por vírgula)</small></label><textarea class="form-control var-imeis" rows="1" placeholder="IMEI-001, IMEI-002" data-idx="${i}">${esc((v.demoImeis || []).join(', '))}</textarea></div>
+    </fieldset>`).join('');
+
+  c.querySelectorAll('[data-remove-var]').forEach(b => b.addEventListener('click', () => removeVariant(Number(b.dataset.removeVar))));
+  c.querySelectorAll('.var-color').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].color = e.target.value; }));
+  c.querySelectorAll('.var-cap').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].capacity = e.target.value; }));
+  c.querySelectorAll('.var-stock').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].stockQuantity = Math.max(0, parseInt(e.target.value) || 0); }));
+  c.querySelectorAll('.var-min-stock').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].minimumStock = Math.max(0, parseInt(e.target.value) || 0); }));
+  c.querySelectorAll('.var-imeis').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].demoImeis = e.target.value.split(',').map(x => x.trim()).filter(Boolean); }));
+  refreshIcons();
+}
+
+function marginHint(v) {
+  const price = v.promotionalPriceCents || v.priceCents || 0;
+  if (!price || v.costCents == null) return { text: 'Informe o custo para ver a margem.', bad: false };
+  const m = Math.round(((price - v.costCents) / price) * 100);
+  if (price < v.costCents) return { text: `Preço abaixo do custo: prejuízo de ${formatBRLFromCents(v.costCents - price)} por unidade.`, bad: true };
+  return { text: `Lucro de ${formatBRLFromCents(price - v.costCents)} por unidade (margem de ${m}%).`, bad: false };
+}
+
+function renderPricingBuilder() {
+  const c = document.getElementById('variants-pricing-container');
+  if (!c) return;
+  if (!tempVariants.length) { c.innerHTML = `<div class="ui-empty"><strong>Adicione variações primeiro</strong><span>Volte para a etapa “Variações e estoque”.</span></div>`; return; }
+  const money = cents => (cents ? (cents / 100).toFixed(2) : '');
+  c.innerHTML = tempVariants.map((v, i) => {
+    const label = [v.color || v.colorName, v.capacity || v.capacityName].filter(Boolean).join(' · ') || 'Variação ' + (i + 1);
+    const h = marginHint(v);
+    return `
+    <fieldset class="var-card">
+      <legend class="var-head"><strong>${esc(label)}</strong></legend>
+      <div class="grid-2-col">
+        <div class="form-group"><label class="form-label">Preço (R$)</label><input type="number" step="0.01" class="form-control var-price" value="${money(v.priceCents)}" placeholder="0,00" data-idx="${i}"></div>
+        <div class="form-group"><label class="form-label">Preço promocional <small>(opcional)</small></label><input type="number" step="0.01" class="form-control var-promo" value="${money(v.promotionalPriceCents)}" placeholder="0,00" data-idx="${i}"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px"><label class="form-label">Custo <small>(interno)</small></label><input type="number" step="0.01" class="form-control var-cost" value="${money(v.costCents)}" placeholder="0,00" data-idx="${i}"></div>
+      <p class="hint margin-line${h.bad ? ' bad' : ''}" data-margin="${i}">${esc(h.text)}</p>
+    </fieldset>`;
+  }).join('');
+  const upd = (i) => { const el = c.querySelector(`[data-margin="${i}"]`); const h = marginHint(tempVariants[i]); el.textContent = h.text; el.classList.toggle('bad', h.bad); };
+  c.querySelectorAll('.var-price').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].priceCents = Math.round(parseFloat(e.target.value) * 100) || 0; upd(e.target.dataset.idx); }));
+  c.querySelectorAll('.var-promo').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].promotionalPriceCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null; upd(e.target.dataset.idx); }));
+  c.querySelectorAll('.var-cost').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].costCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null; upd(e.target.dataset.idx); }));
+}
