@@ -19,7 +19,8 @@ let state = {
   selectedCategoryToEdit: null,
   selectedMaintenanceToEdit: null,
   activeFormTab: 'form-general',
-  activeProfile: 'Thallys'
+  activeProfile: 'Thallys',
+  overviewPeriod: 30
 };
 
 let stateProductFormImages = [];
@@ -133,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDatabase();
   setupActiveProfile();
   setupEventListeners();
+  setupOverviewListeners();
+  setupCommandPalette();
+  setupSettingsPanel();
   setupHashRouter();
   initChartTooltips();
   if (window.lucide) lucide.createIcons();
@@ -174,8 +178,13 @@ function loadDatabase() {
   state.stockLogs = getStockMovements();
   state.activityLogs = getActivityLog();
   
-  createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: 'Sessão administrativa iniciada com sucesso.', actorUserId: 'user-1', createdAt: new Date().toISOString() });
-  state.activityLogs = getActivityLog();
+  let alreadyLogged = false;
+  try { alreadyLogged = sessionStorage.getItem('si_admin_session_logged') === '1'; } catch (e) { /* storage blocked */ }
+  if (!alreadyLogged) {
+    createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: `Sessão iniciada por ${state.activeProfile}.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+    try { sessionStorage.setItem('si_admin_session_logged', '1'); } catch (e) { /* storage blocked */ }
+    state.activityLogs = getActivityLog();
+  }
 }
 
 function saveToLocalStorage(key, data) {
@@ -224,10 +233,18 @@ function setupSidebar() {
 // ==========================================
 function setupEventListeners() {
   document.querySelectorAll('.sidebar-menu .menu-item-link').forEach(link => {
-    link.addEventListener('click', () => {
+    const go = () => {
       const rawTab = link.getAttribute('data-tab');
+      if (TAB_ALIASES[rawTab] === 'reservations') {
+        if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = '';
+        if (adminSearchReservations) adminSearchReservations.value = '';
+      }
       switchTab(rawTab);
       document.body.classList.remove('mobile-sidebar-active');
+    };
+    link.addEventListener('click', go);
+    link.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
     });
   });
 
@@ -350,13 +367,13 @@ function switchTab(rawTabName) {
     overview: 'Visão Geral',
     products: 'Gestão de Produtos',
     categories: 'Gestão de Categorias',
-    stock: 'Controle de Estoque & Vendas por Categoria',
+    stock: 'Controle de Estoque',
     maintenances: 'Controle de Manutenções',
     reservations: 'Controle de Reservas',
-    sales: 'Histórico de Vendas Físicas',
+    sales: 'Vendas / PDV',
     promo: 'Calculadora de Promoções',
     users: 'Cargos e Permissões',
-    settings: 'Configurações Demo'
+    settings: 'Configurações'
   };
   if (workspaceTitle) workspaceTitle.textContent = titles[tabName] || 'Painel Operacional';
 
@@ -398,6 +415,7 @@ function renderCurrentTab() {
     renderDashboardOverview();
     renderCategorySalesChart();
   } else if (state.currentTab === 'products') {
+    populateCategorySelects();
     renderProductsTable();
   } else if (state.currentTab === 'categories') {
     renderCategoriesTable();
@@ -411,6 +429,8 @@ function renderCurrentTab() {
   } else if (state.currentTab === 'sales') {
     populateProductSelects();
     renderSalesLogsTable();
+  } else if (state.currentTab === 'settings') {
+    renderSettingsStatus();
   } else if (state.currentTab === 'promo') {
     const previewCard = document.getElementById('promo-preview-card');
     if (previewCard) previewCard.classList.add('d-none');
@@ -423,45 +443,349 @@ function renderCurrentTab() {
 }
 
 // ==========================================
+// HELPERS
+// ==========================================
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+const DAY_MS = 86400000;
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function findVariant(product, variantId) {
+  if (!product) return null;
+  const vs = product.variants || [];
+  return vs.find(v => v.id === variantId) || (vs.length === 1 ? vs[0] : null);
+}
+
+function formatDelta(curr, prev) {
+  if (!prev && !curr) return { text: '—', cls: 'flat' };
+  if (!prev) return { text: 'novo', cls: 'up' };
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if (pct === 0) return { text: '0%', cls: 'flat' };
+  return { text: `${pct > 0 ? '+' : ''}${pct}%`, cls: pct > 0 ? 'up' : 'down' };
+}
+
+// ==========================================
 // VIEW RENDERING: OVERVIEW DASHBOARD
 // ==========================================
-function calculateOverviewKPIs() {
-  const activeProds = state.products.filter(p => p.status === 'active');
-  if (kpiTotalProducts) kpiTotalProducts.textContent = activeProds.length;
-  
-  const pending = state.reservations.filter(r => r.status === 'new' || r.status === 'contacted').length;
-  if (kpiPendingRes) kpiPendingRes.textContent = pending;
 
-  const lowStock = state.products.filter(p => {
-    const totalStock = getProductTotalStock(p);
-    const minStock = getProductMinimumStock(p);
-    return totalStock <= minStock;
-  }).length;
-  if (kpiLowStock) kpiLowStock.textContent = lowStock;
-  
-  const totalSalesValue = state.sales
-    .filter(s => s.status === 'completed')
-    .reduce((sum, s) => sum + (s.totalCents || 0), 0);
-  
-  const kpiFaturamento = document.getElementById('kpi-faturamento');
-  if (kpiFaturamento) {
-    kpiFaturamento.textContent = formatBRLFromCents(totalSalesValue);
+/** Variants of active products, flattened (used by stock alerts and valuation). */
+function listActiveVariants() {
+  const out = [];
+  state.products.filter(p => p.status === 'active').forEach(p => {
+    (p.variants || []).filter(v => v.active !== false).forEach(v => out.push({ product: p, variant: v }));
+  });
+  return out;
+}
+
+function computeStockAlerts() {
+  const zero = [];
+  const low = [];
+  listActiveVariants().forEach(({ product, variant }) => {
+    const qty = variant.stockQuantity || 0;
+    const min = variant.minimumStock || 0;
+    if (qty === 0) zero.push({ product, variant });
+    else if (qty <= min) low.push({ product, variant });
+  });
+  return { zero, low };
+}
+
+function computeOpenMaintenances() {
+  return state.maintenances.filter(m => m.status !== 'Finalizado');
+}
+
+/** Keeps sidebar counters and the environment badge in sync with the data. */
+function calculateOverviewKPIs() {
+  const pending = state.reservations.filter(r => r.status === 'new' || r.status === 'contacted').length;
+  const alerts = computeStockAlerts();
+  const stockAlerts = alerts.zero.length + alerts.low.length;
+  const openMaint = computeOpenMaintenances().length;
+
+  const setBadge = (id, n, danger) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.classList.toggle('d-none', n <= 0);
+    el.classList.toggle('danger', !!danger);
+  };
+  setBadge('badge-reservations', pending, false);
+  setBadge('badge-maintenances', openMaint, false);
+  setBadge('badge-stock', stockAlerts, alerts.zero.length > 0);
+
+  const envText = document.getElementById('env-badge-text');
+  if (envText) envText.textContent = (typeof DataAdapter !== 'undefined' && DataAdapter.isDemo()) ? 'Modo local · demo' : 'Banco online';
+}
+
+function computePeriodMetrics(days) {
+  const now = Date.now();
+  const start = now - days * DAY_MS;
+  const prevStart = start - days * DAY_MS;
+  const products = state.products;
+  const completed = state.sales.filter(s => s.status === 'completed');
+
+  const summarize = (list) => {
+    let revenue = 0;
+    let profit = 0;
+    let profitSales = 0;
+    list.forEach(s => {
+      revenue += s.totalCents || 0;
+      let cost = 0;
+      let known = (s.items || []).length > 0;
+      (s.items || []).forEach(i => {
+        const v = findVariant(products.find(p => p.id === i.productId), i.variantId);
+        if (!v || v.costCents === null || v.costCents === undefined) known = false;
+        else cost += v.costCents * (i.quantity || 1);
+      });
+      if (known) { profit += (s.totalCents || 0) - cost; profitSales++; }
+    });
+    return { revenue, count: list.length, profit, profitSales, ticket: list.length ? Math.round(revenue / list.length) : 0 };
+  };
+
+  const inRange = (s, a, b) => { const t = new Date(s.createdAt).getTime(); return t >= a && t < b; };
+  const cur = completed.filter(s => inRange(s, start, now + 1));
+  const prev = completed.filter(s => inRange(s, prevStart, start));
+  return { cur, prev, curM: summarize(cur), prevM: summarize(prev), start, now };
+}
+
+function renderOverviewKpis(m, days) {
+  const host = document.getElementById('ov-kpis');
+  if (!host) return;
+
+  const stockCost = listActiveVariants().reduce((sum, { variant }) => sum + (variant.stockQuantity || 0) * (variant.costCents || 0), 0);
+  const stockUnits = listActiveVariants().reduce((sum, { variant }) => sum + (variant.stockQuantity || 0), 0);
+  const margin = m.curM.revenue && m.curM.profitSales === m.curM.count && m.curM.count > 0
+    ? Math.round((m.curM.profit / m.curM.revenue) * 100) : null;
+  const partial = m.curM.count > 0 && m.curM.profitSales < m.curM.count;
+
+  const cards = [
+    { label: 'Faturamento', icon: 'banknote', tone: 'green', value: formatBRLFromCents(m.curM.revenue), delta: formatDelta(m.curM.revenue, m.prevM.revenue), sub: `últimos ${days} dias` },
+    { label: 'Vendas realizadas', icon: 'shopping-bag', tone: 'purple', value: String(m.curM.count), delta: formatDelta(m.curM.count, m.prevM.count), sub: 'excluindo estornos' },
+    { label: 'Ticket médio', icon: 'receipt', tone: 'orange', value: formatBRLFromCents(m.curM.ticket), delta: formatDelta(m.curM.ticket, m.prevM.ticket), sub: 'por venda' },
+    { label: 'Lucro bruto estimado', icon: 'piggy-bank', tone: 'green', value: formatBRLFromCents(m.curM.profit), delta: null, sub: margin !== null ? `margem ${margin}%` : (partial ? 'parcial — faltam custos' : 'sem vendas') },
+    { label: 'Estoque (a custo)', icon: 'boxes', tone: 'amber', value: formatBRLFromCents(stockCost), delta: null, sub: `${stockUnits} unidades` }
+  ];
+
+  host.innerHTML = cards.map(c => `
+    <div class="kpi-card ov-kpi">
+      <div class="kpi-details">
+        <span class="kpi-label">${esc(c.label)}</span>
+        <span class="kpi-value">${esc(c.value)}</span>
+        <span class="ov-kpi-sub">
+          ${c.delta ? `<span class="delta ${c.delta.cls}">${esc(c.delta.text)}</span>` : ''}
+          <span>${esc(c.sub)}</span>
+        </span>
+      </div>
+      <div class="kpi-icon-box ${c.tone} flex-center"><i data-lucide="${c.icon}"></i></div>
+    </div>`).join('');
+}
+
+function renderOverviewAttention() {
+  const host = document.getElementById('ov-attention-list');
+  const countEl = document.getElementById('ov-attn-count');
+  if (!host) return;
+
+  const items = [];
+  const today = startOfToday();
+
+  const waiting = state.reservations.filter(r => r.status === 'new');
+  if (waiting.length) {
+    const oldest = Math.min(...waiting.map(r => new Date(r.createdAt || Date.now()).getTime()));
+    const days = Math.floor((Date.now() - oldest) / DAY_MS);
+    items.push({ level: days >= 1 ? 'danger' : 'warn', icon: 'message-circle', title: `${waiting.length} reserva${waiting.length > 1 ? 's' : ''} aguardando resposta`, detail: days >= 1 ? `A mais antiga espera há ${days} dia${days > 1 ? 's' : ''}` : 'Responda pelo WhatsApp para confirmar', action: 'res-new', cta: 'Atender' });
+  }
+
+  const overdue = state.reservations.filter(r => ['new', 'contacted', 'confirmed'].includes(r.status) && r.requestedDate && new Date(r.requestedDate).getTime() < today);
+  if (overdue.length) {
+    items.push({ level: 'danger', icon: 'calendar-x', title: `${overdue.length} reserva${overdue.length > 1 ? 's' : ''} com retirada vencida`, detail: 'Data combinada já passou — confirme ou cancele para liberar o estoque', action: 'res-all', cta: 'Revisar' });
+  }
+
+  const alerts = computeStockAlerts();
+  if (alerts.zero.length) {
+    const names = alerts.zero.slice(0, 2).map(x => x.product.name).join(', ');
+    items.push({ level: 'danger', icon: 'package-x', title: `${alerts.zero.length} variação${alerts.zero.length > 1 ? 'ões' : ''} sem estoque`, detail: names + (alerts.zero.length > 2 ? '…' : ''), action: 'stock', cta: 'Repor' });
+  }
+  if (alerts.low.length) {
+    const names = alerts.low.slice(0, 2).map(x => x.product.name).join(', ');
+    items.push({ level: 'warn', icon: 'package-minus', title: `${alerts.low.length} variação${alerts.low.length > 1 ? 'ões' : ''} com estoque baixo`, detail: names + (alerts.low.length > 2 ? '…' : ''), action: 'stock', cta: 'Ver estoque' });
+  }
+
+  const stuck = computeOpenMaintenances().filter(m => (Date.now() - new Date(m.entryDate || m.createdAt).getTime()) > 3 * DAY_MS);
+  if (stuck.length) {
+    items.push({ level: 'warn', icon: 'wrench', title: `${stuck.length} manutenção${stuck.length > 1 ? 'ões' : ''} parada${stuck.length > 1 ? 's' : ''} há mais de 3 dias`, detail: stuck.slice(0, 2).map(m => m.device).join(', '), action: 'maint', cta: 'Abrir' });
+  }
+
+  let promos = [];
+  try { promos = getPromotions(); } catch (e) { /* optional collection */ }
+  const ending = promos.filter(p => p.status === 'active' && p.endsAt && (new Date(p.endsAt).getTime() - Date.now()) < 7 * DAY_MS && new Date(p.endsAt).getTime() > Date.now());
+  ending.forEach(p => {
+    const left = Math.max(1, Math.ceil((new Date(p.endsAt).getTime() - Date.now()) / DAY_MS));
+    items.push({ level: 'info', icon: 'percent', title: `Promoção "${p.name}" termina em ${left} dia${left > 1 ? 's' : ''}`, detail: 'Renove ou deixe expirar', action: 'promo', cta: 'Ver' });
+  });
+
+  const noCost = state.products.filter(p => p.status === 'active' && (p.variants || []).some(v => v.costCents === null || v.costCents === undefined));
+  if (noCost.length) {
+    items.push({ level: 'info', icon: 'calculator', title: `${noCost.length} produto${noCost.length > 1 ? 's' : ''} sem preço de custo`, detail: 'Sem o custo o lucro estimado fica incompleto', action: 'products', cta: 'Completar' });
+  }
+
+  if (countEl) countEl.textContent = items.length ? `${items.length} ${items.length > 1 ? 'itens' : 'item'}` : '';
+
+  if (!items.length) {
+    host.innerHTML = '<div class="attn-ok"><i data-lucide="check-circle-2"></i><div><strong>Tudo em dia</strong><span>Nenhuma pendência no momento.</span></div></div>';
+    return;
+  }
+
+  host.innerHTML = items.map(it => `
+    <button type="button" class="attn-item ${it.level}" data-attn="${esc(it.action)}">
+      <span class="attn-icon"><i data-lucide="${it.icon}"></i></span>
+      <span class="attn-body"><strong>${esc(it.title)}</strong><span>${esc(it.detail)}</span></span>
+      <span class="attn-cta">${esc(it.cta)} <i data-lucide="chevron-right"></i></span>
+    </button>`).join('');
+}
+
+function handleAttentionAction(action) {
+  const setResFilter = (val) => {
+    if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = val;
+    if (adminSearchReservations) adminSearchReservations.value = '';
+    renderReservationsTable();
+  };
+  switch (action) {
+    case 'res-new': navTo('reservations', () => setResFilter('new')); break;
+    case 'res-all': navTo('reservations', () => setResFilter('')); break;
+    case 'stock': navTo('stock'); break;
+    case 'maint': navTo('maintenances'); break;
+    case 'promo': navTo('promo'); break;
+    case 'products': navTo('products'); break;
+    default: break;
   }
 }
 
+function handleQuickAction(action) {
+  if (action === 'sale') navTo('sales', () => { const el = document.querySelector('#panel-sales select, #panel-sales input'); if (el) el.focus(); });
+  else if (action === 'product') navTo('products', () => openProductFormModal());
+  else if (action === 'stock') navTo('stock');
+  else if (action === 'maintenance') navTo('maintenances', () => openMaintenanceModal());
+}
+
+let overviewRevenueChart = null;
+
+function renderOverviewRevenueChart(m, days) {
+  const canvas = document.getElementById('ov-revenue-chart');
+  const empty = document.getElementById('ov-revenue-empty');
+  const sub = document.getElementById('ov-revenue-sub');
+  if (!canvas) return;
+
+  const buckets = [];
+  const dayStart = startOfToday();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(dayStart - i * DAY_MS);
+    buckets.push({ key: d.toDateString(), label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), value: 0 });
+  }
+  m.cur.forEach(s => {
+    const b = buckets.find(x => x.key === new Date(s.createdAt).toDateString());
+    if (b) b.value += s.totalCents || 0;
+  });
+
+  const total = buckets.reduce((a, b) => a + b.value, 0);
+  if (sub) sub.textContent = `${days} dias · ${formatBRLFromCents(total)}`;
+  if (empty) empty.classList.toggle('d-none', total > 0);
+
+  if (overviewRevenueChart) { overviewRevenueChart.destroy(); overviewRevenueChart = null; }
+  if (!window.Chart || total === 0) { canvas.classList.toggle('d-none', total === 0 && !!window.Chart); return; }
+  canvas.classList.remove('d-none');
+
+  overviewRevenueChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: buckets.map(b => b.label),
+      datasets: [{ label: 'Faturamento', data: buckets.map(b => b.value / 100), backgroundColor: '#61255B', hoverBackgroundColor: '#F14D1D', borderRadius: 4, maxBarThickness: 28 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + formatBRLFromCents(Math.round(ctx.parsed.y * 100)) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#6C6870' } },
+        y: { beginAtZero: true, ticks: { color: '#6C6870', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }, grid: { color: '#EFEDF0' } }
+      }
+    }
+  });
+}
+
+function renderOverviewTopProducts(m) {
+  const host = document.getElementById('ov-top-products');
+  if (!host) return;
+  const agg = {};
+  m.cur.forEach(s => (s.items || []).forEach(i => {
+    const p = state.products.find(x => x.id === i.productId);
+    const key = i.productId + '|' + i.variantId;
+    const v = findVariant(p, i.variantId);
+    if (!agg[key]) agg[key] = { name: p ? p.name : 'Produto removido', spec: v ? [v.color, v.capacity].filter(Boolean).join(' · ') : '', qty: 0, revenue: 0 };
+    agg[key].qty += i.quantity || 0;
+    agg[key].revenue += i.totalCents || ((i.unitPriceCents || 0) * (i.quantity || 0));
+  }));
+  const list = Object.values(agg).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  if (!list.length) {
+    host.innerHTML = '<li class="top-empty">Sem vendas no período.</li>';
+    return;
+  }
+  const max = list[0].revenue || 1;
+  host.innerHTML = list.map((x, idx) => `
+    <li class="top-item">
+      <span class="top-rank">${idx + 1}</span>
+      <div class="top-main">
+        <div class="top-line"><strong>${esc(x.name)}</strong><span>${esc(formatBRLFromCents(x.revenue))}</span></div>
+        <div class="top-sub"><span>${esc(x.spec)}</span><span>${x.qty} un.</span></div>
+        <div class="top-bar"><i style="width:${Math.max(6, Math.round(x.revenue / max * 100))}%"></i></div>
+      </div>
+    </li>`).join('');
+}
+
 function renderDashboardOverview() {
+  // Always read fresh data so the dashboard never shows stale numbers.
+  state.products = getProducts();
+  state.reservations = getReservations();
+  state.sales = getSales();
+  state.maintenances = getMaintenances();
+  state.activityLogs = getActivityLog();
+
+  const days = state.overviewPeriod || 30;
+  document.querySelectorAll('.seg-btn[data-period]').forEach(b => b.classList.toggle('active', Number(b.dataset.period) === days));
+
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const g = document.getElementById('ov-greeting');
+  if (g) g.textContent = `${greet}, ${state.activeProfile}`;
+  const dt = document.getElementById('ov-date');
+  if (dt) dt.textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const m = computePeriodMetrics(days);
+  renderOverviewAttention();
+  renderOverviewKpis(m, days);
+  renderOverviewRevenueChart(m, days);
+  renderOverviewTopProducts(m);
+
   const tbody = document.getElementById('dashboard-recent-reservations-tbody');
   if (tbody) {
     tbody.innerHTML = '';
-    const sorted = [...state.reservations].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
-    
+    const sorted = [...state.reservations].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 5);
+
     if (sorted.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align: center;">Nenhuma solicitação recebida.</td></tr>';
     } else {
       sorted.forEach(res => {
         const tr = document.createElement('tr');
         const totalItems = res.items ? res.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
-        const statusLabel = getReservationStatusLabel(res.status);
         const statusClass = {
           'new': 'status-pending',
           'contacted': 'status-confirmed',
@@ -473,7 +797,7 @@ function renderDashboardOverview() {
         tr.innerHTML = `
           <td><strong></strong></td>
           <td></td>
-          <td></td>
+          <td class="wa-cell"></td>
           <td></td>
           <td class="text-orange" style="font-weight: 700;"></td>
           <td><span class="status-pill ${statusClass}"></span></td>
@@ -482,12 +806,11 @@ function renderDashboardOverview() {
         const cells = tr.querySelectorAll('td');
         cells[0].querySelector('strong').textContent = res.code || 'N/A';
         cells[1].textContent = res.demoCustomerName || 'N/A';
-        cells[2].textContent = res.demoContactLabel || 'Demo';
+        cells[2].appendChild(renderWhatsappCell(res.demoContactLabel, res.demoContactLabel || 'Sem telefone'));
         cells[3].textContent = `${totalItems} ite${totalItems !== 1 ? 'ns' : 'm'}`;
         cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
-        cells[5].querySelector('span').textContent = statusLabel;
+        cells[5].querySelector('span').textContent = getReservationStatusLabel(res.status);
         cells[6].textContent = formatDateTimePtBr(res.createdAt);
-        
         tbody.appendChild(tr);
       });
     }
@@ -496,27 +819,18 @@ function renderDashboardOverview() {
   const logList = document.getElementById('activity-log-list');
   if (logList) {
     logList.innerHTML = '';
-    const logs = [...state.activityLogs].slice(-6).reverse();
-    
+    const logs = [...state.activityLogs].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 8);
+
     if (logs.length === 0) {
       logList.innerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sem atividades registradas.</span>';
     } else {
       logs.forEach(log => {
         const div = document.createElement('div');
         div.className = 'activity-item';
-        
-        let icon = 'info';
-        let iconColor = 'info';
-        if (log.type === 'success') {
-          icon = 'check-circle';
-          iconColor = 'success';
-        } else if (log.type === 'warning') {
-          icon = 'alert-triangle';
-          iconColor = 'warning';
-        }
-        
+        const icon = log.type === 'success' ? 'check-circle' : log.type === 'warning' ? 'alert-triangle' : 'info';
+        const tone = ['success', 'warning'].includes(log.type) ? log.type : 'info';
         div.innerHTML = `
-          <div class="activity-icon-wrapper ${iconColor}">
+          <div class="activity-icon-wrapper ${tone}">
             <i data-lucide="${icon}" style="width: 14px; height: 14px;"></i>
           </div>
           <div class="activity-content">
@@ -526,13 +840,137 @@ function renderDashboardOverview() {
         `;
         div.querySelector('.activity-text').textContent = log.message || 'Atividade registrada';
         div.querySelector('.activity-time').textContent = formatDateTimePtBr(log.createdAt);
-        
         logList.appendChild(div);
       });
     }
   }
 
   if (window.lucide) lucide.createIcons();
+}
+
+function setupOverviewListeners() {
+  document.querySelectorAll('.seg-btn[data-period]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.overviewPeriod = Number(btn.dataset.period);
+      renderDashboardOverview();
+    });
+  });
+  const attn = document.getElementById('ov-attention-list');
+  if (attn) attn.addEventListener('click', e => {
+    const b = e.target.closest('[data-attn]');
+    if (b) handleAttentionAction(b.dataset.attn);
+  });
+  document.querySelectorAll('[data-quick]').forEach(btn => btn.addEventListener('click', () => handleQuickAction(btn.dataset.quick)));
+}
+
+// ==========================================
+// COMMAND PALETTE (Ctrl+K)
+// ==========================================
+const CMDK_PAGES = [
+  { tab: 'overview', label: 'Visão Geral', icon: 'layout-dashboard' },
+  { tab: 'reservations', label: 'Reservas', icon: 'calendar-clock' },
+  { tab: 'sales', label: 'Vendas / PDV', icon: 'shopping-bag' },
+  { tab: 'maintenances', label: 'Manutenções', icon: 'wrench' },
+  { tab: 'products', label: 'Produtos', icon: 'smartphone' },
+  { tab: 'categories', label: 'Categorias', icon: 'folder-tree' },
+  { tab: 'stock', label: 'Estoque', icon: 'clipboard-list' },
+  { tab: 'promo', label: 'Promoções', icon: 'percent' },
+  { tab: 'users', label: 'Usuários', icon: 'users' },
+  { tab: 'settings', label: 'Configurações', icon: 'settings' }
+];
+
+let cmdkResults = [];
+let cmdkIndex = 0;
+
+function buildCmdkResults(query) {
+  const q = query.trim().toLowerCase();
+  const out = [];
+  const has = (...vals) => vals.some(v => String(v || '').toLowerCase().includes(q));
+
+  CMDK_PAGES.filter(p => !q || has(p.label)).slice(0, q ? 4 : 10).forEach(p =>
+    out.push({ group: 'Ir para', icon: p.icon, title: p.label, sub: '', run: () => navTo(p.tab) }));
+  if (!q) return out;
+
+  getProducts().filter(p => has(p.name, p.sku, p.brand, p.model)).slice(0, 5).forEach(p =>
+    out.push({ group: 'Produtos', icon: 'smartphone', title: p.name, sub: `${p.brand} · ${p.sku}`, run: () => navTo('products', () => { if (adminSearchProducts) { adminSearchProducts.value = p.name; renderProductsTable(); } }) }));
+  getReservations().filter(r => has(r.code, r.demoCustomerName, r.demoContactLabel)).slice(0, 5).forEach(r =>
+    out.push({ group: 'Reservas', icon: 'calendar-clock', title: `${r.code} · ${r.demoCustomerName}`, sub: getReservationStatusLabel(r.status), run: () => navTo('reservations', () => { if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = ''; if (adminSearchReservations) { adminSearchReservations.value = r.code; renderReservationsTable(); } }) }));
+  getSales().filter(s => has(s.code, s.demoCustomerName)).slice(0, 4).forEach(s =>
+    out.push({ group: 'Vendas', icon: 'shopping-bag', title: `${s.code} · ${s.demoCustomerName}`, sub: formatBRLFromCents(s.totalCents), run: () => navTo('sales') }));
+  getMaintenances().filter(m => has(m.code, m.device, m.customerName)).slice(0, 4).forEach(m =>
+    out.push({ group: 'Manutenções', icon: 'wrench', title: `${m.code} · ${m.device}`, sub: m.customerName, run: () => navTo('maintenances', () => { const el = document.getElementById('admin-search-maintenances'); if (el) { el.value = m.code; renderMaintenancesTab(); } }) }));
+  return out;
+}
+
+function renderCmdk() {
+  const list = document.getElementById('cmdk-list');
+  const input = document.getElementById('cmdk-input');
+  if (!list || !input) return;
+  cmdkResults = buildCmdkResults(input.value);
+  cmdkIndex = Math.min(cmdkIndex, Math.max(0, cmdkResults.length - 1));
+  if (!cmdkResults.length) { list.innerHTML = '<div class="cmdk-empty">Nada encontrado.</div>'; return; }
+  let lastGroup = '';
+  list.innerHTML = cmdkResults.map((r, i) => {
+    const head = r.group !== lastGroup ? `<div class="cmdk-group">${esc(r.group)}</div>` : '';
+    lastGroup = r.group;
+    return `${head}<button type="button" class="cmdk-item ${i === cmdkIndex ? 'active' : ''}" data-i="${i}"><i data-lucide="${r.icon}"></i><span class="cmdk-title">${esc(r.title)}</span><span class="cmdk-sub">${esc(r.sub)}</span></button>`;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+  const active = list.querySelector('.cmdk-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function openCmdk() {
+  let overlay = document.getElementById('cmdk-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'cmdk-overlay';
+    overlay.className = 'cmdk-overlay';
+    overlay.innerHTML = `
+      <div class="cmdk" role="dialog" aria-modal="true" aria-label="Busca rápida">
+        <div class="cmdk-input-row"><i data-lucide="search"></i><input id="cmdk-input" type="text" placeholder="Buscar produto, reserva, venda, manutenção ou ir para…" autocomplete="off"><kbd>Esc</kbd></div>
+        <div class="cmdk-list" id="cmdk-list"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeCmdk(); });
+    const input = overlay.querySelector('#cmdk-input');
+    input.addEventListener('input', () => { cmdkIndex = 0; renderCmdk(); });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); cmdkIndex = Math.min(cmdkIndex + 1, cmdkResults.length - 1); renderCmdk(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); cmdkIndex = Math.max(cmdkIndex - 1, 0); renderCmdk(); }
+      else if (e.key === 'Enter') { e.preventDefault(); runCmdk(cmdkIndex); }
+      else if (e.key === 'Escape') { closeCmdk(); }
+    });
+    overlay.querySelector('#cmdk-list').addEventListener('click', e => {
+      const b = e.target.closest('.cmdk-item');
+      if (b) runCmdk(Number(b.dataset.i));
+    });
+  }
+  overlay.classList.add('active');
+  const input = overlay.querySelector('#cmdk-input');
+  input.value = '';
+  cmdkIndex = 0;
+  renderCmdk();
+  input.focus();
+}
+
+function closeCmdk() {
+  const overlay = document.getElementById('cmdk-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function runCmdk(i) {
+  const r = cmdkResults[i];
+  closeCmdk();
+  if (r) r.run();
+}
+
+function setupCommandPalette() {
+  const btn = document.getElementById('btn-cmdk');
+  if (btn) btn.addEventListener('click', openCmdk);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCmdk(); }
+  });
 }
 
 function initChartTooltips() {
@@ -810,13 +1248,13 @@ function populateCategorySelects() {
   const filterCatSelect = document.getElementById('admin-filter-products-category');
   
   if (pCatSelect) {
-    pCatSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    pCatSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   }
   
   if (filterCatSelect) {
     const currentVal = filterCatSelect.value;
     filterCatSelect.innerHTML = `<option value="">Todas as Categorias</option>` + 
-      state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
     filterCatSelect.value = currentVal;
   }
 }
@@ -1171,7 +1609,7 @@ function handleProductFormSubmit(e) {
   }
   
   const finalImages = stateProductFormImages.length > 0 ? stateProductFormImages : [
-    { id: `img-${Date.now()}`, src: './assets/placeholder.png', alt: name, isPrimary: true }
+    { id: `img-${Date.now()}`, src: './assets/placeholder.svg', alt: name, isPrimary: true }
   ];
 
   if (state.selectedProductToEdit) {
@@ -1266,7 +1704,7 @@ function populateProductSelects() {
   const optionsHtml = activeProducts.map(p => {
     const activeVars = getActiveVariants(p);
     return activeVars.map(v => 
-      `<option value="${p.id}||${v.id}">${p.name} (${p.brand}) — ${v.color || ''} ${v.capacity || ''} [Estoque: ${v.stockQuantity} un]</option>`
+      `<option value="${esc(p.id)}||${esc(v.id)}">${esc(p.name)} (${esc(p.brand)}) — ${esc(v.color || '')} ${esc(v.capacity || '')} [Estoque: ${v.stockQuantity} un]</option>`
     ).join('');
   }).join('');
   
@@ -1930,7 +2368,7 @@ function printSaleCoupon(saleId) {
     
     return `
       <tr>
-        <td>${pName}${spec}</td>
+        <td>${esc(pName)}${esc(spec)}</td>
         <td class="right">${i.quantity}x</td>
         <td class="right">${formatBRLFromCents(i.totalCents)}</td>
       </tr>
@@ -1941,17 +2379,17 @@ function printSaleCoupon(saleId) {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Cupom de Venda - ${sale.code}</title>
+        <title>Cupom de Venda - ${esc(sale.code)}</title>
         ${receiptStyles}
       </head>
       <body>
-        <div class="center bold" style="font-size: 16px;">${DEMO_CONFIG.storeName.toUpperCase()}</div>
-        <div class="center">${DEMO_CONFIG.address}</div>
+        <div class="center bold" style="font-size: 16px;">${esc(DEMO_CONFIG.storeName.toUpperCase())}</div>
+        <div class="center">${esc(DEMO_CONFIG.address)}</div>
         <div class="center">Ambiente Demonstrativo</div>
         <div class="divider"></div>
-        <div><strong>CUPOM DE VENDA:</strong> ${sale.code}</div>
+        <div><strong>CUPOM DE VENDA:</strong> ${esc(sale.code)}</div>
         <div><strong>DATA:</strong> ${formatDateTimePtBr(sale.createdAt)}</div>
-        <div><strong>CLIENTE:</strong> ${sale.demoCustomerName || 'Consumidor Presencial'}</div>
+        <div><strong>CLIENTE:</strong> ${esc(sale.demoCustomerName || 'Consumidor Presencial')}</div>
         <div class="divider"></div>
         <table>
           <thead>
@@ -2020,7 +2458,7 @@ function setupPromoCalculatorListeners() {
       if (label) label.textContent = 'Selecione a Categoria:';
       
       if (scopeDetailSelect) {
-        scopeDetailSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        scopeDetailSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
       }
     } else if (scope === 'brand') {
       if (scopeDetailGroup) scopeDetailGroup.classList.remove('d-none');
@@ -2041,8 +2479,8 @@ function setupPromoCalculatorListeners() {
           const displayPrice = getProductDisplayPriceCents(p);
           return `
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; margin-bottom: 4px;">
-              <input type="checkbox" name="promo-select-product" value="${p.id}" style="width: 16px; height: 16px; accent-color: var(--purple-primary);">
-              <span>${p.name} (${p.brand}) — ${formatBRLFromCents(displayPrice)}</span>
+              <input type="checkbox" name="promo-select-product" value="${esc(p.id)}" style="width: 16px; height: 16px; accent-color: var(--purple-primary);">
+              <span>${esc(p.name)} (${esc(p.brand)}) — ${formatBRLFromCents(displayPrice)}</span>
             </label>
           `;
         }).join('');
@@ -2124,8 +2562,8 @@ function generatePromoPreview() {
   if (tbody) {
     tbody.innerHTML = promoPreviewProducts.map(item => `
       <tr>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${item.sku}</span></td>
-        <td><strong>${item.productName}</strong> <span class="text-muted" style="font-size: 0.75rem;">(${item.variantLabel})</span></td>
+        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${esc(item.sku)}</span></td>
+        <td><strong>${esc(item.productName)}</strong> <span class="text-muted" style="font-size: 0.75rem;">(${esc(item.variantLabel)})</span></td>
         <td>${formatBRLFromCents(item.basePriceCents)}</td>
         <td class="text-muted">${item.oldPromoPriceCents !== null && item.oldPromoPriceCents !== undefined ? formatBRLFromCents(item.oldPromoPriceCents) : '—'}</td>
         <td class="text-orange" style="font-weight: 700;">${formatBRLFromCents(item.newPromoPriceCents)}</td>
@@ -2326,20 +2764,20 @@ function renderMaintenancesTab() {
     const costFormatted = formatBRLFromCents(m.estimatedCostCents || 0);
 
     tr.innerHTML = `
-      <td><strong>${m.code || 'N/A'}</strong></td>
-      <td style="font-weight: 700; color: var(--purple-primary);">${m.device}</td>
+      <td><strong>${esc(m.code || 'N/A')}</strong></td>
+      <td style="font-weight: 700; color: var(--purple-primary);">${esc(m.device)}</td>
       <td>
         <div style="display: flex; flex-direction: column;">
-          <span>${m.customerName}</span>
+          <span>${esc(m.customerName)}</span>
           <span class="whatsapp-cell-maint" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
         </div>
       </td>
-      <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${m.problem}</td>
+      <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${esc(m.problem)}</td>
       <td style="font-weight: 700; color: var(--purple-primary);">${costFormatted}</td>
       <td>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${m.status}</span>
-          <select class="form-control btn-sm status-quick-select" data-id="${m.id}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+          <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${esc(m.status)}</span>
+          <select class="form-control btn-sm status-quick-select" data-id="${esc(m.id)}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
             <option value="Aberto" ${m.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
             <option value="N\u00e3o iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
             <option value="Finalizado" ${m.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
@@ -2527,8 +2965,8 @@ function renderCategorySalesChart() {
       div.innerHTML = `
         <div class="cat-sales-header">
           <span style="display: flex; align-items: center; gap: 8px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${item.color};"></span>
-            ${item.name}
+            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${esc(item.color)};"></span>
+            ${esc(item.name)}
           </span>
           <span style="color: var(--purple-primary); font-weight: 700;">${formatBRLFromCents(item.amountCents)} (${pct}%)</span>
         </div>
@@ -2730,7 +3168,7 @@ function renderProductImagePreviews() {
 
     card.innerHTML = `
       ${primaryBadge}
-      <img src="${imgObj.src}" alt="${imgObj.alt || 'Foto'}">
+      <img src="${esc(imgObj.src)}" alt="${esc(imgObj.alt || 'Foto')}">
       <div class="preview-thumb-actions">
         ${!imgObj.isPrimary ? `<button type="button" class="btn-thumb-action btn-make-primary" data-idx="${idx}" title="Definir como Principal"><i data-lucide="star" style="width:12px;height:12px;"></i></button>` : '<span></span>'}
         <button type="button" class="btn-thumb-action delete btn-remove-img" data-idx="${idx}" title="Remover Foto"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
@@ -2758,4 +3196,70 @@ function renderProductImagePreviews() {
   });
 
   if (window.lucide) lucide.createIcons();
+}
+
+
+// ==========================================
+// SETTINGS: DATABASE STATUS, BACKUP & RESTORE
+// ==========================================
+const BACKUP_COLLECTIONS = ['categories', 'products', 'reservations', 'sales', 'maintenances', 'stockMovements', 'promotions', 'users', 'activityLog'];
+
+function renderSettingsStatus() {
+  const host = document.getElementById('settings-db-status');
+  if (!host) return;
+  const labels = { categories: 'Categorias', products: 'Produtos', reservations: 'Reservas', sales: 'Vendas', maintenances: 'Manutenções', stockMovements: 'Mov. de estoque', promotions: 'Promoções', users: 'Usuários', activityLog: 'Logs' };
+  let bytes = 0;
+  BACKUP_COLLECTIONS.forEach(k => { try { bytes += (localStorage.getItem(getStorageKey(k)) || '').length * 2; } catch (e) { /* ignore */ } });
+  const cfg = typeof DEMO_CONFIG !== 'undefined' ? DEMO_CONFIG : {};
+  const online = !!(cfg.supabaseUrl && cfg.supabaseAnonKey);
+  host.innerHTML = `
+    <div class="db-mode ${online ? 'online' : 'local'}">
+      <i data-lucide="${online ? 'cloud' : 'hard-drive'}"></i>
+      <div><strong>${online ? 'Supabase configurado' : 'Armazenamento local (navegador)'}</strong>
+      <span>${online ? 'Credenciais presentes em DEMO_CONFIG.' : 'Os dados existem só neste navegador. Faça backup antes de limpar o cache.'}</span></div>
+    </div>
+    <div class="db-grid">${BACKUP_COLLECTIONS.map(k => `<div class="db-stat"><span>${esc(labels[k])}</span><strong>${getStoreData(k).length}</strong></div>`).join('')}</div>
+    <p class="text-muted" style="font-size:0.78rem;margin-top:10px;">Uso estimado: ${(bytes / 1024).toFixed(1)} KB de ~5.000 KB disponíveis no navegador.</p>`;
+  if (window.lucide) lucide.createIcons();
+}
+
+function exportBackup() {
+  const payload = { app: 'store-imports', schemaVersion: DEMO_SCHEMA_VERSION, exportedAt: new Date().toISOString(), data: {} };
+  BACKUP_COLLECTIONS.forEach(k => { payload.data[k] = getStoreData(k); });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `store-imports-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showAdminToast('Backup exportado.', 'success');
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(reader.result);
+      if (!payload || payload.app !== 'store-imports' || typeof payload.data !== 'object') throw new Error('Arquivo não é um backup do Store Imports.');
+      const found = BACKUP_COLLECTIONS.filter(k => Array.isArray(payload.data[k]));
+      if (!found.length) throw new Error('Backup sem coleções válidas.');
+      if (!confirm(`Restaurar ${found.length} coleções do backup de ${payload.exportedAt || 'data desconhecida'}? Os dados atuais serão substituídos.`)) return;
+      found.forEach(k => saveStoreData(k, payload.data[k]));
+      window.location.reload();
+    } catch (err) {
+      showAdminToast('Falha ao importar: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function setupSettingsPanel() {
+  const btnExport = document.getElementById('btn-export-backup');
+  if (btnExport) btnExport.addEventListener('click', exportBackup);
+  const input = document.getElementById('input-import-backup');
+  if (input) input.addEventListener('change', () => { if (input.files[0]) importBackup(input.files[0]); input.value = ''; });
+  const btnImport = document.getElementById('btn-import-backup');
+  if (btnImport && input) btnImport.addEventListener('click', () => input.click());
 }

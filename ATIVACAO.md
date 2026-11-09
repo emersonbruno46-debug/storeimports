@@ -4,20 +4,19 @@ Este documento fornece as instruções exatas, comandos, variáveis de ambiente 
 
 ---
 
-## 1. Variáveis de Ambiente Necessárias
+## 1. Credenciais do Supabase
 
-Para ativar a integração em produção, crie ou configure as variáveis no arquivo `.env` (ou no painel da Vercel):
+O site é estático (HTML/JS puro, sem Next.js), então **não há `.env`**. A URL do projeto e a chave `anon` (pública por design, protegida pelo RLS) vão em `DEMO_CONFIG` no topo de `store_data.js`:
 
-```env
-# Configurações Públicas (Frontend)
-NEXT_PUBLIC_STORE_NAME="Store Imports"
-NEXT_PUBLIC_DEMO_MODE="false" # Defina 'false' para ativar backend real Supabase
-NEXT_PUBLIC_SUPABASE_URL="https://seu-projeto.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="sua-chave-anon-publica"
-
-# Configurações Privadas (Backend / CLI / Scripts)
-SUPABASE_SERVICE_ROLE_KEY="sua-chave-service-role-privada"
+```js
+isDemo: false,
+supabaseUrl: 'https://seu-projeto.supabase.co',
+supabaseAnonKey: 'sua-chave-anon-publica'
 ```
+
+A `service_role` **nunca** entra em arquivo do site; use-a apenas no painel do Supabase/CLI.
+
+> Antes de mudar `isDemo` para `false`, leia o `DATABASE.md`: as telas ainda não foram migradas para o banco.
 
 ---
 
@@ -26,8 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY="sua-chave-service-role-privada"
 ### Opção A: Via Dashboard do Supabase (SQL Editor)
 1. Acesse o painel do Supabase ([https://supabase.com/dashboard](https://supabase.com/dashboard)).
 2. Selecione seu projeto e vá em **SQL Editor**.
-3. Abra o arquivo `migrations/001_initial_schema.sql`.
-4. Cole todo o conteúdo no editor e clique em **Run**.
+3. Rode `migrations/001_initial_schema.sql` e, em seguida, `migrations/002_ops_tables_and_hardening.sql` (cole e clique em **Run**, um de cada vez).
 
 ### Opção B: Via Supabase CLI (Linha de Comando)
 ```bash
@@ -50,12 +48,14 @@ Após executar a migração SQL, crie a conta administrativa principal no Supaba
 1. Acesse **Authentication > Users** no painel do Supabase.
 2. Clique em **Add User > Create User**.
 3. Insira o email (ex: `admin@storeimports.com.br`) e defina uma senha forte.
-4. No **SQL Editor**, atribua o ID do usuário criado às permissões de sistema:
+4. No **SQL Editor**, dê o papel de administrador a essa conta:
 
 ```sql
-INSERT INTO public.activity_logs (id, type, entity_type, entity_id, message, actor_user_id, created_at)
-VALUES ('act-init', 'info', 'system', 'admin', 'Administrador inicial criado', 'admin-user-id', NOW());
+INSERT INTO public.profiles (id, name, role)
+SELECT id, 'Thallys', 'admin' FROM auth.users WHERE email = 'admin@storeimports.com.br';
 ```
+
+5. Em **Authentication > Providers > Email**, desative o cadastro aberto (*Allow new users to sign up*).
 
 ---
 
@@ -92,7 +92,7 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
 ```
-*Em seguida, re-execute o script `migrations/001_initial_schema.sql`.*
+*Em seguida, re-execute `001_initial_schema.sql` e `002_ops_tables_and_hardening.sql`, nesta ordem.*
 
 ---
 

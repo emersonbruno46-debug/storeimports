@@ -397,7 +397,7 @@ function normalizeProduct(p) {
     condition: p.condition === 'new' || p.condition === 'Novo' ? 'new' : 'used_demo',
     shortDescription: p.shortDescription || p.description || '',
     status: p.status || 'active',
-    images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [{ id: generateId('img'), src: './assets/placeholder.png', alt: p.name, isPrimary: true }],
+    images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [{ id: generateId('img'), src: './assets/placeholder.svg', alt: p.name, isPrimary: true }],
     variants: variants,
     mockupStyle: p.mockupStyle || { color: '#6B7280', icon: 'smartphone' },
     createdAt: p.createdAt || new Date().toISOString(),
@@ -654,7 +654,8 @@ function getActivityLog() { return getStoreData('activityLog'); }
 function createActivityLog(log) {
   const list = getActivityLog();
   list.push(log);
-  saveStoreData('activityLog', list);
+  // Keep the log bounded so it never exhausts the localStorage quota.
+  saveStoreData('activityLog', list.length > 300 ? list.slice(-300) : list);
 }
 
 // ==========================================
@@ -966,25 +967,38 @@ const DataAdapter = {
     return DEMO_CONFIG.isDemo;
   },
 
+  // When isDemo is false the calls go to Supabase (supabase_adapter.js).
+  // NOTE: the UI still calls the synchronous local functions directly; moving the
+  // screens to these async methods is phase 2 of DATABASE.md.
+  _remote() {
+    if (typeof SupabaseAdapter === 'undefined') throw new Error('supabase_adapter.js não foi carregado.');
+    return SupabaseAdapter.api;
+  },
+
   async getProducts() {
     if (this.isDemo()) return getProducts();
-    // Production Supabase Adapter fallback
-    throw new Error("Supabase Adapter: Credenciais de produção não configuradas em DEMO_CONFIG.");
+    return this._remote().getProducts();
   },
 
   async createReservation(reservationData) {
     if (this.isDemo()) return createDemoReservation(reservationData);
-    throw new Error("Supabase Adapter: Backend de produção não ativado.");
+    return this._remote().createReservation({
+      customerName: reservationData.demoCustomerName,
+      contact: reservationData.demoContactLabel,
+      requestedDate: reservationData.requestedDate,
+      items: reservationData.items || [],
+      notes: reservationData.notes
+    });
   },
 
   async completeReservation(reservationId, actorUserId) {
     if (this.isDemo()) return completeReservationTransaction(reservationId, actorUserId);
-    throw new Error("Supabase Adapter: Backend de produção não ativado.");
+    return this._remote().completeReservation(reservationId);
   },
 
   async reverseSale(saleId, reason, actorUserId) {
     if (this.isDemo()) return reverseSaleTransaction(saleId, reason, actorUserId);
-    throw new Error("Supabase Adapter: Backend de produção não ativado.");
+    return this._remote().reverseSale(saleId, reason);
   }
 };
 

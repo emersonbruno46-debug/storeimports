@@ -12,7 +12,7 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@0.292.0"></script>
   <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
 
@@ -28,64 +28,67 @@
     </div>
 
     <ul class="sidebar-menu">
+      <li class="menu-group-label"><span>Operação</span></li>
       <li>
-        <div class="menu-item-link active" id="tab-overview" data-tab="overview">
+        <div class="menu-item-link" id="tab-overview" data-tab="overview" role="button" tabindex="0">
           <i data-lucide="layout-dashboard"></i>
           <span class="menu-item-text">Visão Geral</span>
         </div>
       </li>
       <li>
-        <div class="menu-item-link" id="tab-products" data-tab="products">
+        <div class="menu-item-link" id="tab-reservations" data-tab="reservations" role="button" tabindex="0">
+          <i data-lucide="calendar-clock"></i>
+          <span class="menu-item-text">Reservas</span><span class="menu-badge d-none" id="badge-reservations"></span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-sales" data-tab="sales" role="button" tabindex="0">
+          <i data-lucide="shopping-bag"></i>
+          <span class="menu-item-text">Vendas / PDV</span>
+        </div>
+      </li>
+      <li>
+        <div class="menu-item-link" id="tab-maintenances" data-tab="maintenances" role="button" tabindex="0">
+          <i data-lucide="wrench"></i>
+          <span class="menu-item-text">Manutenções</span><span class="menu-badge d-none" id="badge-maintenances"></span>
+        </div>
+      </li>
+      <li class="menu-group-label"><span>Catálogo</span></li>
+      <li>
+        <div class="menu-item-link" id="tab-products" data-tab="products" role="button" tabindex="0">
           <i data-lucide="smartphone"></i>
           <span class="menu-item-text">Produtos</span>
         </div>
       </li>
       <li>
-        <div class="menu-item-link" id="tab-categories" data-tab="categories">
+        <div class="menu-item-link" id="tab-categories" data-tab="categories" role="button" tabindex="0">
           <i data-lucide="folder-tree"></i>
           <span class="menu-item-text">Categorias</span>
         </div>
       </li>
       <li>
-        <div class="menu-item-link" id="tab-stock" data-tab="stock">
+        <div class="menu-item-link" id="tab-stock" data-tab="stock" role="button" tabindex="0">
           <i data-lucide="clipboard-list"></i>
-          <span class="menu-item-text">Estoque</span>
+          <span class="menu-item-text">Estoque</span><span class="menu-badge d-none" id="badge-stock"></span>
         </div>
       </li>
       <li>
-        <div class="menu-item-link" id="tab-maintenances" data-tab="maintenances">
-          <i data-lucide="wrench"></i>
-          <span class="menu-item-text">Manutenções</span>
-        </div>
-      </li>
-      <li>
-        <div class="menu-item-link" id="tab-reservations" data-tab="reservations">
-          <i data-lucide="calendar"></i>
-          <span class="menu-item-text">Reservas</span>
-        </div>
-      </li>
-      <li>
-        <div class="menu-item-link" id="tab-sales" data-tab="sales">
-          <i data-lucide="shopping-bag"></i>
-          <span class="menu-item-text">Vendas</span>
-        </div>
-      </li>
-      <li>
-        <div class="menu-item-link" id="tab-promo" data-tab="promo">
+        <div class="menu-item-link" id="tab-promo" data-tab="promo" role="button" tabindex="0">
           <i data-lucide="percent"></i>
           <span class="menu-item-text">Promoções</span>
         </div>
       </li>
+      <li class="menu-group-label"><span>Sistema</span></li>
       <li>
-        <div class="menu-item-link" id="tab-users" data-tab="users">
+        <div class="menu-item-link" id="tab-users" data-tab="users" role="button" tabindex="0">
           <i data-lucide="users"></i>
           <span class="menu-item-text">Usuários</span>
         </div>
       </li>
       <li>
-        <div class="menu-item-link" id="tab-settings" data-tab="settings">
+        <div class="menu-item-link" id="tab-settings" data-tab="settings" role="button" tabindex="0">
           <i data-lucide="settings"></i>
-          <span class="menu-item-text">Configurações Demo</span>
+          <span class="menu-item-text">Configurações</span>
         </div>
       </li>
     </ul>
@@ -110,10 +113,16 @@
           <i data-lucide="menu"></i>
         </button>
         <h2 class="top-navbar-title" id="workspace-title">Painel Operacional</h2>
-        <span class="badge-status badge-status-pending" style="display: flex; align-items: center; gap: 6px; font-size: 0.7rem;">
-          <i data-lucide="shield-alert" style="width: 14px; height: 14px;"></i> AMBIENTE DEMONSTRATIVO
+        <span class="badge-status badge-status-pending env-badge" id="env-badge" title="Os dados ficam apenas neste navegador (localStorage)">
+          <i data-lucide="database" style="width: 14px; height: 14px;"></i> <span id="env-badge-text">Modo local</span>
         </span>
       </div>
+
+      <button type="button" class="cmdk-trigger" id="btn-cmdk" aria-label="Busca rápida (Ctrl+K)">
+        <i data-lucide="search" style="width:16px;height:16px;"></i>
+        <span class="cmdk-trigger-text">Buscar produto, reserva, venda…</span>
+        <kbd>Ctrl K</kbd>
+      </button>
 
       <div class="user-profile-badge" id="profile-dropdown-trigger" style="cursor: pointer; position: relative;">
         <div class="user-avatar flex-center" id="active-profile-avatar">SI</div>
@@ -144,185 +153,105 @@
            TAB: VISÃO GERAL (DASHBOARD SUMMARY)
            ========================================== -->
       <div id="panel-overview" class="admin-view-tab">
-        
-        <!-- KPI Widgets (4 KPIs) -->
-        <section class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Produtos em Catálogo</span>
-              <span class="kpi-value" id="kpi-total-products">0</span>
-            </div>
-            <div class="kpi-icon-box purple flex-center"><i data-lucide="smartphone"></i></div>
+
+        <!-- Cabeçalho: saudação + período -->
+        <div class="ov-head">
+          <div>
+            <h3 class="ov-greeting" id="ov-greeting">Olá!</h3>
+            <p class="ov-date" id="ov-date"></p>
           </div>
-          
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Reservas Pendentes</span>
-              <span class="kpi-value" id="kpi-pending-res">0</span>
-            </div>
-            <div class="kpi-icon-box orange flex-center"><i data-lucide="clock"></i></div>
+          <div class="seg-control" role="group" aria-label="Período">
+            <button type="button" class="seg-btn" data-period="7">7 dias</button>
+            <button type="button" class="seg-btn active" data-period="30">30 dias</button>
+            <button type="button" class="seg-btn" data-period="90">90 dias</button>
           </div>
-          
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Alertas de Estoque</span>
-              <span class="kpi-value" id="kpi-low-stock">0</span>
-            </div>
-            <div class="kpi-icon-box amber flex-center"><i data-lucide="alert-triangle"></i></div>
+        </div>
+
+        <!-- Ações rápidas -->
+        <div class="ov-quick">
+          <button class="btn btn-primary" data-quick="sale"><i data-lucide="shopping-cart"></i> Nova venda</button>
+          <button class="btn btn-secondary" data-quick="product"><i data-lucide="package-plus"></i> Novo produto</button>
+          <button class="btn btn-secondary" data-quick="stock"><i data-lucide="clipboard-list"></i> Ajustar estoque</button>
+          <button class="btn btn-secondary" data-quick="maintenance"><i data-lucide="wrench"></i> Nova manutenção</button>
+        </div>
+
+        <!-- Precisa de atenção -->
+        <section class="panel-card ov-attention" aria-labelledby="ov-attn-title">
+          <div class="panel-card-header">
+            <h3 class="panel-card-title" id="ov-attn-title"><i data-lucide="bell-ring"></i> Precisa de atenção</h3>
+            <span class="results-count" id="ov-attn-count"></span>
           </div>
-          
-          <div class="kpi-card" style="border-left: 4px solid var(--success);">
-            <div class="kpi-details">
-              <span class="kpi-label" style="color: var(--success); font-weight: 700;">Faturamento (Simulado)</span>
-              <span class="kpi-value" id="kpi-faturamento" style="color: var(--success);">R$ 0,00</span>
-            </div>
-            <div class="kpi-icon-box green flex-center"><i data-lucide="banknote"></i></div>
-          </div>
+          <div class="attn-list" id="ov-attention-list"></div>
         </section>
 
-        <!-- VENDAS POR CATEGORIA DE PRODUTO / SERVIÇO -->
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por Categoria de Produto / Serviço</h3>
-            <span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">Faturamento Real</span>
+        <!-- KPIs do período -->
+        <section class="ov-kpis" id="ov-kpis" aria-label="Indicadores do período"></section>
+
+        <!-- Receita + Top produtos -->
+        <div class="ov-grid-2">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="trending-up"></i> Faturamento por dia</h3>
+              <span class="results-count" id="ov-revenue-sub"></span>
+            </div>
+            <div class="ov-chart-box">
+              <canvas id="ov-revenue-chart" aria-label="Gráfico de faturamento diário" role="img"></canvas>
+              <div class="ov-empty d-none" id="ov-revenue-empty">Nenhuma venda no período.</div>
+            </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: center;">
-            <!-- Category Totals Breakdown List -->
-            <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;">
-              <!-- Dynamically populated via JS -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="trophy"></i> Mais vendidos</h3>
+              <span class="results-count">no período</span>
             </div>
-
-            <!-- Chart Canvas Container -->
-            <div style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-              <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
-            </div>
+            <ol class="top-list" id="ov-top-products"></ol>
           </div>
         </div>
 
-        <!-- Charts Mock & Activity Timeline -->
-        <div class="dashboard-grid">
-          
-          <!-- Mock Chart & Quick Actions -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            <div class="panel-card">
-              <div class="panel-card-header">
-                <h3 class="panel-card-title"><i data-lucide="bar-chart-3"></i> Volume Mensal de Solicitações (Demonstração)</h3>
-                <span class="results-count">Últimos 7 meses</span>
-              </div>
-              
-              <div class="mock-chart-container">
-                <!-- Rendered via JS bars -->
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 40%;" data-value="12" data-tooltip="12 Simulações"></div>
-                  <span class="mock-chart-label">Jan</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 55%;" data-value="18" data-tooltip="18 Simulações"></div>
-                  <span class="mock-chart-label">Fev</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 70%;" data-value="24" data-tooltip="24 Simulações"></div>
-                  <span class="mock-chart-label">Mar</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 50%;" data-value="15" data-tooltip="15 Simulações"></div>
-                  <span class="mock-chart-label">Abr</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 85%;" data-value="32" data-tooltip="32 Simulações"></div>
-                  <span class="mock-chart-label">Mai</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 95%;" data-value="40" data-tooltip="40 Simulações"></div>
-                  <span class="mock-chart-label">Jun</span>
-                </div>
-                <div class="mock-chart-bar-wrapper">
-                  <div class="mock-chart-bar chart-tooltip-target" style="height: 60%;" data-value="20" data-tooltip="20 Simulações"></div>
-                  <span class="mock-chart-label">Jul</span>
-                </div>
-              </div>
+        <!-- Categorias + Atividade -->
+        <div class="ov-grid-2">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por categoria</h3>
+              <span class="results-count">acumulado</span>
             </div>
-
-            <!-- Quick Actions -->
-            <div class="panel-card">
-              <div class="panel-card-header">
-                <h3 class="panel-card-title"><i data-lucide="zap"></i> Ações Rápidas</h3>
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px;">
-                <button class="btn btn-primary" onclick="navTo('reservas')" style="justify-content: center;"><i data-lucide="clock"></i> Ver Reservas</button>
-                <button class="btn btn-secondary" onclick="navTo('produtos')" style="justify-content: center;"><i data-lucide="package-plus"></i> Novo Produto</button>
-                <button class="btn btn-secondary" onclick="navTo('pdv')" style="justify-content: center;"><i data-lucide="shopping-cart"></i> Nova Venda (PDV)</button>
-                <button class="btn btn-secondary" onclick="navTo('config')" style="justify-content: center; color: var(--danger); border-color: var(--danger);"><i data-lucide="refresh-cw"></i> Resetar Dados</button>
+            <div class="ov-cat-grid">
+              <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+              <div class="ov-donut-box">
+                <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
               </div>
             </div>
           </div>
 
-          <!-- Operational Health & Activity log -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            <!-- Operational Health -->
-            <div class="panel-card">
-              <div class="panel-card-header">
-                <h3 class="panel-card-title"><i data-lucide="heart-pulse"></i> Saúde Operacional</h3>
-              </div>
-              <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.85rem; font-weight: 600;">Estoque Sincronizado</span>
-                  <span class="badge-capsule badge-purple-light" style="font-size: 0.7rem;"><i data-lucide="check" style="width: 12px; height: 12px;"></i> 100%</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.85rem; font-weight: 600;">Banco de Dados Local</span>
-                  <span class="badge-capsule" style="background-color: var(--success-bg); color: var(--success); font-size: 0.7rem;"><i data-lucide="database" style="width: 12px; height: 12px;"></i> V3 Ativo</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.85rem; font-weight: 600;">Erros Registrados (24h)</span>
-                  <span class="badge-capsule badge-orange-light" style="font-size: 0.7rem;"><i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> 0 Erros</span>
-                </div>
-              </div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3 class="panel-card-title"><i data-lucide="activity"></i> Atividade recente</h3>
             </div>
-
-            <!-- Activity log -->
-            <div class="panel-card" style="flex: 1;">
-              <div class="panel-card-header">
-                <h3 class="panel-card-title"><i data-lucide="activity"></i> Logs e Ajustes de Operação</h3>
-              </div>
-              
-              <div class="activity-list" id="activity-log-list" style="max-height: 250px; overflow-y: auto;">
-                <!-- Dynamically populated activities -->
-              </div>
-            </div>
+            <div class="activity-list" id="activity-log-list" style="max-height: 320px; overflow-y: auto;"></div>
           </div>
-
         </div>
 
-        <!-- Recent Reservations List -->
+        <!-- Reservas recentes -->
         <div class="panel-card">
           <div class="panel-card-header">
-            <h3 class="panel-card-title"><i data-lucide="clock"></i> Solicitações de Reserva Recentes</h3>
-            <button class="btn btn-secondary btn-sm" id="btn-view-all-res">Gerenciar Reservas</button>
+            <h3 class="panel-card-title"><i data-lucide="clock"></i> Reservas recentes</h3>
+            <button class="btn btn-secondary btn-sm" id="btn-view-all-res">Ver todas</button>
           </div>
-          
           <div class="table-responsive">
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Cliente</th>
-                  <th>WhatsApp</th>
-                  <th>Produtos</th>
-                  <th>Valor Estimado</th>
-                  <th>Status</th>
-                  <th>Data Solicitação</th>
+                  <th>Código</th><th>Cliente</th><th>WhatsApp</th><th>Itens</th><th>Valor</th><th>Status</th><th>Solicitada em</th>
                 </tr>
               </thead>
-              <tbody id="dashboard-recent-reservations-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
+              <tbody id="dashboard-recent-reservations-tbody"></tbody>
             </table>
           </div>
         </div>
 
       </div>
+
 
       <!-- ==========================================
            TAB: PRODUTOS (PRODUCTS MANAGEMENT)
@@ -338,15 +267,6 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <select class="form-control" id="admin-filter-products-category">
                   <option value="">Todas as Categorias</option>
-                  <option value="smartphones">Smartphones</option>
-                  <option value="iphones">iPhones</option>
-                  <option value="android">Android</option>
-                  <option value="capas">Capas</option>
-                  <option value="peliculas">Películas</option>
-                  <option value="carregadores">Carregadores</option>
-                  <option value="fones">Fones de Ouvido</option>
-                  <option value="smartwatches">Smartwatches</option>
-                  <option value="acessorios">Acessórios</option>
                 </select>
               </div>
             </div>
@@ -592,11 +512,11 @@
             <div class="form-group" style="margin-bottom: 0;">
               <select class="form-control" id="admin-filter-reservations-status">
                 <option value="">Todos os Status</option>
-                <option value="Aguardando confirmação">Aguardando confirmação</option>
-                <option value="Confirmada">Confirmada</option>
-                <option value="Aguardando retirada">Aguardando retirada</option>
-                <option value="Finalizada">Finalizada</option>
-                <option value="Cancelada">Cancelada</option>
+                <option value="new">Aguardando confirmação</option>
+                <option value="confirmed">Confirmada</option>
+                <option value="contacted">Aguardando retirada</option>
+                <option value="completed">Finalizada</option>
+                <option value="cancelled">Cancelada</option>
               </select>
             </div>
           </div>
@@ -880,13 +800,30 @@
            TAB: CONFIGURAÇÕES DEMO
            ========================================== -->
       <div id="panel-settings" class="admin-view-tab d-none">
+
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <div class="panel-card-header">
+            <h3 class="panel-card-title"><i data-lucide="database"></i> Banco de dados</h3>
+          </div>
+          <div id="settings-db-status"></div>
+        </div>
+
+        <div class="panel-card" style="margin-bottom: 24px;">
+          <h3 class="panel-card-title"><i data-lucide="download-cloud"></i> Backup</h3>
+          <p class="text-muted" style="margin-top: 8px; font-size: 0.85rem;">Baixe uma cópia de todos os dados em JSON. O mesmo arquivo servirá para importar tudo no banco quando o Supabase for ativado.</p>
+          <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btn-export-backup" type="button"><i data-lucide="download"></i> Exportar backup</button>
+            <button class="btn btn-secondary" id="btn-import-backup" type="button"><i data-lucide="upload"></i> Restaurar de arquivo</button>
+            <input type="file" id="input-import-backup" accept="application/json,.json" class="d-none">
+          </div>
+        </div>
+
         <div class="panel-card" style="border-left: 4px solid var(--danger);">
-          <h3 class="panel-card-title" style="color: var(--danger);"><i data-lucide="alert-triangle"></i> Controle de Dados Demonstrativos</h3>
-          <p class="text-muted" style="margin-top: 12px; font-size: 0.85rem;">Utilize as opções abaixo para resetar as informações fictícias populadas no sistema. Isso restaurará todos os produtos, reservas, vendas e logs aos valores originais do template.</p>
-          
-          <div style="margin-top: 24px;">
+          <h3 class="panel-card-title" style="color: var(--danger);"><i data-lucide="alert-triangle"></i> Zona de risco</h3>
+          <p class="text-muted" style="margin-top: 12px; font-size: 0.85rem;">Restaura produtos, reservas, vendas e logs aos valores originais do template. Exporte um backup antes.</p>
+          <div style="margin-top: 20px;">
             <button class="btn btn-primary" id="btn-reset-demo-data" style="background: var(--danger); border-color: var(--danger);">
-              Resetar Banco de Dados Fictício <i data-lucide="refresh-cw"></i>
+              Resetar dados de demonstração <i data-lucide="refresh-cw"></i>
             </button>
           </div>
         </div>
@@ -1176,6 +1113,7 @@
 
   <!-- Admin logic script -->
   <script src="./store_data.js"></script>
+  <script src="./supabase_adapter.js"></script>
   <script src="./admin.js"></script>
 </body>
 </html>
