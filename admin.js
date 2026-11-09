@@ -19,7 +19,8 @@ let state = {
   selectedCategoryToEdit: null,
   selectedMaintenanceToEdit: null,
   activeFormTab: 'form-general',
-  activeProfile: 'Thallys'
+  activeProfile: 'Thallys',
+  overviewPeriod: 30
 };
 
 let stateProductFormImages = [];
@@ -133,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDatabase();
   setupActiveProfile();
   setupEventListeners();
+  setupOverviewListeners();
+  setupCommandPalette();
+  setupSettingsPanel();
   setupHashRouter();
   initChartTooltips();
   if (window.lucide) lucide.createIcons();
@@ -174,8 +178,13 @@ function loadDatabase() {
   state.stockLogs = getStockMovements();
   state.activityLogs = getActivityLog();
   
-  createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: 'Sessão administrativa iniciada com sucesso.', actorUserId: 'user-1', createdAt: new Date().toISOString() });
-  state.activityLogs = getActivityLog();
+  let alreadyLogged = false;
+  try { alreadyLogged = sessionStorage.getItem('si_admin_session_logged') === '1'; } catch (e) { /* storage blocked */ }
+  if (!alreadyLogged) {
+    createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: `Sessão iniciada por ${state.activeProfile}.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+    try { sessionStorage.setItem('si_admin_session_logged', '1'); } catch (e) { /* storage blocked */ }
+    state.activityLogs = getActivityLog();
+  }
 }
 
 function saveToLocalStorage(key, data) {
@@ -224,10 +233,18 @@ function setupSidebar() {
 // ==========================================
 function setupEventListeners() {
   document.querySelectorAll('.sidebar-menu .menu-item-link').forEach(link => {
-    link.addEventListener('click', () => {
+    const go = () => {
       const rawTab = link.getAttribute('data-tab');
+      if (TAB_ALIASES[rawTab] === 'reservations') {
+        if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = '';
+        if (adminSearchReservations) adminSearchReservations.value = '';
+      }
       switchTab(rawTab);
       document.body.classList.remove('mobile-sidebar-active');
+    };
+    link.addEventListener('click', go);
+    link.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
     });
   });
 
@@ -347,16 +364,16 @@ function switchTab(rawTabName) {
   });
   
   const titles = {
-    overview: 'Visão Geral',
-    products: 'Gestão de Produtos',
-    categories: 'Gestão de Categorias',
-    stock: 'Controle de Estoque & Vendas por Categoria',
-    maintenances: 'Controle de Manutenções',
-    reservations: 'Controle de Reservas',
-    sales: 'Histórico de Vendas Físicas',
-    promo: 'Calculadora de Promoções',
-    users: 'Cargos e Permissões',
-    settings: 'Configurações Demo'
+    overview: 'Visão geral',
+    products: 'Produtos',
+    categories: 'Categorias',
+    stock: 'Controle de Estoque',
+    maintenances: 'Manutenções',
+    reservations: 'Reservas',
+    sales: 'Vendas',
+    promo: 'Promoções',
+    users: 'Equipe',
+    settings: 'Configurações'
   };
   if (workspaceTitle) workspaceTitle.textContent = titles[tabName] || 'Painel Operacional';
 
@@ -393,146 +410,338 @@ function navTo(rawTabName, afterNavigate = null) {
 
 function renderCurrentTab() {
   calculateOverviewKPIs();
-  
-  if (state.currentTab === 'overview') {
-    renderDashboardOverview();
-    renderCategorySalesChart();
-  } else if (state.currentTab === 'products') {
-    renderProductsTable();
-  } else if (state.currentTab === 'categories') {
-    renderCategoriesTable();
-  } else if (state.currentTab === 'stock') {
-    populateProductSelects();
-    renderStockLogsTable();
-  } else if (state.currentTab === 'maintenances') {
-    renderMaintenancesTab();
-  } else if (state.currentTab === 'reservations') {
-    renderReservationsTable();
-  } else if (state.currentTab === 'sales') {
-    populateProductSelects();
-    renderSalesLogsTable();
-  } else if (state.currentTab === 'promo') {
-    const previewCard = document.getElementById('promo-preview-card');
-    if (previewCard) previewCard.classList.add('d-none');
-    
-    const scopeSelect = document.getElementById('promo-scope');
-    if (scopeSelect) {
-      scopeSelect.dispatchEvent(new Event('change'));
-    }
+
+  switch (state.currentTab) {
+    case 'overview':
+      renderDashboardOverview();
+      renderCategorySalesChart();
+      break;
+    case 'products':
+      populateCategorySelects();
+      renderProductsTable();
+      break;
+    case 'categories':
+      renderCategoriesTable();
+      break;
+    case 'stock':
+      populateProductSelects();
+      renderStockLogsTable();
+      break;
+    case 'maintenances':
+      renderMaintenancesTab();
+      break;
+    case 'reservations':
+      renderReservationsTable();
+      break;
+    case 'sales':
+      populateProductSelects();
+      renderSalesLogsTable();
+      break;
+    case 'promo':
+      renderPromoTab();
+      break;
+    case 'users':
+      renderTeam();
+      break;
+    case 'settings':
+      renderSettingsStatus();
+      break;
+    default:
+      break;
   }
+  if (window.lucide) lucide.createIcons();
+}
+
+// ==========================================
+// HELPERS
+// ==========================================
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+const DAY_MS = 86400000;
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function findVariant(product, variantId) {
+  if (!product) return null;
+  const vs = product.variants || [];
+  return vs.find(v => v.id === variantId) || (vs.length === 1 ? vs[0] : null);
+}
+
+function formatDelta(curr, prev) {
+  if (!prev && !curr) return { text: '—', cls: 'flat' };
+  if (!prev) return { text: 'novo', cls: 'up' };
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if (pct === 0) return { text: '0%', cls: 'flat' };
+  return { text: `${pct > 0 ? '+' : ''}${pct}%`, cls: pct > 0 ? 'up' : 'down' };
 }
 
 // ==========================================
 // VIEW RENDERING: OVERVIEW DASHBOARD
 // ==========================================
-function calculateOverviewKPIs() {
-  const activeProds = state.products.filter(p => p.status === 'active');
-  if (kpiTotalProducts) kpiTotalProducts.textContent = activeProds.length;
-  
-  const pending = state.reservations.filter(r => r.status === 'new' || r.status === 'contacted').length;
-  if (kpiPendingRes) kpiPendingRes.textContent = pending;
 
-  const lowStock = state.products.filter(p => {
-    const totalStock = getProductTotalStock(p);
-    const minStock = getProductMinimumStock(p);
-    return totalStock <= minStock;
-  }).length;
-  if (kpiLowStock) kpiLowStock.textContent = lowStock;
-  
-  const totalSalesValue = state.sales
-    .filter(s => s.status === 'completed')
-    .reduce((sum, s) => sum + (s.totalCents || 0), 0);
-  
-  const kpiFaturamento = document.getElementById('kpi-faturamento');
-  if (kpiFaturamento) {
-    kpiFaturamento.textContent = formatBRLFromCents(totalSalesValue);
+/** Variants of active products, flattened (used by stock alerts and valuation). */
+function listActiveVariants() {
+  const out = [];
+  state.products.filter(p => p.status === 'active').forEach(p => {
+    (p.variants || []).filter(v => v.active !== false).forEach(v => out.push({ product: p, variant: v }));
+  });
+  return out;
+}
+
+function computeStockAlerts() {
+  const zero = [];
+  const low = [];
+  listActiveVariants().forEach(({ product, variant }) => {
+    const qty = variant.stockQuantity || 0;
+    const min = variant.minimumStock || 0;
+    if (qty === 0) zero.push({ product, variant });
+    else if (qty <= min) low.push({ product, variant });
+  });
+  return { zero, low };
+}
+
+function computeOpenMaintenances() {
+  return state.maintenances.filter(m => m.status !== 'Finalizado');
+}
+
+/** Keeps sidebar counters and the environment badge in sync with the data. */
+function calculateOverviewKPIs() {
+  const pending = state.reservations.filter(r => r.status === 'new' || r.status === 'contacted').length;
+  const alerts = computeStockAlerts();
+  const stockAlerts = alerts.zero.length + alerts.low.length;
+  const openMaint = computeOpenMaintenances().length;
+
+  const setBadge = (id, n, danger) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.classList.toggle('d-none', n <= 0);
+    el.classList.toggle('danger', !!danger);
+  };
+  setBadge('badge-reservations', pending, false);
+  setBadge('badge-maintenances', openMaint, false);
+  setBadge('badge-stock', stockAlerts, alerts.zero.length > 0);
+
+  const envText = document.getElementById('env-badge-text');
+  if (envText) envText.textContent = (typeof DataAdapter !== 'undefined' && DataAdapter.isDemo()) ? 'Dados locais' : 'Banco online';
+}
+
+function computePeriodMetrics(days) {
+  const now = Date.now();
+  const start = now - days * DAY_MS;
+  const prevStart = start - days * DAY_MS;
+  const products = state.products;
+  const completed = state.sales.filter(s => s.status === 'completed');
+
+  const summarize = (list) => {
+    let revenue = 0;
+    let profit = 0;
+    let profitSales = 0;
+    list.forEach(s => {
+      revenue += s.totalCents || 0;
+      let cost = 0;
+      let known = (s.items || []).length > 0;
+      (s.items || []).forEach(i => {
+        const v = findVariant(products.find(p => p.id === i.productId), i.variantId);
+        if (!v || v.costCents === null || v.costCents === undefined) known = false;
+        else cost += v.costCents * (i.quantity || 1);
+      });
+      if (known) { profit += (s.totalCents || 0) - cost; profitSales++; }
+    });
+    return { revenue, count: list.length, profit, profitSales, ticket: list.length ? Math.round(revenue / list.length) : 0 };
+  };
+
+  const inRange = (s, a, b) => { const t = new Date(s.createdAt).getTime(); return t >= a && t < b; };
+  const cur = completed.filter(s => inRange(s, start, now + 1));
+  const prev = completed.filter(s => inRange(s, prevStart, start));
+  return { cur, prev, curM: summarize(cur), prevM: summarize(prev), start, now };
+}
+
+function handleAttentionAction(action) {
+  const setResFilter = (val) => {
+    if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = val;
+    if (adminSearchReservations) adminSearchReservations.value = '';
+    renderReservationsTable();
+  };
+  switch (action) {
+    case 'res-new': navTo('reservations', () => setResFilter('new')); break;
+    case 'res-all': navTo('reservations', () => setResFilter('')); break;
+    case 'stock': navTo('stock'); break;
+    case 'maint': navTo('maintenances'); break;
+    case 'promo': navTo('promo'); break;
+    case 'products': navTo('products'); break;
+    default: break;
   }
 }
 
-function renderDashboardOverview() {
-  const tbody = document.getElementById('dashboard-recent-reservations-tbody');
-  if (tbody) {
-    tbody.innerHTML = '';
-    const sorted = [...state.reservations].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
-    
-    if (sorted.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align: center;">Nenhuma solicitação recebida.</td></tr>';
-    } else {
-      sorted.forEach(res => {
-        const tr = document.createElement('tr');
-        const totalItems = res.items ? res.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
-        const statusLabel = getReservationStatusLabel(res.status);
-        const statusClass = {
-          'new': 'status-pending',
-          'contacted': 'status-confirmed',
-          'confirmed': 'status-confirmed',
-          'completed': 'status-finished',
-          'cancelled': 'status-cancelled'
-        }[res.status] || 'status-pending';
+function handleQuickAction(action) {
+  if (action === 'sale') navTo('sales', () => { const el = document.querySelector('#panel-sales select, #panel-sales input'); if (el) el.focus(); });
+  else if (action === 'product') navTo('products', () => openProductFormModal());
+  else if (action === 'stock') navTo('stock');
+  else if (action === 'maintenance') navTo('maintenances', () => openMaintenanceModal());
+}
 
-        tr.innerHTML = `
-          <td><strong></strong></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td class="text-orange" style="font-weight: 700;"></td>
-          <td><span class="status-pill ${statusClass}"></span></td>
-          <td class="text-muted"></td>
-        `;
-        const cells = tr.querySelectorAll('td');
-        cells[0].querySelector('strong').textContent = res.code || 'N/A';
-        cells[1].textContent = res.demoCustomerName || 'N/A';
-        cells[2].textContent = res.demoContactLabel || 'Demo';
-        cells[3].textContent = `${totalItems} ite${totalItems !== 1 ? 'ns' : 'm'}`;
-        cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
-        cells[5].querySelector('span').textContent = statusLabel;
-        cells[6].textContent = formatDateTimePtBr(res.createdAt);
-        
-        tbody.appendChild(tr);
-      });
-    }
+
+function renderOverviewTopProducts(m) {
+  const host = document.getElementById('ov-top-products');
+  if (!host) return;
+  const agg = {};
+  m.cur.forEach(s => (s.items || []).forEach(i => {
+    const p = state.products.find(x => x.id === i.productId);
+    const key = i.productId + '|' + i.variantId;
+    const v = findVariant(p, i.variantId);
+    if (!agg[key]) agg[key] = { name: p ? p.name : 'Produto removido', spec: v ? [v.color, v.capacity].filter(Boolean).join(' · ') : '', qty: 0, revenue: 0 };
+    agg[key].qty += i.quantity || 0;
+    agg[key].revenue += i.totalCents || ((i.unitPriceCents || 0) * (i.quantity || 0));
+  }));
+  const list = Object.values(agg).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  if (!list.length) {
+    host.innerHTML = '<li class="top-empty">Sem vendas no período.</li>';
+    return;
   }
+  const max = list[0].revenue || 1;
+  host.innerHTML = list.map((x, idx) => `
+    <li class="top-item">
+      <span class="top-rank">${idx + 1}</span>
+      <div class="top-main">
+        <div class="top-line"><strong>${esc(x.name)}</strong><span>${esc(formatBRLFromCents(x.revenue))}</span></div>
+        <div class="top-sub"><span>${esc(x.spec)}</span><span>${x.qty} un.</span></div>
+        <div class="top-bar"><i style="width:${Math.max(6, Math.round(x.revenue / max * 100))}%"></i></div>
+      </div>
+    </li>`).join('');
+}
 
-  const logList = document.getElementById('activity-log-list');
-  if (logList) {
-    logList.innerHTML = '';
-    const logs = [...state.activityLogs].slice(-6).reverse();
-    
-    if (logs.length === 0) {
-      logList.innerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sem atividades registradas.</span>';
-    } else {
-      logs.forEach(log => {
-        const div = document.createElement('div');
-        div.className = 'activity-item';
-        
-        let icon = 'info';
-        let iconColor = 'info';
-        if (log.type === 'success') {
-          icon = 'check-circle';
-          iconColor = 'success';
-        } else if (log.type === 'warning') {
-          icon = 'alert-triangle';
-          iconColor = 'warning';
-        }
-        
-        div.innerHTML = `
-          <div class="activity-icon-wrapper ${iconColor}">
-            <i data-lucide="${icon}" style="width: 14px; height: 14px;"></i>
-          </div>
-          <div class="activity-content">
-            <span class="activity-text"></span>
-            <span class="activity-time"></span>
-          </div>
-        `;
-        div.querySelector('.activity-text').textContent = log.message || 'Atividade registrada';
-        div.querySelector('.activity-time').textContent = formatDateTimePtBr(log.createdAt);
-        
-        logList.appendChild(div);
-      });
-    }
-  }
+function setupOverviewListeners() {
+  document.querySelectorAll('.seg-btn[data-period]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.overviewPeriod = Number(btn.dataset.period);
+      renderDashboardOverview();
+    });
+  });
+  const attn = document.getElementById('ov-attention-list');
+  if (attn) attn.addEventListener('click', e => {
+    const b = e.target.closest('[data-attn]');
+    if (b) handleAttentionAction(b.dataset.attn);
+  });
+  document.querySelectorAll('[data-quick]').forEach(btn => btn.addEventListener('click', () => handleQuickAction(btn.dataset.quick)));
+}
 
+// ==========================================
+// COMMAND PALETTE (Ctrl+K)
+// ==========================================
+const CMDK_PAGES = [
+  { tab: 'overview', label: 'Visão Geral', icon: 'layout-dashboard' },
+  { tab: 'reservations', label: 'Reservas', icon: 'calendar-clock' },
+  { tab: 'sales', label: 'Vendas / PDV', icon: 'shopping-bag' },
+  { tab: 'maintenances', label: 'Manutenções', icon: 'wrench' },
+  { tab: 'products', label: 'Produtos', icon: 'smartphone' },
+  { tab: 'categories', label: 'Categorias', icon: 'folder-tree' },
+  { tab: 'stock', label: 'Estoque', icon: 'clipboard-list' },
+  { tab: 'promo', label: 'Promoções', icon: 'percent' },
+  { tab: 'users', label: 'Usuários', icon: 'users' },
+  { tab: 'settings', label: 'Configurações', icon: 'settings' }
+];
+
+let cmdkResults = [];
+let cmdkIndex = 0;
+
+function buildCmdkResults(query) {
+  const q = query.trim().toLowerCase();
+  const out = [];
+  const has = (...vals) => vals.some(v => String(v || '').toLowerCase().includes(q));
+
+  CMDK_PAGES.filter(p => !q || has(p.label)).slice(0, q ? 4 : 10).forEach(p =>
+    out.push({ group: 'Ir para', icon: p.icon, title: p.label, sub: '', run: () => navTo(p.tab) }));
+  if (!q) return out;
+
+  getProducts().filter(p => has(p.name, p.sku, p.brand, p.model)).slice(0, 5).forEach(p =>
+    out.push({ group: 'Produtos', icon: 'smartphone', title: p.name, sub: `${p.brand} · ${p.sku}`, run: () => navTo('products', () => { if (adminSearchProducts) { adminSearchProducts.value = p.name; renderProductsTable(); } }) }));
+  getReservations().filter(r => has(r.code, r.demoCustomerName, r.demoContactLabel)).slice(0, 5).forEach(r =>
+    out.push({ group: 'Reservas', icon: 'calendar-clock', title: `${r.code} · ${r.demoCustomerName}`, sub: getReservationStatusLabel(r.status), run: () => navTo('reservations', () => { if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = ''; if (adminSearchReservations) { adminSearchReservations.value = r.code; renderReservationsTable(); } }) }));
+  getSales().filter(s => has(s.code, s.demoCustomerName)).slice(0, 4).forEach(s =>
+    out.push({ group: 'Vendas', icon: 'shopping-bag', title: `${s.code} · ${s.demoCustomerName}`, sub: formatBRLFromCents(s.totalCents), run: () => navTo('sales') }));
+  getMaintenances().filter(m => has(m.code, m.device, m.customerName)).slice(0, 4).forEach(m =>
+    out.push({ group: 'Manutenções', icon: 'wrench', title: `${m.code} · ${m.device}`, sub: m.customerName, run: () => navTo('maintenances', () => { const el = document.getElementById('admin-search-maintenances'); if (el) { el.value = m.code; renderMaintenancesTab(); } }) }));
+  return out;
+}
+
+function renderCmdk() {
+  const list = document.getElementById('cmdk-list');
+  const input = document.getElementById('cmdk-input');
+  if (!list || !input) return;
+  cmdkResults = buildCmdkResults(input.value);
+  cmdkIndex = Math.min(cmdkIndex, Math.max(0, cmdkResults.length - 1));
+  if (!cmdkResults.length) { list.innerHTML = '<div class="cmdk-empty">Nada encontrado.</div>'; return; }
+  let lastGroup = '';
+  list.innerHTML = cmdkResults.map((r, i) => {
+    const head = r.group !== lastGroup ? `<div class="cmdk-group">${esc(r.group)}</div>` : '';
+    lastGroup = r.group;
+    return `${head}<button type="button" class="cmdk-item ${i === cmdkIndex ? 'active' : ''}" data-i="${i}"><i data-lucide="${r.icon}"></i><span class="cmdk-title">${esc(r.title)}</span><span class="cmdk-sub">${esc(r.sub)}</span></button>`;
+  }).join('');
   if (window.lucide) lucide.createIcons();
+  const active = list.querySelector('.cmdk-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function openCmdk() {
+  let overlay = document.getElementById('cmdk-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'cmdk-overlay';
+    overlay.className = 'cmdk-overlay';
+    overlay.innerHTML = `
+      <div class="cmdk" role="dialog" aria-modal="true" aria-label="Busca rápida">
+        <div class="cmdk-input-row"><i data-lucide="search"></i><input id="cmdk-input" type="text" placeholder="Buscar produto, reserva, venda, manutenção ou ir para…" autocomplete="off"><kbd>Esc</kbd></div>
+        <div class="cmdk-list" id="cmdk-list"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeCmdk(); });
+    const input = overlay.querySelector('#cmdk-input');
+    input.addEventListener('input', () => { cmdkIndex = 0; renderCmdk(); });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); cmdkIndex = Math.min(cmdkIndex + 1, cmdkResults.length - 1); renderCmdk(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); cmdkIndex = Math.max(cmdkIndex - 1, 0); renderCmdk(); }
+      else if (e.key === 'Enter') { e.preventDefault(); runCmdk(cmdkIndex); }
+      else if (e.key === 'Escape') { closeCmdk(); }
+    });
+    overlay.querySelector('#cmdk-list').addEventListener('click', e => {
+      const b = e.target.closest('.cmdk-item');
+      if (b) runCmdk(Number(b.dataset.i));
+    });
+  }
+  overlay.classList.add('active');
+  const input = overlay.querySelector('#cmdk-input');
+  input.value = '';
+  cmdkIndex = 0;
+  renderCmdk();
+  input.focus();
+}
+
+function closeCmdk() {
+  const overlay = document.getElementById('cmdk-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function runCmdk(i) {
+  const r = cmdkResults[i];
+  closeCmdk();
+  if (r) r.run();
+}
+
+function setupCommandPalette() {
+  const btn = document.getElementById('btn-cmdk');
+  if (btn) btn.addEventListener('click', openCmdk);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCmdk(); }
+  });
 }
 
 function initChartTooltips() {
@@ -565,50 +774,6 @@ function initChartTooltips() {
 // ==========================================
 // CATEGORIES MANAGEMENT
 // ==========================================
-function renderCategoriesTable() {
-  const tbody = document.getElementById('admin-categories-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = (document.getElementById('admin-search-categories')?.value || '').trim().toLowerCase();
-  let filtered = state.categories.filter(c => query ? c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query) : true);
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align: center;">Nenhuma categoria encontrada.</td></tr>';
-  } else {
-    filtered.forEach(c => {
-      const tr = document.createElement('tr');
-      const statusLabel = c.status === 'active' ? 'Ativa' : 'Inativa';
-      const statusBadgeColor = c.status === 'active' ? 'var(--success)' : 'var(--danger)';
-      const productCount = state.products.filter(p => p.categoryId === c.id && p.status === 'active').length;
-      
-      const imgSrc = c.image
-        ? (c.image.startsWith('data:') || c.image.startsWith('http') ? c.image : `./assets/${c.image}`)
-        : '';
-      tr.innerHTML = `
-        <td><div style="width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center;">${imgSrc ? `<img src="${imgSrc}" alt="" style="max-width: 36px; max-height: 36px; object-fit: contain; border-radius: 4px;">` : '<i data-lucide="image" style="width:18px;height:18px;opacity:0.3;"></i>'}</div></td>
-        <td><strong></strong></td>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;"></span></td>
-        <td>${productCount} produto${productCount !== 1 ? 's' : ''}</td>
-        <td><span class="badge-capsule" style="background: ${statusBadgeColor}; font-size: 0.65rem;">${statusLabel}</span></td>
-        <td>
-          <button class="table-action-btn edit-btn-cat" data-id="${c.id}"><i data-lucide="edit"></i></button>
-          <button class="table-action-btn delete-btn-cat" data-id="${c.id}"><i data-lucide="trash-2"></i></button>
-        </td>
-      `;
-
-      tr.querySelector('td:nth-child(2) strong').textContent = c.name;
-      tr.querySelector('.badge-purple-light').textContent = c.id;
-
-      tr.querySelector('.edit-btn-cat').addEventListener('click', () => openCategoryFormModal(c.id));
-      tr.querySelector('.delete-btn-cat').addEventListener('click', () => deleteCategory(c.id));
-
-      tbody.appendChild(tr);
-    });
-  }
-  if (window.lucide) lucide.createIcons();
-}
-
 function openCategoryFormModal(catId = null) {
   const form = document.getElementById('admin-add-category-form');
   if (form) form.reset();
@@ -625,7 +790,7 @@ function openCategoryFormModal(catId = null) {
   if (statusEl) statusEl.textContent = '';
   
   const titleEl = document.getElementById('admin-category-modal-title');
-  if (titleEl) titleEl.textContent = catId ? 'Editar Categoria' : 'Cadastrar Categoria';
+  if (titleEl) titleEl.textContent = catId ? 'Editar categoria' : 'Nova categoria';
   
   if (catId) {
     const cat = state.categories.find(c => c.id === catId);
@@ -810,13 +975,13 @@ function populateCategorySelects() {
   const filterCatSelect = document.getElementById('admin-filter-products-category');
   
   if (pCatSelect) {
-    pCatSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    pCatSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   }
   
   if (filterCatSelect) {
     const currentVal = filterCatSelect.value;
     filterCatSelect.innerHTML = `<option value="">Todas as Categorias</option>` + 
-      state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
     filterCatSelect.value = currentVal;
   }
 }
@@ -824,79 +989,6 @@ function populateCategorySelects() {
 // ==========================================
 // PRODUCTS MANAGEMENT (CRUD)
 // ==========================================
-function renderProductsTable() {
-  const tbody = document.getElementById('admin-products-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = adminSearchProducts ? adminSearchProducts.value.trim().toLowerCase() : '';
-  const category = adminFilterProductsCategory ? adminFilterProductsCategory.value : '';
-  
-  let filtered = state.products.filter(p => {
-    if (category && p.categoryId !== category) return false;
-    if (query) {
-      const matchName = (p.name || '').toLowerCase().includes(query);
-      const matchBrand = (p.brand || '').toLowerCase().includes(query);
-      const matchCode = (p.sku || '').toLowerCase().includes(query);
-      if (!matchName && !matchBrand && !matchCode) return false;
-    }
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Nenhum produto cadastrado correspondente aos filtros.</td></tr>';
-  } else {
-    filtered.forEach(p => {
-      const tr = document.createElement('tr');
-
-      const totalStock = getProductTotalStock(p);
-      const minStock = getProductMinimumStock(p);
-      const primaryVar = getPrimaryVariant(p);
-      const displayPriceCents = getProductDisplayPriceCents(p);
-      const hasPromo = primaryVar && primaryVar.promotionalPriceCents !== null && primaryVar.promotionalPriceCents !== undefined;
-      const condLabel = p.condition === 'new' ? 'Novo' : 'Seminovo';
-      const catName = (state.categories.find(c => c.id === p.categoryId) || {}).name || p.categoryId;
-      const isInactive = p.status === 'inactive';
-      const statusLabel = isInactive ? 'Inativo' : 'Ativo';
-      const statusBadgeColor = isInactive ? 'var(--danger)' : 'var(--success)';
-      
-      let stockColorStyle = '';
-      if (totalStock <= minStock && totalStock > 0) stockColorStyle = 'color: var(--alert); font-weight: 700;';
-      if (totalStock === 0) stockColorStyle = 'color: var(--danger); font-weight: 700;';
-
-      tr.innerHTML = `
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;"></span></td>
-        <td><strong></strong></td>
-        <td class="prod-name-cell"></td>
-        <td class="text-muted" style="font-size: 0.8rem;"></td>
-        <td></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td style="${stockColorStyle}"></td>
-        <td><span class="badge-capsule" style="background: ${statusBadgeColor}; font-size: 0.65rem; color: #fff;">${statusLabel}</span></td>
-        <td>
-          <button class="table-action-btn edit-btn" data-id="${p.id}" title="Editar"><i data-lucide="edit"></i></button>
-          <button class="table-action-btn delete-btn" data-id="${p.id}" title="${isInactive ? 'Ativar Produto' : 'Inativar Produto'}"><i data-lucide="${isInactive ? 'check-circle' : 'archive'}"></i></button>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('span').textContent = p.sku || 'N/A';
-      cells[1].querySelector('strong').textContent = p.brand;
-      cells[2].textContent = `${p.name} (${condLabel})`;
-      cells[3].textContent = catName;
-      cells[4].textContent = formatBRLFromCents(primaryVar ? primaryVar.priceCents : 0);
-      cells[5].textContent = hasPromo ? formatBRLFromCents(primaryVar.promotionalPriceCents) : '—';
-      cells[6].textContent = `${totalStock} un (Min: ${minStock})`;
-
-      tr.querySelector('.edit-btn').addEventListener('click', () => openProductFormModal(p.id));
-      tr.querySelector('.delete-btn').addEventListener('click', () => deleteProduct(p.id));
-
-      tbody.appendChild(tr);
-    });
-  }
-  
-  if (window.lucide) lucide.createIcons();
-}
-
 let currentFormStep = 1;
 let tempVariants = [];
 
@@ -949,7 +1041,7 @@ function openProductFormModal(prodId = null) {
   if (prodId) {
     state.selectedProductToEdit = prodId;
     const titleEl = document.getElementById('admin-product-modal-title');
-    if (titleEl) titleEl.textContent = 'Editar Produto';
+    if (titleEl) titleEl.textContent = 'Editar produto';
     
     const p = state.products.find(item => item.id === prodId);
     if (p) {
@@ -978,7 +1070,7 @@ function openProductFormModal(prodId = null) {
   } else {
     state.selectedProductToEdit = null;
     const titleEl = document.getElementById('admin-product-modal-title');
-    if (titleEl) titleEl.textContent = 'Cadastrar Novo Produto';
+    if (titleEl) titleEl.textContent = 'Novo produto';
   }
   
   renderVariantsBuilder();
@@ -1010,112 +1102,10 @@ document.getElementById('btn-add-variant')?.addEventListener('click', () => {
   renderVariantsBuilder();
 });
 
-function renderVariantsBuilder() {
-  const c = document.getElementById('variants-container');
-  if (!c) return;
-  c.innerHTML = '';
-  if (tempVariants.length === 0) {
-    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Nenhuma variação adicionada. Clique em "Adicionar Variação" acima.</div>';
-    return;
-  }
-  tempVariants.forEach((v, index) => {
-    const div = document.createElement('div');
-    div.style.padding = '12px';
-    div.style.border = '1px solid var(--border-color)';
-    div.style.borderRadius = 'var(--radius-md)';
-    div.style.display = 'flex';
-    div.style.flexDirection = 'column';
-    div.style.gap = '8px';
-    
-    div.innerHTML = `
-      <div style="display:flex; justify-space-between; align-items:center;">
-        <strong>Variação #${index+1}</strong>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="removeVariant(${index})" style="padding:4px 8px; color:var(--danger);"><i data-lucide="trash-2"></i></button>
-      </div>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Cor</label>
-          <input type="text" class="form-control var-color" value="${v.color || v.colorName || ''}" placeholder="Ex: Preto" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Capacidade</label>
-          <input type="text" class="form-control var-cap" value="${v.capacity || v.capacityName || ''}" placeholder="Ex: 256 GB" data-idx="${index}">
-        </div>
-      </div>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Estoque Inicial (un)</label>
-          <input type="number" class="form-control var-stock" value="${v.stockQuantity}" placeholder="Ex: 5" min="0" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Mín. Estoque</label>
-          <input type="number" class="form-control var-min-stock" value="${v.minimumStock}" min="0" data-idx="${index}">
-        </div>
-      </div>
-      <div>
-        <label class="form-label" style="font-size:0.75rem;">IMEIs / Serials (Separados por vírgula)</label>
-        <textarea class="form-control var-imeis" rows="1" placeholder="Ex: IMEI-001, IMEI-002" data-idx="${index}">${(v.demoImeis || []).join(', ')}</textarea>
-      </div>
-    `;
-    c.appendChild(div);
-  });
-  
-  c.querySelectorAll('.var-color').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].color = e.target.value));
-  c.querySelectorAll('.var-cap').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].capacity = e.target.value));
-  c.querySelectorAll('.var-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].stockQuantity = Math.max(0, parseInt(e.target.value) || 0)));
-  c.querySelectorAll('.var-min-stock').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].minimumStock = Math.max(0, parseInt(e.target.value) || 0)));
-  c.querySelectorAll('.var-imeis').forEach(el => el.addEventListener('input', e => {
-    tempVariants[e.target.dataset.idx].demoImeis = e.target.value.split(',').map(i=>i.trim()).filter(Boolean);
-  }));
-  if (window.lucide) lucide.createIcons();
-}
-
 window.removeVariant = function(idx) {
   tempVariants.splice(idx, 1);
   renderVariantsBuilder();
 };
-
-function renderPricingBuilder() {
-  const c = document.getElementById('variants-pricing-container');
-  if (!c) return;
-  c.innerHTML = '';
-  if (tempVariants.length === 0) {
-    c.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">Adicione variações na etapa 3 primeiro.</div>';
-    return;
-  }
-  tempVariants.forEach((v, index) => {
-    const div = document.createElement('div');
-    div.style.padding = '12px';
-    div.style.border = '1px solid var(--border-color)';
-    div.style.borderRadius = 'var(--radius-md)';
-    const label = `${v.color || v.colorName || ''} ${v.capacity || v.capacityName || ''}`.trim() || `Variação #${index+1}`;
-    
-    div.innerHTML = `
-      <strong style="display:block; margin-bottom: 8px;">${label}</strong>
-      <div class="grid-2-col">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Preço Base (R$)</label>
-          <input type="number" step="0.01" class="form-control var-price" value="${v.priceCents ? (v.priceCents / 100).toFixed(2) : ''}" placeholder="Ex: 5000.00" data-idx="${index}">
-        </div>
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Preço Promo (R$)</label>
-          <input type="number" step="0.01" class="form-control var-promo" value="${v.promotionalPriceCents ? (v.promotionalPriceCents / 100).toFixed(2) : ''}" placeholder="Ex: 4800.00 (opcional)" data-idx="${index}">
-        </div>
-      </div>
-      <div class="grid-2-col" style="margin-top:8px;">
-        <div>
-          <label class="form-label" style="font-size:0.75rem;">Custo Interno (R$)</label>
-          <input type="number" step="0.01" class="form-control var-cost" value="${v.costCents ? (v.costCents / 100).toFixed(2) : ''}" placeholder="Ex: 4000.00 (opcional)" data-idx="${index}">
-        </div>
-      </div>
-    `;
-    c.appendChild(div);
-  });
-  
-  c.querySelectorAll('.var-price').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].priceCents = Math.round(parseFloat(e.target.value) * 100) || 0));
-  c.querySelectorAll('.var-promo').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].promotionalPriceCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
-  c.querySelectorAll('.var-cost').forEach(el => el.addEventListener('input', e => tempVariants[e.target.dataset.idx].costCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null));
-}
 
 function buildReviewStep() {
   const rName = document.getElementById('review-product-name');
@@ -1124,10 +1114,10 @@ function buildReviewStep() {
   const rImg = document.getElementById('review-images-count');
   
   if (rName) rName.textContent = document.getElementById('p-name').value || 'N/A';
-  if (rVar) rVar.textContent = `${tempVariants.length} Variações Mapeadas`;
+  if (rVar) rVar.textContent = `${tempVariants.length} variaç${tempVariants.length === 1 ? 'ão' : 'ões'}`;
   const totalStock = tempVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
-  if (rStock) rStock.textContent = `Estoque Total: ${totalStock} un`;
-  if (rImg) rImg.textContent = `${stateProductFormImages.length} Fotos Anexadas`;
+  if (rStock) rStock.textContent = `Estoque total: ${totalStock} un`;
+  if (rImg) rImg.textContent = `${stateProductFormImages.length} foto${stateProductFormImages.length === 1 ? '' : 's'}`;
 }
 
 document.getElementById('btn-admin-modal-next')?.addEventListener('click', () => {
@@ -1171,7 +1161,7 @@ function handleProductFormSubmit(e) {
   }
   
   const finalImages = stateProductFormImages.length > 0 ? stateProductFormImages : [
-    { id: `img-${Date.now()}`, src: './assets/placeholder.png', alt: name, isPrimary: true }
+    { id: `img-${Date.now()}`, src: './assets/placeholder.svg', alt: name, isPrimary: true }
   ];
 
   if (state.selectedProductToEdit) {
@@ -1266,7 +1256,7 @@ function populateProductSelects() {
   const optionsHtml = activeProducts.map(p => {
     const activeVars = getActiveVariants(p);
     return activeVars.map(v => 
-      `<option value="${p.id}||${v.id}">${p.name} (${p.brand}) — ${v.color || ''} ${v.capacity || ''} [Estoque: ${v.stockQuantity} un]</option>`
+      `<option value="${esc(p.id)}||${esc(v.id)}">${esc(p.name)} (${esc(p.brand)}) — ${esc(v.color || '')} ${esc(v.capacity || '')} [Estoque: ${v.stockQuantity} un]</option>`
     ).join('');
   }).join('');
   
@@ -1359,137 +1349,14 @@ function handleStockAdjustment(e) {
   createActivityLog({ id: generateId('act'), type: 'info', message: `Ajuste de estoque (${typeVal}): ${prod.name} — ${prod.variants[varIdx].color || ''} [Anterior: ${oldQty} un | Novo: ${newQty} un]`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
 
   adminStockAdjustForm.reset();
+  closeDrawer('drawer-stock');
   showAdminToast('Estoque atualizado com sucesso!', 'success');
   renderCurrentTab();
-}
-
-function renderStockLogsTable() {
-  const tbody = document.getElementById('admin-stock-logs-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const sorted = [...state.stockLogs].reverse();
-  
-  if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align: center;">Sem movimentações registradas.</td></tr>';
-  } else {
-    sorted.forEach(log => {
-      const tr = document.createElement('tr');
-      
-      const typeLabels = { 'entry': 'Entrada (+)', 'exit': 'Saída (-)', 'positive_adjustment': 'Ajuste (+)', 'negative_adjustment': 'Ajuste (-)' };
-      const typeLabel = typeLabels[log.type] || log.type || 'N/A';
-      
-      let typeStyle = 'color: var(--success); font-weight: 700;';
-      if (log.type === 'exit' || log.type === 'negative_adjustment') typeStyle = 'color: var(--danger); font-weight: 700;';
-      if (log.type === 'positive_adjustment') typeStyle = 'color: var(--purple-primary); font-weight: 700;';
-      
-      const prod = getProductById(log.productId);
-      const productName = prod ? prod.name : (log.productName || log.productId || 'N/A');
-      
-      tr.innerHTML = `
-        <td class="text-muted"></td>
-        <td><strong></strong></td>
-        <td>${log.quantity || 0} un</td>
-        <td style="${typeStyle}"></td>
-        <td></td>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.7rem; padding: 2px 8px;">Admin</span></td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].textContent = formatDateTimePtBr(log.createdAt || log.timestamp);
-      cells[1].querySelector('strong').textContent = productName;
-      cells[3].textContent = typeLabel;
-      cells[4].textContent = log.reason || 'N/A';
-      
-      tbody.appendChild(tr);
-    });
-  }
 }
 
 // ==========================================
 // RESERVATIONS CONTROLLER
 // ==========================================
-function renderReservationsTable() {
-  const tbody = document.getElementById('admin-reservations-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = adminSearchReservations ? adminSearchReservations.value.trim().toLowerCase() : '';
-  const status = adminFilterReservationsStatus ? adminFilterReservationsStatus.value : '';
-  
-  let filtered = state.reservations.filter(res => {
-    if (status && res.status !== status) return false;
-    
-    if (query) {
-      const matchName = (res.demoCustomerName || '').toLowerCase().includes(query);
-      const matchCode = (res.code || '').toLowerCase().includes(query);
-      const matchPhone = (res.demoContactLabel || '').replace(/\D/g, '').includes(query.replace(/\D/g, ''));
-      if (!matchName && !matchCode && !matchPhone) return false;
-    }
-    
-    return true;
-  });
-
-  filtered.sort((a, b) => b.id.localeCompare(a.id));
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center;">Nenhuma reserva encontrada correspondente aos filtros.</td></tr>';
-  } else {
-    filtered.forEach(res => {
-      const tr = document.createElement('tr');
-      
-      const statusLabel = getReservationStatusLabel(res.status);
-      const statusClass = {
-        'new': 'status-pending',
-        'contacted': 'status-confirmed',
-        'confirmed': 'status-confirmed',
-        'completed': 'status-finished',
-        'cancelled': 'status-cancelled'
-      }[res.status] || 'status-pending';
-      
-      const totalItems = (res.items || []).reduce((s, i) => s + (i.quantity || 0), 0);
-
-      tr.innerHTML = `
-        <td><strong></strong></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td><span class="status-pill ${statusClass}"></span></td>
-        <td class="text-muted"></td>
-        <td>
-          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-            ${res.status === 'new' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="contacted" style="padding: 4px 8px; font-size: 0.75rem;">Contatar</button>` : ''}
-            ${res.status === 'contacted' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="confirmed" style="padding: 4px 8px; font-size: 0.75rem;">Confirmar</button>` : ''}
-            ${res.status === 'confirmed' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="completed" style="background-color: var(--success); padding: 4px 8px; font-size: 0.75rem;">Faturar</button>` : ''}
-            ${['new','contacted','confirmed'].includes(res.status) ? `<button class="btn btn-secondary btn-sm btn-status-change" data-id="${res.id}" data-to="cancelled" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--danger); color: var(--danger);">Cancelar</button>` : ''}
-          </div>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('strong').textContent = res.code || 'N/A';
-      cells[1].textContent = res.demoCustomerName || 'N/A';
-      // Clickable WhatsApp link for contact number
-      cells[2].innerHTML = '';
-      cells[2].appendChild(renderWhatsappCell(res.demoContactLabel, res.demoContactLabel));
-      cells[3].textContent = formatDateTimePtBr(res.requestedDate);
-      cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
-      cells[5].querySelector('span').textContent = statusLabel;
-      cells[6].textContent = formatDateTimePtBr(res.createdAt);
-
-      tr.querySelectorAll('.btn-status-change').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const toStatus = btn.getAttribute('data-to');
-          changeReservationStatus(res.id, toStatus);
-        });
-      });
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  if (window.lucide) lucide.createIcons();
-}
-
 function changeReservationStatus(resId, nextStatus) {
   if (nextStatus === 'completed') {
     // Use centralized transactional invoicing with full stock validation
@@ -1606,74 +1473,9 @@ function handleSalesRegistry(e) {
   adminSalesRegistryForm.reset();
   document.getElementById('sale-discount').value = 0;
   document.getElementById('sale-qty').value = 1;
+  closeDrawer('drawer-sale');
   showAdminToast('Venda registrada com sucesso!', 'success');
   renderCurrentTab();
-}
-
-function renderSalesLogsTable() {
-  const tbody = document.getElementById('admin-sales-log-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const sorted = [...state.sales].reverse();
-  
-  if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Sem vendas registradas.</td></tr>';
-  } else {
-    sorted.forEach(sale => {
-      const tr = document.createElement('tr');
-      
-      const totalItems = (sale.items || []).reduce((s, i) => s + (i.quantity || 0), 0);
-      const prodName = sale.items && sale.items.length > 0 ? (() => {
-        const prod = getProductById(sale.items[0].productId);
-        return prod ? prod.name : 'Produto';
-      })() : 'Venda';
-      
-      const isReversed = sale.status === 'cancelled';
-      const statusBadge = isReversed 
-        ? `<span class="badge-capsule" style="background-color: var(--danger); font-size: 0.7rem;">Estornada</span>`
-        : `<span class="badge-capsule" style="background-color: var(--success-bg); color: var(--success); font-size: 0.7rem;">Concluída</span>`;
-
-      tr.innerHTML = `
-        <td><strong></strong></td>
-        <td class="text-muted" style="max-width:180px;"></td>
-        <td></td>
-        <td></td>
-        <td class="text-muted"></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td>${statusBadge}</td>
-        <td class="text-muted" style="font-size: 0.8rem;"></td>
-        <td>
-          <div style="display: flex; gap: 4px;">
-            <button class="table-action-btn print-btn" data-id="${sale.id}" title="Imprimir Cupom"><i data-lucide="printer"></i></button>
-            ${!isReversed ? `<button class="table-action-btn refund-btn" data-id="${sale.id}" title="Estornar Venda" style="color: var(--danger);"><i data-lucide="rotate-ccw"></i></button>` : ''}
-          </div>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('strong').textContent = sale.code || 'N/A';
-      cells[1].textContent = prodName;
-      cells[2].textContent = `${totalItems}x`;
-      cells[3].textContent = sale.demoCustomerName || 'Consumidor';
-      cells[4].textContent = getPaymentMethodLabel(sale.demoPaymentMethod);
-      cells[5].textContent = formatBRLFromCents(sale.totalCents || 0);
-      cells[7].textContent = formatDateTimePtBr(sale.createdAt);
-      
-      tr.querySelector('.print-btn').addEventListener('click', () => {
-        printSaleCoupon(sale.id);
-      });
-
-      const refundBtn = tr.querySelector('.refund-btn');
-      if (refundBtn) {
-        refundBtn.addEventListener('click', () => {
-          promptSaleReversal(sale.id);
-        });
-      }
-      
-      tbody.appendChild(tr);
-    });
-  }
-  if (window.lucide) lucide.createIcons();
 }
 
 /**
@@ -1881,14 +1683,12 @@ function updateProfileDisplay() {
   
   if (state.activeProfile === 'Thallys') {
     avatarEl.textContent = 'T';
-    avatarEl.style.backgroundColor = 'var(--purple-primary)';
     nameEl.textContent = 'Thallys';
-    roleEl.textContent = 'Gerente Geral';
+    roleEl.textContent = 'Gerente geral';
   } else {
     avatarEl.textContent = 'J';
-    avatarEl.style.backgroundColor = 'var(--orange-primary)';
     nameEl.textContent = 'Joice';
-    roleEl.textContent = 'Gerente Comercial';
+    roleEl.textContent = 'Gerente comercial';
   }
 }
 
@@ -1930,7 +1730,7 @@ function printSaleCoupon(saleId) {
     
     return `
       <tr>
-        <td>${pName}${spec}</td>
+        <td>${esc(pName)}${esc(spec)}</td>
         <td class="right">${i.quantity}x</td>
         <td class="right">${formatBRLFromCents(i.totalCents)}</td>
       </tr>
@@ -1941,17 +1741,17 @@ function printSaleCoupon(saleId) {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Cupom de Venda - ${sale.code}</title>
+        <title>Cupom de Venda - ${esc(sale.code)}</title>
         ${receiptStyles}
       </head>
       <body>
-        <div class="center bold" style="font-size: 16px;">${DEMO_CONFIG.storeName.toUpperCase()}</div>
-        <div class="center">${DEMO_CONFIG.address}</div>
+        <div class="center bold" style="font-size: 16px;">${esc(DEMO_CONFIG.storeName.toUpperCase())}</div>
+        <div class="center">${esc(DEMO_CONFIG.address)}</div>
         <div class="center">Ambiente Demonstrativo</div>
         <div class="divider"></div>
-        <div><strong>CUPOM DE VENDA:</strong> ${sale.code}</div>
+        <div><strong>CUPOM DE VENDA:</strong> ${esc(sale.code)}</div>
         <div><strong>DATA:</strong> ${formatDateTimePtBr(sale.createdAt)}</div>
-        <div><strong>CLIENTE:</strong> ${sale.demoCustomerName || 'Consumidor Presencial'}</div>
+        <div><strong>CLIENTE:</strong> ${esc(sale.demoCustomerName || 'Consumidor Presencial')}</div>
         <div class="divider"></div>
         <table>
           <thead>
@@ -2017,10 +1817,10 @@ function setupPromoCalculatorListeners() {
       if (scopeDetailGroup) scopeDetailGroup.classList.remove('d-none');
       if (manualSelectGroup) manualSelectGroup.classList.add('d-none');
       const label = document.getElementById('promo-scope-detail-label');
-      if (label) label.textContent = 'Selecione a Categoria:';
+      if (label) label.textContent = 'Categoria';
       
       if (scopeDetailSelect) {
-        scopeDetailSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        scopeDetailSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
       }
     } else if (scope === 'brand') {
       if (scopeDetailGroup) scopeDetailGroup.classList.remove('d-none');
@@ -2030,7 +1830,7 @@ function setupPromoCalculatorListeners() {
       
       const brands = [...new Set(state.products.map(p => p.brand))].filter(Boolean);
       if (scopeDetailSelect) {
-        scopeDetailSelect.innerHTML = brands.map(b => `<option value="${b}">${b}</option>`).join('');
+        scopeDetailSelect.innerHTML = brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
       }
     } else if (scope === 'selected') {
       if (scopeDetailGroup) scopeDetailGroup.classList.add('d-none');
@@ -2041,8 +1841,8 @@ function setupPromoCalculatorListeners() {
           const displayPrice = getProductDisplayPriceCents(p);
           return `
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; margin-bottom: 4px;">
-              <input type="checkbox" name="promo-select-product" value="${p.id}" style="width: 16px; height: 16px; accent-color: var(--purple-primary);">
-              <span>${p.name} (${p.brand}) — ${formatBRLFromCents(displayPrice)}</span>
+              <input type="checkbox" name="promo-select-product" value="${esc(p.id)}" style="width: 16px; height: 16px; accent-color: var(--purple-primary);">
+              <span>${esc(p.name)} (${esc(p.brand)}) — ${formatBRLFromCents(displayPrice)}</span>
             </label>
           `;
         }).join('');
@@ -2060,89 +1860,13 @@ function setupPromoCalculatorListeners() {
   if (btnClear) btnClear.addEventListener('click', clearPromoDiscounts);
 }
 
-function generatePromoPreview() {
-  const scope = document.getElementById('promo-scope').value;
-  const detail = document.getElementById('promo-scope-detail') ? document.getElementById('promo-scope-detail').value : '';
-  const discountType = document.getElementById('promo-discount-type').value;
-  const discountValue = parseFloat(document.getElementById('promo-discount-value').value);
-  const previewCard = document.getElementById('promo-preview-card');
-  const tbody = document.getElementById('promo-preview-tbody');
-  
-  if (isNaN(discountValue) || discountValue <= 0) {
-    showAdminToast('Insira um valor de desconto positivo e válido.', 'danger');
-    return;
-  }
-  
-  let productsToApply = [];
-  if (scope === 'all') {
-    productsToApply = [...state.products];
-  } else if (scope === 'category') {
-    productsToApply = state.products.filter(p => p.categoryId === detail || p.categoryId === `cat-${detail}`);
-  } else if (scope === 'brand') {
-    productsToApply = state.products.filter(p => p.brand === detail);
-  } else if (scope === 'selected') {
-    const checkedBoxes = document.querySelectorAll('input[name="promo-select-product"]:checked');
-    const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-    productsToApply = state.products.filter(p => selectedIds.includes(p.id));
-  }
-  
-  if (productsToApply.length === 0) {
-    showAdminToast('Nenhum produto elegível encontrado para o escopo selecionado.', 'warning');
-    return;
-  }
-  
-  promoPreviewProducts = [];
-  
-  productsToApply.forEach(prod => {
-    (prod.variants || []).forEach(variant => {
-      const baseCents = variant.priceCents || 0;
-      let newPromoCents = baseCents;
-      
-      if (discountType === 'percent') {
-        newPromoCents = Math.round(baseCents * (1 - (discountValue / 100)));
-      } else {
-        const discountCents = Math.round(discountValue * 100);
-        newPromoCents = Math.max(0, baseCents - discountCents);
-      }
-      
-      if (newPromoCents >= baseCents) newPromoCents = baseCents;
-
-      promoPreviewProducts.push({
-        productId: prod.id,
-        variantId: variant.id,
-        productName: prod.name,
-        variantLabel: `${variant.color || ''} ${variant.capacity || ''}`.trim() || 'Padrão',
-        sku: variant.sku || prod.sku,
-        basePriceCents: baseCents,
-        oldPromoPriceCents: variant.promotionalPriceCents,
-        newPromoPriceCents: newPromoCents,
-        discountCents: baseCents - newPromoCents
-      });
-    });
-  });
-
-  if (tbody) {
-    tbody.innerHTML = promoPreviewProducts.map(item => `
-      <tr>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${item.sku}</span></td>
-        <td><strong>${item.productName}</strong> <span class="text-muted" style="font-size: 0.75rem;">(${item.variantLabel})</span></td>
-        <td>${formatBRLFromCents(item.basePriceCents)}</td>
-        <td class="text-muted">${item.oldPromoPriceCents !== null && item.oldPromoPriceCents !== undefined ? formatBRLFromCents(item.oldPromoPriceCents) : '—'}</td>
-        <td class="text-orange" style="font-weight: 700;">${formatBRLFromCents(item.newPromoPriceCents)}</td>
-        <td class="text-purple" style="font-weight: 700;">${formatBRLFromCents(item.discountCents)}</td>
-      </tr>
-    `).join('');
-  }
-  
-  if (previewCard) previewCard.classList.remove('d-none');
-  showAdminToast(`Prévia de promoção gerada para ${promoPreviewProducts.length} variações.`, 'info');
-}
-
 function applyPromoDiscount() {
+  generatePromoPreview({ silent: true });
   if (promoPreviewProducts.length === 0) {
-    showAdminToast('Gere a prévia de alterações antes de aplicar.', 'warning');
+    showAdminToast('Defina onde aplicar e um desconto válido antes de aplicar.', 'warning');
     return;
   }
+  if (!confirm(`Aplicar a promoção em ${promoPreviewProducts.length} variações? Os preços promocionais atuais serão substituídos.`)) return;
   
   let appliedCount = 0;
   promoPreviewProducts.forEach(item => {
@@ -2162,8 +1886,6 @@ function applyPromoDiscount() {
   showAdminToast(`Promoção aplicada com sucesso em ${appliedCount} variações!`, 'success');
   
   promoPreviewProducts = [];
-  const previewCard = document.getElementById('promo-preview-card');
-  if (previewCard) previewCard.classList.add('d-none');
   renderCurrentTab();
 }
 
@@ -2266,133 +1988,6 @@ function showAdminToast(message, type = 'info') {
 // ==========================================
 // MAINTENANCES TAB & MANAGEMENT CONTROLLER
 // ==========================================
-function renderMaintenancesTab() {
-  state.maintenances = getMaintenances();
-  
-  // KPIs
-  const kpiTotal = document.getElementById('kpi-maint-total');
-  const kpiOpen = document.getElementById('kpi-maint-open');
-  const kpiNotStarted = document.getElementById('kpi-maint-not-started');
-  const kpiFinished = document.getElementById('kpi-maint-finished');
-  
-  const total = state.maintenances.length;
-  const openCount = state.maintenances.filter(m => m.status === 'Aberto').length;
-  const notStartedCount = state.maintenances.filter(m => m.status === 'Não iniciado').length;
-  const finishedCount = state.maintenances.filter(m => m.status === 'Finalizado').length;
-
-  if (kpiTotal) kpiTotal.textContent = total;
-  if (kpiOpen) kpiOpen.textContent = openCount;
-  if (kpiNotStarted) kpiNotStarted.textContent = notStartedCount;
-  if (kpiFinished) kpiFinished.textContent = finishedCount;
-
-  // Filter list
-  const searchVal = (document.getElementById('admin-search-maintenances')?.value || '').toLowerCase().trim();
-  const statusFilter = document.getElementById('admin-filter-maintenances-status')?.value || '';
-
-  let filtered = state.maintenances.filter(m => {
-    if (searchVal) {
-      const matchDevice = (m.device || '').toLowerCase().includes(searchVal);
-      const matchClient = (m.customerName || '').toLowerCase().includes(searchVal);
-      const matchCode = (m.code || '').toLowerCase().includes(searchVal);
-      const matchProb = (m.problem || '').toLowerCase().includes(searchVal);
-      if (!matchDevice && !matchClient && !matchCode && !matchProb) return false;
-    }
-    if (statusFilter && m.status !== statusFilter) return false;
-    return true;
-  });
-
-  const tbody = document.getElementById('admin-maintenances-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center; padding: 24px;">Nenhuma manutenção cadastrada ou encontrada.</td></tr>';
-    return;
-  }
-
-  filtered.forEach(m => {
-    const tr = document.createElement('tr');
-    
-    let statusClass = 'maint-badge-aberto';
-    let iconName = 'clock';
-    if (m.status === 'Não iniciado') {
-      statusClass = 'maint-badge-nao-iniciado';
-      iconName = 'pause-circle';
-    } else if (m.status === 'Finalizado') {
-      statusClass = 'maint-badge-finalizado';
-      iconName = 'check-circle-2';
-    }
-
-    const costFormatted = formatBRLFromCents(m.estimatedCostCents || 0);
-
-    tr.innerHTML = `
-      <td><strong>${m.code || 'N/A'}</strong></td>
-      <td style="font-weight: 700; color: var(--purple-primary);">${m.device}</td>
-      <td>
-        <div style="display: flex; flex-direction: column;">
-          <span>${m.customerName}</span>
-          <span class="whatsapp-cell-maint" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
-        </div>
-      </td>
-      <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${m.problem}</td>
-      <td style="font-weight: 700; color: var(--purple-primary);">${costFormatted}</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${m.status}</span>
-          <select class="form-control btn-sm status-quick-select" data-id="${m.id}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-            <option value="Aberto" ${m.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
-            <option value="N\u00e3o iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
-            <option value="Finalizado" ${m.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
-          </select>
-        </div>
-      </td>
-      <td class="text-muted" style="font-size: 0.8rem;">${formatDateTimePtBr(m.entryDate)}</td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn btn-secondary btn-sm btn-edit-maint" data-id="${m.id}" title="Editar"><i data-lucide="edit-3"></i></button>
-          <button class="btn btn-secondary btn-sm btn-delete-maint" data-id="${m.id}" title="Excluir" style="color: var(--danger); border-color: var(--danger);"><i data-lucide="trash-2"></i></button>
-        </div>
-      </td>
-    `;
-
-    // Render clickable WhatsApp phone link in maintenance table
-    const whatsappCellMaint = tr.querySelector('.whatsapp-cell-maint');
-    if (whatsappCellMaint) {
-      whatsappCellMaint.appendChild(renderWhatsappCell(m.customerPhone, m.customerPhone || 'Sem tel.'));
-    }
-
-    // Quick status select event
-    const selectEl = tr.querySelector('.status-quick-select');
-    selectEl.addEventListener('change', (e) => {
-      const newStatus = e.target.value;
-      updateMaintenanceStatus(m.id, newStatus);
-      showAdminToast(`Status da manutenção ${m.code} alterado para "${newStatus}".`, 'success');
-      createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: `Manutenção ${m.code} (${m.device}) atualizada para: ${newStatus}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
-      renderMaintenancesTab();
-      renderCategorySalesChart();
-    });
-
-    // Edit event
-    tr.querySelector('.btn-edit-maint').addEventListener('click', () => {
-      openMaintenanceModal(m.id);
-    });
-
-    // Delete event
-    tr.querySelector('.btn-delete-maint').addEventListener('click', () => {
-      if (confirm(`Deseja excluir a manutenção "${m.code} - ${m.device}"?`)) {
-        deleteMaintenance(m.id);
-        showAdminToast('Manutenção removida com sucesso.', 'warning');
-        renderMaintenancesTab();
-        renderCategorySalesChart();
-      }
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  if (window.lucide) lucide.createIcons();
-}
-
 function openMaintenanceModal(maintId = null) {
   state.selectedMaintenanceToEdit = maintId;
   const overlay = document.getElementById('admin-maintenance-modal-overlay');
@@ -2402,7 +1997,7 @@ function openMaintenanceModal(maintId = null) {
   if (maintId) {
     const item = state.maintenances.find(m => m.id === maintId);
     if (item) {
-      if (title) title.textContent = `Editar Manutenção (${item.code})`;
+      if (title) title.textContent = `Editar manutenção ${item.code}`;
       document.getElementById('m-device').value = item.device || '';
       document.getElementById('m-customer-name').value = item.customerName || '';
       document.getElementById('m-customer-phone').value = item.customerPhone || '';
@@ -2412,7 +2007,7 @@ function openMaintenanceModal(maintId = null) {
       document.getElementById('m-notes').value = item.notes || '';
     }
   } else {
-    if (title) title.textContent = 'Cadastrar Nova Manutenção';
+    if (title) title.textContent = 'Nova manutenção';
     if (form) form.reset();
   }
 
@@ -2464,155 +2059,6 @@ function handleMaintenanceSubmit(e) {
 // ==========================================
 // CATEGORY SALES BREAKDOWN & CHART CONTROLLER
 // ==========================================
-function renderCategorySalesChart() {
-  const listContainer = document.getElementById('category-sales-breakdown-list');
-  const canvas = document.getElementById('category-sales-chart');
-  if (!canvas) return;
-
-  const sales = getSales().filter(s => s.status === 'completed');
-  const products = getProducts();
-  const categories = getCategories();
-  const finishedMaintenances = getMaintenances().filter(m => m.status === 'Finalizado');
-
-  let totalCelularesCents = 0;
-  let totalAcessoriosCents = 0;
-  let totalManutencaoCents = 0;
-  let totalOutrosCents = 0;
-
-  sales.forEach(sale => {
-    (sale.items || []).forEach(item => {
-      const prod = products.find(p => p.id === item.productId);
-      const itemTotal = item.totalCents || (item.unitPriceCents * item.quantity);
-      
-      if (prod) {
-        const catSlug = prod.categoryId || '';
-        if (['cat-iphones', 'cat-android'].includes(catSlug)) {
-          totalCelularesCents += itemTotal;
-        } else if (['cat-acessorios'].includes(catSlug)) {
-          totalAcessoriosCents += itemTotal;
-        } else {
-          totalOutrosCents += itemTotal;
-        }
-      } else {
-        totalOutrosCents += itemTotal;
-      }
-    });
-  });
-
-  // Include finished maintenances revenue
-  finishedMaintenances.forEach(m => {
-    totalManutencaoCents += (m.estimatedCostCents || 0);
-  });
-
-  const grandTotalCents = totalCelularesCents + totalAcessoriosCents + totalManutencaoCents + totalOutrosCents;
-
-  // Render Breakdown List
-  if (listContainer) {
-    const categoriesData = [
-      { name: 'Celulares (iPhones & Android)', amountCents: totalCelularesCents, color: '#6D28D9' },
-      { name: 'Acessórios & Periféricos', amountCents: totalAcessoriosCents, color: '#F97316' },
-      { name: 'Manutenção & Assistência', amountCents: totalManutencaoCents, color: '#059669' }
-    ];
-
-    if (totalOutrosCents > 0) {
-      categoriesData.push({ name: 'Outros (Smartwatches, Notebooks, etc.)', amountCents: totalOutrosCents, color: '#2563EB' });
-    }
-
-    listContainer.innerHTML = '';
-    
-    categoriesData.forEach(item => {
-      const pct = grandTotalCents > 0 ? Math.round((item.amountCents / grandTotalCents) * 100) : 0;
-      const div = document.createElement('div');
-      div.className = 'cat-sales-item';
-      div.innerHTML = `
-        <div class="cat-sales-header">
-          <span style="display: flex; align-items: center; gap: 8px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${item.color};"></span>
-            ${item.name}
-          </span>
-          <span style="color: var(--purple-primary); font-weight: 700;">${formatBRLFromCents(item.amountCents)} (${pct}%)</span>
-        </div>
-        <div class="cat-sales-bar-wrapper">
-          <div class="cat-sales-bar-fill" style="width: ${pct}%; background-color: ${item.color};"></div>
-        </div>
-      `;
-      listContainer.appendChild(div);
-    });
-
-    const totalDiv = document.createElement('div');
-    totalDiv.style.marginTop = '12px';
-    totalDiv.style.paddingTop = '12px';
-    totalDiv.style.borderTop = '1px solid var(--border-color)';
-    totalDiv.style.display = 'flex';
-    totalDiv.style.justifyContent = 'space-between';
-    totalDiv.style.fontWeight = '800';
-    totalDiv.style.fontSize = '0.95rem';
-    totalDiv.innerHTML = `
-      <span>Total Faturado</span>
-      <span style="color: var(--purple-primary);">${formatBRLFromCents(grandTotalCents)}</span>
-    `;
-    listContainer.appendChild(totalDiv);
-  }
-
-  // Render Chart.js Chart
-  if (window.Chart) {
-    if (categorySalesChartInstance) {
-      categorySalesChartInstance.destroy();
-    }
-
-    const labels = ['Celulares', 'Acessórios', 'Manutenção'];
-    const dataValues = [
-      totalCelularesCents / 100,
-      totalAcessoriosCents / 100,
-      totalManutencaoCents / 100
-    ];
-    const bgColors = ['#6D28D9', '#F97316', '#059669'];
-
-    if (totalOutrosCents > 0) {
-      labels.push('Outros');
-      dataValues.push(totalOutrosCents / 100);
-      bgColors.push('#2563EB');
-    }
-
-    const ctx = canvas.getContext('2d');
-    categorySalesChartInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: dataValues,
-          backgroundColor: bgColors,
-          borderWidth: 2,
-          borderColor: '#ffffff',
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              font: { family: 'Inter', size: 12, weight: '600' },
-              padding: 12
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const val = context.raw || 0;
-                return ` ${context.label}: R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-              }
-            }
-          }
-        },
-        cutout: '65%'
-      }
-    });
-  }
-}
-
 // ==========================================
 // MARKETPLACE IMAGE UPLOAD CONTROLLER
 // ==========================================
@@ -2730,7 +2176,7 @@ function renderProductImagePreviews() {
 
     card.innerHTML = `
       ${primaryBadge}
-      <img src="${imgObj.src}" alt="${imgObj.alt || 'Foto'}">
+      <img src="${esc(imgObj.src)}" alt="${esc(imgObj.alt || 'Foto')}">
       <div class="preview-thumb-actions">
         ${!imgObj.isPrimary ? `<button type="button" class="btn-thumb-action btn-make-primary" data-idx="${idx}" title="Definir como Principal"><i data-lucide="star" style="width:12px;height:12px;"></i></button>` : '<span></span>'}
         <button type="button" class="btn-thumb-action delete btn-remove-img" data-idx="${idx}" title="Remover Foto"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
@@ -2758,4 +2204,70 @@ function renderProductImagePreviews() {
   });
 
   if (window.lucide) lucide.createIcons();
+}
+
+
+// ==========================================
+// SETTINGS: DATABASE STATUS, BACKUP & RESTORE
+// ==========================================
+const BACKUP_COLLECTIONS = ['categories', 'products', 'reservations', 'sales', 'maintenances', 'stockMovements', 'promotions', 'users', 'activityLog'];
+
+function renderSettingsStatus() {
+  const host = document.getElementById('settings-db-status');
+  if (!host) return;
+  const labels = { categories: 'Categorias', products: 'Produtos', reservations: 'Reservas', sales: 'Vendas', maintenances: 'Manutenções', stockMovements: 'Mov. de estoque', promotions: 'Promoções', users: 'Usuários', activityLog: 'Logs' };
+  let bytes = 0;
+  BACKUP_COLLECTIONS.forEach(k => { try { bytes += (localStorage.getItem(getStorageKey(k)) || '').length * 2; } catch (e) { /* ignore */ } });
+  const cfg = typeof DEMO_CONFIG !== 'undefined' ? DEMO_CONFIG : {};
+  const online = !!(cfg.supabaseUrl && cfg.supabaseAnonKey);
+  host.innerHTML = `
+    <div class="db-mode ${online ? 'online' : 'local'}">
+      <i data-lucide="${online ? 'cloud' : 'hard-drive'}"></i>
+      <div><strong>${online ? 'Supabase configurado' : 'Armazenamento local (navegador)'}</strong>
+      <span>${online ? 'Credenciais presentes em DEMO_CONFIG.' : 'Os dados existem só neste navegador. Faça backup antes de limpar o cache.'}</span></div>
+    </div>
+    <div class="db-grid">${BACKUP_COLLECTIONS.map(k => `<div class="db-stat"><span>${esc(labels[k])}</span><strong>${getStoreData(k).length}</strong></div>`).join('')}</div>
+    <p class="text-muted" style="font-size:0.78rem;margin-top:10px;">Uso estimado: ${(bytes / 1024).toFixed(1)} KB de ~5.000 KB disponíveis no navegador.</p>`;
+  if (window.lucide) lucide.createIcons();
+}
+
+function exportBackup() {
+  const payload = { app: 'store-imports', schemaVersion: DEMO_SCHEMA_VERSION, exportedAt: new Date().toISOString(), data: {} };
+  BACKUP_COLLECTIONS.forEach(k => { payload.data[k] = getStoreData(k); });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `store-imports-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showAdminToast('Backup exportado.', 'success');
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(reader.result);
+      if (!payload || payload.app !== 'store-imports' || typeof payload.data !== 'object') throw new Error('Arquivo não é um backup do Store Imports.');
+      const found = BACKUP_COLLECTIONS.filter(k => Array.isArray(payload.data[k]));
+      if (!found.length) throw new Error('Backup sem coleções válidas.');
+      if (!confirm(`Restaurar ${found.length} coleções do backup de ${payload.exportedAt || 'data desconhecida'}? Os dados atuais serão substituídos.`)) return;
+      found.forEach(k => saveStoreData(k, payload.data[k]));
+      window.location.reload();
+    } catch (err) {
+      showAdminToast('Falha ao importar: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function setupSettingsPanel() {
+  const btnExport = document.getElementById('btn-export-backup');
+  if (btnExport) btnExport.addEventListener('click', exportBackup);
+  const input = document.getElementById('input-import-backup');
+  if (input) input.addEventListener('change', () => { if (input.files[0]) importBackup(input.files[0]); input.value = ''; });
+  const btnImport = document.getElementById('btn-import-backup');
+  if (btnImport && input) btnImport.addEventListener('click', () => input.click());
 }
