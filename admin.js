@@ -364,15 +364,15 @@ function switchTab(rawTabName) {
   });
   
   const titles = {
-    overview: 'Visão Geral',
-    products: 'Gestão de Produtos',
-    categories: 'Gestão de Categorias',
+    overview: 'Visão geral',
+    products: 'Produtos',
+    categories: 'Categorias',
     stock: 'Controle de Estoque',
-    maintenances: 'Controle de Manutenções',
-    reservations: 'Controle de Reservas',
-    sales: 'Vendas / PDV',
-    promo: 'Calculadora de Promoções',
-    users: 'Cargos e Permissões',
+    maintenances: 'Manutenções',
+    reservations: 'Reservas',
+    sales: 'Vendas',
+    promo: 'Promoções',
+    users: 'Equipe',
     settings: 'Configurações'
   };
   if (workspaceTitle) workspaceTitle.textContent = titles[tabName] || 'Painel Operacional';
@@ -531,7 +531,7 @@ function calculateOverviewKPIs() {
   setBadge('badge-stock', stockAlerts, alerts.zero.length > 0);
 
   const envText = document.getElementById('env-badge-text');
-  if (envText) envText.textContent = (typeof DataAdapter !== 'undefined' && DataAdapter.isDemo()) ? 'Modo local · demo' : 'Banco online';
+  if (envText) envText.textContent = (typeof DataAdapter !== 'undefined' && DataAdapter.isDemo()) ? 'Dados locais' : 'Banco online';
 }
 
 function computePeriodMetrics(days) {
@@ -565,101 +565,6 @@ function computePeriodMetrics(days) {
   return { cur, prev, curM: summarize(cur), prevM: summarize(prev), start, now };
 }
 
-function renderOverviewKpis(m, days) {
-  const host = document.getElementById('ov-kpis');
-  if (!host) return;
-
-  const stockCost = listActiveVariants().reduce((sum, { variant }) => sum + (variant.stockQuantity || 0) * (variant.costCents || 0), 0);
-  const stockUnits = listActiveVariants().reduce((sum, { variant }) => sum + (variant.stockQuantity || 0), 0);
-  const margin = m.curM.revenue && m.curM.profitSales === m.curM.count && m.curM.count > 0
-    ? Math.round((m.curM.profit / m.curM.revenue) * 100) : null;
-  const partial = m.curM.count > 0 && m.curM.profitSales < m.curM.count;
-
-  const cards = [
-    { label: 'Faturamento', icon: 'banknote', tone: 'green', value: formatBRLFromCents(m.curM.revenue), delta: formatDelta(m.curM.revenue, m.prevM.revenue), sub: `últimos ${days} dias` },
-    { label: 'Vendas realizadas', icon: 'shopping-bag', tone: 'purple', value: String(m.curM.count), delta: formatDelta(m.curM.count, m.prevM.count), sub: 'excluindo estornos' },
-    { label: 'Ticket médio', icon: 'receipt', tone: 'orange', value: formatBRLFromCents(m.curM.ticket), delta: formatDelta(m.curM.ticket, m.prevM.ticket), sub: 'por venda' },
-    { label: 'Lucro bruto estimado', icon: 'piggy-bank', tone: 'green', value: formatBRLFromCents(m.curM.profit), delta: null, sub: margin !== null ? `margem ${margin}%` : (partial ? 'parcial — faltam custos' : 'sem vendas') },
-    { label: 'Estoque (a custo)', icon: 'boxes', tone: 'amber', value: formatBRLFromCents(stockCost), delta: null, sub: `${stockUnits} unidades` }
-  ];
-
-  host.innerHTML = cards.map(c => `
-    <div class="kpi-card ov-kpi">
-      <div class="kpi-details">
-        <span class="kpi-label">${esc(c.label)}</span>
-        <span class="kpi-value">${esc(c.value)}</span>
-        <span class="ov-kpi-sub">
-          ${c.delta ? `<span class="delta ${c.delta.cls}">${esc(c.delta.text)}</span>` : ''}
-          <span>${esc(c.sub)}</span>
-        </span>
-      </div>
-      <div class="kpi-icon-box ${c.tone} flex-center"><i data-lucide="${c.icon}"></i></div>
-    </div>`).join('');
-}
-
-function renderOverviewAttention() {
-  const host = document.getElementById('ov-attention-list');
-  const countEl = document.getElementById('ov-attn-count');
-  if (!host) return;
-
-  const items = [];
-  const today = startOfToday();
-
-  const waiting = state.reservations.filter(r => r.status === 'new');
-  if (waiting.length) {
-    const oldest = Math.min(...waiting.map(r => new Date(r.createdAt || Date.now()).getTime()));
-    const days = Math.floor((Date.now() - oldest) / DAY_MS);
-    items.push({ level: days >= 1 ? 'danger' : 'warn', icon: 'message-circle', title: `${waiting.length} reserva${waiting.length > 1 ? 's' : ''} aguardando resposta`, detail: days >= 1 ? `A mais antiga espera há ${days} dia${days > 1 ? 's' : ''}` : 'Responda pelo WhatsApp para confirmar', action: 'res-new', cta: 'Atender' });
-  }
-
-  const overdue = state.reservations.filter(r => ['new', 'contacted', 'confirmed'].includes(r.status) && r.requestedDate && new Date(r.requestedDate).getTime() < today);
-  if (overdue.length) {
-    items.push({ level: 'danger', icon: 'calendar-x', title: `${overdue.length} reserva${overdue.length > 1 ? 's' : ''} com retirada vencida`, detail: 'Data combinada já passou — confirme ou cancele para liberar o estoque', action: 'res-all', cta: 'Revisar' });
-  }
-
-  const alerts = computeStockAlerts();
-  if (alerts.zero.length) {
-    const names = alerts.zero.slice(0, 2).map(x => x.product.name).join(', ');
-    items.push({ level: 'danger', icon: 'package-x', title: `${alerts.zero.length} variação${alerts.zero.length > 1 ? 'ões' : ''} sem estoque`, detail: names + (alerts.zero.length > 2 ? '…' : ''), action: 'stock', cta: 'Repor' });
-  }
-  if (alerts.low.length) {
-    const names = alerts.low.slice(0, 2).map(x => x.product.name).join(', ');
-    items.push({ level: 'warn', icon: 'package-minus', title: `${alerts.low.length} variação${alerts.low.length > 1 ? 'ões' : ''} com estoque baixo`, detail: names + (alerts.low.length > 2 ? '…' : ''), action: 'stock', cta: 'Ver estoque' });
-  }
-
-  const stuck = computeOpenMaintenances().filter(m => (Date.now() - new Date(m.entryDate || m.createdAt).getTime()) > 3 * DAY_MS);
-  if (stuck.length) {
-    items.push({ level: 'warn', icon: 'wrench', title: `${stuck.length} manutenção${stuck.length > 1 ? 'ões' : ''} parada${stuck.length > 1 ? 's' : ''} há mais de 3 dias`, detail: stuck.slice(0, 2).map(m => m.device).join(', '), action: 'maint', cta: 'Abrir' });
-  }
-
-  let promos = [];
-  try { promos = getPromotions(); } catch (e) { /* optional collection */ }
-  const ending = promos.filter(p => p.status === 'active' && p.endsAt && (new Date(p.endsAt).getTime() - Date.now()) < 7 * DAY_MS && new Date(p.endsAt).getTime() > Date.now());
-  ending.forEach(p => {
-    const left = Math.max(1, Math.ceil((new Date(p.endsAt).getTime() - Date.now()) / DAY_MS));
-    items.push({ level: 'info', icon: 'percent', title: `Promoção "${p.name}" termina em ${left} dia${left > 1 ? 's' : ''}`, detail: 'Renove ou deixe expirar', action: 'promo', cta: 'Ver' });
-  });
-
-  const noCost = state.products.filter(p => p.status === 'active' && (p.variants || []).some(v => v.costCents === null || v.costCents === undefined));
-  if (noCost.length) {
-    items.push({ level: 'info', icon: 'calculator', title: `${noCost.length} produto${noCost.length > 1 ? 's' : ''} sem preço de custo`, detail: 'Sem o custo o lucro estimado fica incompleto', action: 'products', cta: 'Completar' });
-  }
-
-  if (countEl) countEl.textContent = items.length ? `${items.length} ${items.length > 1 ? 'itens' : 'item'}` : '';
-
-  if (!items.length) {
-    host.innerHTML = '<div class="attn-ok"><i data-lucide="check-circle-2"></i><div><strong>Tudo em dia</strong><span>Nenhuma pendência no momento.</span></div></div>';
-    return;
-  }
-
-  host.innerHTML = items.map(it => `
-    <button type="button" class="attn-item ${it.level}" data-attn="${esc(it.action)}">
-      <span class="attn-icon"><i data-lucide="${it.icon}"></i></span>
-      <span class="attn-body"><strong>${esc(it.title)}</strong><span>${esc(it.detail)}</span></span>
-      <span class="attn-cta">${esc(it.cta)} <i data-lucide="chevron-right"></i></span>
-    </button>`).join('');
-}
-
 function handleAttentionAction(action) {
   const setResFilter = (val) => {
     if (adminFilterReservationsStatus) adminFilterReservationsStatus.value = val;
@@ -684,53 +589,6 @@ function handleQuickAction(action) {
   else if (action === 'maintenance') navTo('maintenances', () => openMaintenanceModal());
 }
 
-let overviewRevenueChart = null;
-
-function renderOverviewRevenueChart(m, days) {
-  const canvas = document.getElementById('ov-revenue-chart');
-  const empty = document.getElementById('ov-revenue-empty');
-  const sub = document.getElementById('ov-revenue-sub');
-  if (!canvas) return;
-
-  const buckets = [];
-  const dayStart = startOfToday();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(dayStart - i * DAY_MS);
-    buckets.push({ key: d.toDateString(), label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), value: 0 });
-  }
-  m.cur.forEach(s => {
-    const b = buckets.find(x => x.key === new Date(s.createdAt).toDateString());
-    if (b) b.value += s.totalCents || 0;
-  });
-
-  const total = buckets.reduce((a, b) => a + b.value, 0);
-  if (sub) sub.textContent = `${days} dias · ${formatBRLFromCents(total)}`;
-  if (empty) empty.classList.toggle('d-none', total > 0);
-
-  if (overviewRevenueChart) { overviewRevenueChart.destroy(); overviewRevenueChart = null; }
-  if (!window.Chart || total === 0) { canvas.classList.toggle('d-none', total === 0 && !!window.Chart); return; }
-  canvas.classList.remove('d-none');
-
-  overviewRevenueChart = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: buckets.map(b => b.label),
-      datasets: [{ label: 'Faturamento', data: buckets.map(b => b.value / 100), backgroundColor: '#61255B', hoverBackgroundColor: '#F14D1D', borderRadius: 4, maxBarThickness: 28 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ' ' + formatBRLFromCents(Math.round(ctx.parsed.y * 100)) } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#6C6870' } },
-        y: { beginAtZero: true, ticks: { color: '#6C6870', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }, grid: { color: '#EFEDF0' } }
-      }
-    }
-  });
-}
 
 function renderOverviewTopProducts(m) {
   const host = document.getElementById('ov-top-products');
@@ -759,103 +617,6 @@ function renderOverviewTopProducts(m) {
         <div class="top-bar"><i style="width:${Math.max(6, Math.round(x.revenue / max * 100))}%"></i></div>
       </div>
     </li>`).join('');
-}
-
-function renderDashboardOverview() {
-  // Always read fresh data so the dashboard never shows stale numbers.
-  state.products = getProducts();
-  state.reservations = getReservations();
-  state.sales = getSales();
-  state.maintenances = getMaintenances();
-  state.activityLogs = getActivityLog();
-
-  const days = state.overviewPeriod || 30;
-  document.querySelectorAll('.seg-btn[data-period]').forEach(b => b.classList.toggle('active', Number(b.dataset.period) === days));
-
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
-  const g = document.getElementById('ov-greeting');
-  if (g) g.textContent = `${greet}, ${state.activeProfile}`;
-  const dt = document.getElementById('ov-date');
-  if (dt) dt.textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  const m = computePeriodMetrics(days);
-  renderOverviewAttention();
-  renderOverviewKpis(m, days);
-  renderOverviewRevenueChart(m, days);
-  renderOverviewTopProducts(m);
-
-  const tbody = document.getElementById('dashboard-recent-reservations-tbody');
-  if (tbody) {
-    tbody.innerHTML = '';
-    const sorted = [...state.reservations].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 5);
-
-    if (sorted.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align: center;">Nenhuma solicitação recebida.</td></tr>';
-    } else {
-      sorted.forEach(res => {
-        const tr = document.createElement('tr');
-        const totalItems = res.items ? res.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
-        const statusClass = {
-          'new': 'status-pending',
-          'contacted': 'status-confirmed',
-          'confirmed': 'status-confirmed',
-          'completed': 'status-finished',
-          'cancelled': 'status-cancelled'
-        }[res.status] || 'status-pending';
-
-        tr.innerHTML = `
-          <td><strong></strong></td>
-          <td></td>
-          <td class="wa-cell"></td>
-          <td></td>
-          <td class="text-orange" style="font-weight: 700;"></td>
-          <td><span class="status-pill ${statusClass}"></span></td>
-          <td class="text-muted"></td>
-        `;
-        const cells = tr.querySelectorAll('td');
-        cells[0].querySelector('strong').textContent = res.code || 'N/A';
-        cells[1].textContent = res.demoCustomerName || 'N/A';
-        cells[2].appendChild(renderWhatsappCell(res.demoContactLabel, res.demoContactLabel || 'Sem telefone'));
-        cells[3].textContent = `${totalItems} ite${totalItems !== 1 ? 'ns' : 'm'}`;
-        cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
-        cells[5].querySelector('span').textContent = getReservationStatusLabel(res.status);
-        cells[6].textContent = formatDateTimePtBr(res.createdAt);
-        tbody.appendChild(tr);
-      });
-    }
-  }
-
-  const logList = document.getElementById('activity-log-list');
-  if (logList) {
-    logList.innerHTML = '';
-    const logs = [...state.activityLogs].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 8);
-
-    if (logs.length === 0) {
-      logList.innerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sem atividades registradas.</span>';
-    } else {
-      logs.forEach(log => {
-        const div = document.createElement('div');
-        div.className = 'activity-item';
-        const icon = log.type === 'success' ? 'check-circle' : log.type === 'warning' ? 'alert-triangle' : 'info';
-        const tone = ['success', 'warning'].includes(log.type) ? log.type : 'info';
-        div.innerHTML = `
-          <div class="activity-icon-wrapper ${tone}">
-            <i data-lucide="${icon}" style="width: 14px; height: 14px;"></i>
-          </div>
-          <div class="activity-content">
-            <span class="activity-text"></span>
-            <span class="activity-time"></span>
-          </div>
-        `;
-        div.querySelector('.activity-text').textContent = log.message || 'Atividade registrada';
-        div.querySelector('.activity-time').textContent = formatDateTimePtBr(log.createdAt);
-        logList.appendChild(div);
-      });
-    }
-  }
-
-  if (window.lucide) lucide.createIcons();
 }
 
 function setupOverviewListeners() {
@@ -2024,14 +1785,12 @@ function updateProfileDisplay() {
   
   if (state.activeProfile === 'Thallys') {
     avatarEl.textContent = 'T';
-    avatarEl.style.backgroundColor = 'var(--purple-primary)';
     nameEl.textContent = 'Thallys';
-    roleEl.textContent = 'Gerente Geral';
+    roleEl.textContent = 'Gerente geral';
   } else {
     avatarEl.textContent = 'J';
-    avatarEl.style.backgroundColor = 'var(--orange-primary)';
     nameEl.textContent = 'Joice';
-    roleEl.textContent = 'Gerente Comercial';
+    roleEl.textContent = 'Gerente comercial';
   }
 }
 
@@ -2402,155 +2161,6 @@ function handleMaintenanceSubmit(e) {
 // ==========================================
 // CATEGORY SALES BREAKDOWN & CHART CONTROLLER
 // ==========================================
-function renderCategorySalesChart() {
-  const listContainer = document.getElementById('category-sales-breakdown-list');
-  const canvas = document.getElementById('category-sales-chart');
-  if (!canvas) return;
-
-  const sales = getSales().filter(s => s.status === 'completed');
-  const products = getProducts();
-  const categories = getCategories();
-  const finishedMaintenances = getMaintenances().filter(m => m.status === 'Finalizado');
-
-  let totalCelularesCents = 0;
-  let totalAcessoriosCents = 0;
-  let totalManutencaoCents = 0;
-  let totalOutrosCents = 0;
-
-  sales.forEach(sale => {
-    (sale.items || []).forEach(item => {
-      const prod = products.find(p => p.id === item.productId);
-      const itemTotal = item.totalCents || (item.unitPriceCents * item.quantity);
-      
-      if (prod) {
-        const catSlug = prod.categoryId || '';
-        if (['cat-iphones', 'cat-android'].includes(catSlug)) {
-          totalCelularesCents += itemTotal;
-        } else if (['cat-acessorios'].includes(catSlug)) {
-          totalAcessoriosCents += itemTotal;
-        } else {
-          totalOutrosCents += itemTotal;
-        }
-      } else {
-        totalOutrosCents += itemTotal;
-      }
-    });
-  });
-
-  // Include finished maintenances revenue
-  finishedMaintenances.forEach(m => {
-    totalManutencaoCents += (m.estimatedCostCents || 0);
-  });
-
-  const grandTotalCents = totalCelularesCents + totalAcessoriosCents + totalManutencaoCents + totalOutrosCents;
-
-  // Render Breakdown List
-  if (listContainer) {
-    const categoriesData = [
-      { name: 'Celulares (iPhones & Android)', amountCents: totalCelularesCents, color: '#6D28D9' },
-      { name: 'Acessórios & Periféricos', amountCents: totalAcessoriosCents, color: '#F97316' },
-      { name: 'Manutenção & Assistência', amountCents: totalManutencaoCents, color: '#059669' }
-    ];
-
-    if (totalOutrosCents > 0) {
-      categoriesData.push({ name: 'Outros (Smartwatches, Notebooks, etc.)', amountCents: totalOutrosCents, color: '#2563EB' });
-    }
-
-    listContainer.innerHTML = '';
-    
-    categoriesData.forEach(item => {
-      const pct = grandTotalCents > 0 ? Math.round((item.amountCents / grandTotalCents) * 100) : 0;
-      const div = document.createElement('div');
-      div.className = 'cat-sales-item';
-      div.innerHTML = `
-        <div class="cat-sales-header">
-          <span style="display: flex; align-items: center; gap: 8px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${esc(item.color)};"></span>
-            ${esc(item.name)}
-          </span>
-          <span style="color: var(--purple-primary); font-weight: 700;">${formatBRLFromCents(item.amountCents)} (${pct}%)</span>
-        </div>
-        <div class="cat-sales-bar-wrapper">
-          <div class="cat-sales-bar-fill" style="width: ${pct}%; background-color: ${item.color};"></div>
-        </div>
-      `;
-      listContainer.appendChild(div);
-    });
-
-    const totalDiv = document.createElement('div');
-    totalDiv.style.marginTop = '12px';
-    totalDiv.style.paddingTop = '12px';
-    totalDiv.style.borderTop = '1px solid var(--border-color)';
-    totalDiv.style.display = 'flex';
-    totalDiv.style.justifyContent = 'space-between';
-    totalDiv.style.fontWeight = '800';
-    totalDiv.style.fontSize = '0.95rem';
-    totalDiv.innerHTML = `
-      <span>Total Faturado</span>
-      <span style="color: var(--purple-primary);">${formatBRLFromCents(grandTotalCents)}</span>
-    `;
-    listContainer.appendChild(totalDiv);
-  }
-
-  // Render Chart.js Chart
-  if (window.Chart) {
-    if (categorySalesChartInstance) {
-      categorySalesChartInstance.destroy();
-    }
-
-    const labels = ['Celulares', 'Acessórios', 'Manutenção'];
-    const dataValues = [
-      totalCelularesCents / 100,
-      totalAcessoriosCents / 100,
-      totalManutencaoCents / 100
-    ];
-    const bgColors = ['#6D28D9', '#F97316', '#059669'];
-
-    if (totalOutrosCents > 0) {
-      labels.push('Outros');
-      dataValues.push(totalOutrosCents / 100);
-      bgColors.push('#2563EB');
-    }
-
-    const ctx = canvas.getContext('2d');
-    categorySalesChartInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: dataValues,
-          backgroundColor: bgColors,
-          borderWidth: 2,
-          borderColor: '#ffffff',
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              font: { family: 'Inter', size: 12, weight: '600' },
-              padding: 12
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const val = context.raw || 0;
-                return ` ${context.label}: R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-              }
-            }
-          }
-        },
-        cutout: '65%'
-      }
-    });
-  }
-}
-
 // ==========================================
 // MARKETPLACE IMAGE UPLOAD CONTROLLER
 // ==========================================

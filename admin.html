@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Operacional | Store Imports</title>
   
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Base CSS -->
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./admin.css">
@@ -20,12 +22,14 @@
   <!-- ==========================================
        ADMIN SIDEBAR NAVIGATION
        ========================================== -->
-  <aside class="admin-sidebar" id="admin-sidebar">
+  <aside class="admin-sidebar" id="admin-sidebar" aria-label="Menu principal">
     <div class="sidebar-header">
-      <img src="./assets/logo-white.svg" alt="Store Imports Logo" class="sidebar-logo">
-      <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" title="Encolher Menu">
-        <i data-lucide="menu"></i>
-      </button>
+      <img src="./assets/logo.png" alt="Store Imports" class="sidebar-logo">
+      <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" title="Encolher menu" aria-label="Encolher menu"><i data-lucide="panel-left-close"></i></button>
+    </div>
+    <div class="scope" title="Loja em operação">
+      <span class="scope-mark">SI</span>
+      <span class="scope-text"><strong>Store Imports</strong><span>Rio Pardo de Minas, MG</span></span>
     </div>
 
     <ul class="sidebar-menu">
@@ -33,7 +37,7 @@
       <li>
         <div class="menu-item-link" id="tab-overview" data-tab="overview" role="button" tabindex="0">
           <i data-lucide="layout-dashboard"></i>
-          <span class="menu-item-text">Visão Geral</span>
+          <span class="menu-item-text">Visão geral</span>
         </div>
       </li>
       <li>
@@ -45,7 +49,7 @@
       <li>
         <div class="menu-item-link" id="tab-sales" data-tab="sales" role="button" tabindex="0">
           <i data-lucide="shopping-bag"></i>
-          <span class="menu-item-text">Vendas / PDV</span>
+          <span class="menu-item-text">Vendas</span>
         </div>
       </li>
       <li>
@@ -83,7 +87,7 @@
       <li>
         <div class="menu-item-link" id="tab-users" data-tab="users" role="button" tabindex="0">
           <i data-lucide="users"></i>
-          <span class="menu-item-text">Usuários</span>
+          <span class="menu-item-text">Equipe</span>
         </div>
       </li>
       <li>
@@ -95,9 +99,9 @@
     </ul>
 
     <div class="sidebar-footer">
-      <a href="./index.html" class="menu-item-link" style="background-color: rgba(255, 255, 255, 0.05);">
-        <i data-lucide="arrow-left-circle"></i>
-        <span class="menu-item-text">Ir para o Catálogo</span>
+      <a href="./index.html" class="menu-item-link">
+        <i data-lucide="external-link"></i>
+        <span class="menu-item-text">Ver o catálogo</span>
       </a>
     </div>
   </aside>
@@ -109,39 +113,23 @@
     
     <!-- TOP HEADER -->
     <header class="admin-top-navbar">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button class="btn-hamburger d-lg-none" id="btn-admin-hamburger" style="padding: 0; color: var(--purple-primary);">
-          <i data-lucide="menu"></i>
-        </button>
-        <h2 class="top-navbar-title" id="workspace-title">Painel Operacional</h2>
-        <span class="badge-status badge-status-pending env-badge" id="env-badge" title="Os dados ficam apenas neste navegador (localStorage)">
-          <i data-lucide="database" style="width: 14px; height: 14px;"></i> <span id="env-badge-text">Modo local</span>
-        </span>
-      </div>
+      <button class="btn-hamburger d-lg-none" id="btn-admin-hamburger" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
 
       <button type="button" class="cmdk-trigger" id="btn-cmdk" aria-label="Busca rápida (Ctrl+K)">
-        <i data-lucide="search" style="width:16px;height:16px;"></i>
+        <i data-lucide="search" style="width:15px;height:15px;"></i>
         <span class="cmdk-trigger-text">Buscar produto, reserva, venda…</span>
         <kbd>Ctrl K</kbd>
       </button>
 
-      <div class="user-profile-badge" id="profile-dropdown-trigger" style="cursor: pointer; position: relative;">
-        <div class="user-avatar flex-center" id="active-profile-avatar">SI</div>
-        <div class="user-info-text">
-          <span class="user-name" id="active-profile-name">Administrador</span>
-          <span class="user-role" id="active-profile-role">Acesso Total</span>
-        </div>
-        <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 4px; color: var(--text-secondary);"></i>
-        
-        <!-- Dropdown Menu -->
-        <div class="profile-dropdown-menu d-none" id="profile-dropdown-menu" style="position: absolute; top: calc(100% + 8px); right: 0; background-color: var(--white); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); width: 180px; z-index: 1000; overflow: hidden; display: flex; flex-direction: column;">
-          <div class="dropdown-item" data-profile="Thallys" style="padding: 10px 16px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color var(--transition-fast);">
-            <div class="user-avatar flex-center" style="width: 24px; height: 24px; font-size: 0.75rem; background-color: var(--purple-primary);">T</div>
-            <span>Thallys</span>
-          </div>
-          <div class="dropdown-item" data-profile="Joice" style="padding: 10px 16px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color var(--transition-fast); border-top: 1px solid var(--border-color);">
-            <div class="user-avatar flex-center" style="width: 24px; height: 24px; font-size: 0.75rem; background-color: var(--orange-primary);">Joice</div>
-            <span>Joice</span>
+      <div class="top-right">
+        <span class="env-badge" id="env-badge" title="Os dados ficam apenas neste navegador (localStorage)"><i></i><span id="env-badge-text">Dados locais</span></span>
+        <div class="user-profile-badge" id="profile-dropdown-trigger" role="button" tabindex="0" aria-label="Trocar operador">
+          <span class="user-avatar" id="active-profile-avatar">T</span>
+          <span class="user-info-text"><span class="user-name" id="active-profile-name">Thallys</span><span class="user-role" id="active-profile-role">Gerente geral</span></span>
+          <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+          <div class="profile-dropdown-menu d-none" id="profile-dropdown-menu">
+            <div class="dropdown-item" data-profile="Thallys"><span class="avatar sm" style="background:hsl(300 30% 92%);color:hsl(300 35% 28%)">T</span><span>Thallys</span></div>
+            <div class="dropdown-item" data-profile="Joice"><span class="avatar sm" style="background:hsl(20 60% 92%);color:hsl(20 55% 28%)">J</span><span>Joice</span></div>
           </div>
         </div>
       </div>
@@ -149,110 +137,75 @@
 
     <!-- MAIN VIEW AREA -->
     <main class="workspace-content" id="admin-view-viewport">
+      <h1 class="sheet-title" id="workspace-title">Visão geral</h1>
+
       
       <!-- ==========================================
            TAB: VISÃO GERAL (DASHBOARD SUMMARY)
            ========================================== -->
       <div id="panel-overview" class="admin-view-tab">
-
-        <!-- Cabeçalho: saudação + período -->
-        <div class="ov-head">
-          <div>
-            <h3 class="ov-greeting" id="ov-greeting">Olá!</h3>
-            <p class="ov-date" id="ov-date"></p>
-          </div>
-          <div class="seg-control" role="group" aria-label="Período">
-            <button type="button" class="seg-btn" data-period="7">7 dias</button>
-            <button type="button" class="seg-btn active" data-period="30">30 dias</button>
-            <button type="button" class="seg-btn" data-period="90">90 dias</button>
-          </div>
-        </div>
-
-        <!-- Ações rápidas -->
-        <div class="ov-quick">
-          <button class="btn btn-primary" data-quick="sale"><i data-lucide="shopping-cart"></i> Nova venda</button>
-          <button class="btn btn-secondary" data-quick="product"><i data-lucide="package-plus"></i> Novo produto</button>
-          <button class="btn btn-secondary" data-quick="stock"><i data-lucide="clipboard-list"></i> Ajustar estoque</button>
-          <button class="btn btn-secondary" data-quick="maintenance"><i data-lucide="wrench"></i> Nova manutenção</button>
-        </div>
-
-        <!-- Precisa de atenção -->
-        <section class="panel-card ov-attention" aria-labelledby="ov-attn-title">
-          <div class="panel-card-header">
-            <h3 class="panel-card-title" id="ov-attn-title"><i data-lucide="bell-ring"></i> Precisa de atenção</h3>
-            <span class="results-count" id="ov-attn-count"></span>
-          </div>
-          <div class="attn-list" id="ov-attention-list"></div>
-        </section>
-
-        <!-- KPIs do período -->
-        <section class="ov-kpis" id="ov-kpis" aria-label="Indicadores do período"></section>
-
-        <!-- Receita + Top produtos -->
-        <div class="ov-grid-2">
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="trending-up"></i> Faturamento por dia</h3>
-              <span class="results-count" id="ov-revenue-sub"></span>
+        <div class="pg-bar">
+          <p class="pg-sub" id="ov-finding"></p>
+          <div class="pg-actions">
+            <div class="seg-control" role="group" aria-label="Período">
+              <button type="button" class="seg-btn" data-period="7">7 dias</button>
+              <button type="button" class="seg-btn active" data-period="30">30 dias</button>
+              <button type="button" class="seg-btn" data-period="90">90 dias</button>
             </div>
+            <button class="btn btn-secondary" data-quick="maintenance">Nova manutenção</button>
+            <button class="btn btn-secondary" data-quick="stock">Ajustar estoque</button>
+            <button class="btn btn-primary" data-quick="sale"><i data-lucide="plus"></i> Nova venda</button>
+          </div>
+        </div>
+
+        <section class="kpi-strip" id="ov-kpis" aria-label="Indicadores do período"></section>
+
+        <div class="grid-12">
+          <section class="card span-7" aria-labelledby="ov-work-title">
+            <header class="card-head"><h2 id="ov-work-title">Para resolver hoje</h2><span class="card-meta" id="ov-attn-count"></span></header>
+            <div class="worklist" id="ov-attention-list"></div>
+          </section>
+          <section class="card span-5" aria-labelledby="ov-pick-title">
+            <header class="card-head"><h2 id="ov-pick-title">Retiradas da semana</h2><button type="button" class="link-btn" id="btn-view-all-res">Ver reservas</button></header>
+            <div class="pickups" id="ov-pickups"></div>
+          </section>
+        </div>
+
+        <div class="grid-12">
+          <section class="card span-7">
+            <header class="card-head"><h2>Faturamento por dia</h2><span class="card-meta" id="ov-revenue-sub"></span></header>
             <div class="ov-chart-box">
               <canvas id="ov-revenue-chart" aria-label="Gráfico de faturamento diário" role="img"></canvas>
               <div class="ov-empty d-none" id="ov-revenue-empty">Nenhuma venda no período.</div>
             </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="trophy"></i> Mais vendidos</h3>
-              <span class="results-count">no período</span>
-            </div>
+          </section>
+          <section class="card span-5">
+            <header class="card-head"><h2>Mais vendidos</h2><span class="card-meta">no período</span></header>
             <ol class="top-list" id="ov-top-products"></ol>
-          </div>
+          </section>
         </div>
 
-        <!-- Categorias + Atividade -->
-        <div class="ov-grid-2">
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="pie-chart"></i> Vendas por categoria</h3>
-              <span class="results-count">acumulado</span>
-            </div>
-            <div class="ov-cat-grid">
-              <div id="category-sales-breakdown-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
-              <div class="ov-donut-box">
-                <canvas id="category-sales-chart" style="max-height: 230px; width: 100%;"></canvas>
-              </div>
-            </div>
-          </div>
+        <section class="card" style="margin-bottom:16px;">
+          <header class="card-head"><h2>Faturamento por categoria</h2><span class="card-meta">desde o início</span></header>
+          <div class="cat-strip" id="category-sales-breakdown-list"></div>
+        </section>
 
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3 class="panel-card-title"><i data-lucide="activity"></i> Atividade recente</h3>
+        <div class="grid-12">
+          <section class="card span-7">
+            <header class="card-head"><h2>Reservas em aberto</h2></header>
+            <div class="table-responsive">
+              <table class="admin-table rich compact">
+                <thead><tr><th>Cliente</th><th>Retirada</th><th class="num">Valor</th><th>Situação</th></tr></thead>
+                <tbody id="dashboard-recent-reservations-tbody"></tbody>
+              </table>
             </div>
-            <div class="activity-list" id="activity-log-list" style="max-height: 320px; overflow-y: auto;"></div>
-          </div>
+          </section>
+          <section class="card span-5">
+            <header class="card-head"><h2>Atividade recente</h2></header>
+            <div class="activity-list" id="activity-log-list"></div>
+          </section>
         </div>
-
-        <!-- Reservas recentes -->
-        <div class="panel-card">
-          <div class="panel-card-header">
-            <h3 class="panel-card-title"><i data-lucide="clock"></i> Reservas recentes</h3>
-            <button class="btn btn-secondary btn-sm" id="btn-view-all-res">Ver todas</button>
-          </div>
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Código</th><th>Cliente</th><th>WhatsApp</th><th>Itens</th><th>Valor</th><th>Status</th><th>Solicitada em</th>
-                </tr>
-              </thead>
-              <tbody id="dashboard-recent-reservations-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
-
 
       <!-- ==========================================
            TAB: PRODUTOS (PRODUCTS MANAGEMENT)

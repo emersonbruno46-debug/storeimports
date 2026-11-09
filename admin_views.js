@@ -1,5 +1,5 @@
 /**
- * Store Imports - Admin screens (V4 redesign)
+ * Store Imports - Admin screens (V5 redesign)
  * Renders Produtos, Categorias, Estoque, Reservas, Vendas, Manutenções, Promoções e Equipe.
  * Business rules (stock adjustment, invoicing, refunds…) stay in admin.js / store_data.js.
  * Loaded after admin.js.
@@ -203,7 +203,7 @@ function renderStockLogsTable() {
       { l: 'Valor a custo', v: formatBRLFromCents(cost), s: 'capital parado', c: 'green', i: 'wallet' },
       { l: 'Estoque baixo', v: low, s: 'abaixo do mínimo', c: 'amber', i: 'package-minus', f: 'low' },
       { l: 'Sem estoque', v: zero, s: 'indisponíveis no site', c: 'red', i: 'package-x', f: 'zero' }
-    ].map(t => `<button type="button" class="tile ${t.c}${t.f ? ' clickable' : ''}" ${t.f ? `data-stock-filter="${t.f}"` : 'tabindex="-1"'}><span class="tile-ico">${icon(t.i)}</span><span class="tile-l">${esc(t.l)}</span><strong>${esc(t.v)}</strong><span class="tile-s">${esc(t.s)}</span></button>`).join('');
+    ].map(t => `<button type="button" class="tile ${t.c}${t.f ? ' clickable' : ''}" ${t.f ? `data-stock-filter="${t.f}"` : 'tabindex="-1"'}><span class="tile-l">${esc(t.l)}</span><strong>${esc(t.v)}</strong><span class="tile-s">${esc(t.s)}</span></button>`).join('');
     sum.querySelectorAll('[data-stock-filter]').forEach(b => b.addEventListener('click', () => { viewState.stockFilter = b.dataset.stockFilter; setStockView('position'); renderStockLogsTable(); }));
   }
 
@@ -399,7 +399,7 @@ function renderReservationsTable() {
     return `
       <article class="res-card s-${res.status}">
         <div class="res-main">
-          <div class="res-top"><span class="avatar">${esc(initials(res.demoCustomerName))}</span>
+          <div class="res-top">${avatarHtml(res.demoCustomerName)}
             <div><strong>${esc(res.demoCustomerName || 'Cliente')}</strong><span class="sub">${esc(res.code)} · pedido ${esc(timeAgo(res.createdAt))}${res.demoContactLabel ? ' · ' + esc(res.demoContactLabel) : ''}</span></div>
             <span class="pill r-${res.status}">${RES_LABEL[res.status] || res.status}</span></div>
           <ul class="res-items">${items || '<li><em>Sem itens</em></li>'}</ul>
@@ -447,7 +447,7 @@ function renderSalesLogsTable() {
       { l: 'Últimos 7 dias', v: formatBRLFromCents(sumOf(d7)), s: `${d7.length} venda${d7.length !== 1 ? 's' : ''}`, c: 'purple', i: 'calendar-range' },
       { l: 'Ticket médio (30 dias)', v: formatBRLFromCents(d30.length ? Math.round(sumOf(d30) / d30.length) : 0), s: 'por venda', c: 'orange', i: 'receipt' },
       { l: 'Estornos', v: refunds, s: 'no histórico', c: 'red', i: 'rotate-ccw' }
-    ].map(t => `<div class="tile ${t.c}"><span class="tile-ico">${icon(t.i)}</span><span class="tile-l">${esc(t.l)}</span><strong>${esc(t.v)}</strong><span class="tile-s">${esc(t.s)}</span></div>`).join('');
+    ].map(t => `<div class="tile ${t.c}"><span class="tile-l">${esc(t.l)}</span><strong>${esc(t.v)}</strong><span class="tile-s">${esc(t.s)}</span></div>`).join('');
   }
 
   renderChips('sales-chips', [
@@ -536,7 +536,7 @@ function renderMaintenancesTab() {
         <article class="m-card">
           <div class="m-top"><strong>${esc(m.device)}</strong><span class="mono">${esc(m.code)}</span></div>
           <p class="m-problem">${esc(m.problem)}</p>
-          <div class="m-cust"><span class="avatar sm">${esc(initials(m.customerName))}</span><span>${esc(m.customerName)}</span></div>
+          <div class="m-cust">${avatarHtml(m.customerName, 'sm')}<span>${esc(m.customerName)}</span></div>
           <div class="m-meta"><strong>${formatBRLFromCents(m.estimatedCostCents || 0)}</strong><span class="${late ? 'late' : 'sub'}">${late ? icon('alarm-clock', 13) + ' ' : ''}${days === 0 ? 'entrou hoje' : `na loja há ${days} dia${days > 1 ? 's' : ''}`}</span></div>
           <div class="m-actions">
             ${col.next ? `<button type="button" class="btn btn-primary btn-sm" data-move="${esc(m.id)}" data-to="${esc(col.next.to)}">${icon(col.next.icon)} ${col.next.label}</button>` : `<button type="button" class="btn btn-secondary btn-sm" data-move="${esc(m.id)}" data-to="Aberto">${icon('undo-2')} Reabrir</button>`}
@@ -731,7 +731,7 @@ function renderTeam() {
   const roles = { admin: 'Administrador', manager: 'Gerente', sales: 'Vendedor', stock: 'Estoquista' };
   const users = getUsers();
   host.innerHTML = users.map(u => `
-    <div class="team-row"><span class="avatar">${esc(initials(u.name))}</span>
+    <div class="team-row">${avatarHtml(u.name)}
       <div class="grow"><strong>${esc(u.name)}</strong><span class="sub">${esc(u.email)}</span></div>
       <span class="tag">${esc(roles[u.roleId] || u.roleId)}</span>
       <span class="pill ${u.status === 'active' ? 'ok' : 'off'}">${u.status === 'active' ? 'Ativo' : 'Inativo'}</span></div>`).join('')
@@ -779,3 +779,210 @@ function setupViewsV2() {
 }
 
 document.addEventListener('DOMContentLoaded', setupViewsV2);
+
+// ==========================================
+// VISÃO GERAL (V5) — a worklist first, the numbers beside it
+// ==========================================
+function avatarStyle(name) {
+  let h = 0;
+  for (const ch of String(name || '?')) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `background:hsl(${h} 38% 92%);color:hsl(${h} 38% 26%)`;
+}
+
+function avatarHtml(name, cls) {
+  return `<span class="avatar${cls ? ' ' + cls : ''}" style="${avatarStyle(name)}">${esc(initials(name))}</span>`;
+}
+
+function deltaWords(curr, prev, days, goodWhenUp) {
+  if (!prev && !curr) return { text: '—', cls: 'flat' };
+  if (!prev) return { text: 'novo no período', cls: 'flat' };
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if (pct === 0) return { text: `igual aos ${days} dias anteriores`, cls: 'flat' };
+  const good = (pct > 0) === (goodWhenUp !== false);
+  return { text: `${pct > 0 ? '+' : '−'}${Math.abs(pct)}% vs ${days} dias anteriores`, cls: good ? 'good' : 'bad' };
+}
+
+function renderOverviewKpis(m, days) {
+  const host = document.getElementById('ov-kpis');
+  if (!host) return;
+  const variants = listActiveVariants();
+  const stockCost = variants.reduce((s, { variant }) => s + (variant.stockQuantity || 0) * (variant.costCents || 0), 0);
+  const stockUnits = variants.reduce((s, { variant }) => s + (variant.stockQuantity || 0), 0);
+  const allCosted = m.curM.count > 0 && m.curM.profitSales === m.curM.count;
+  const margin = allCosted && m.curM.revenue ? Math.round((m.curM.profit / m.curM.revenue) * 100) : null;
+  const d1 = deltaWords(m.curM.revenue, m.prevM.revenue, days);
+  const d2 = deltaWords(m.curM.count, m.prevM.count, days);
+  const d3 = deltaWords(m.curM.ticket, m.prevM.ticket, days);
+  const cells = [
+    { l: 'Faturamento', v: formatBRLFromCents(m.curM.revenue), d: d1, lead: true },
+    { l: 'Vendas', v: String(m.curM.count), d: d2 },
+    { l: 'Ticket médio', v: formatBRLFromCents(m.curM.ticket), d: d3 },
+    { l: 'Lucro bruto estimado', v: formatBRLFromCents(m.curM.profit), d: { text: margin !== null ? `margem de ${margin}%` : (m.curM.count ? 'faltam custos em alguns itens' : '—'), cls: 'flat' } },
+    { l: 'Estoque a custo', v: formatBRLFromCents(stockCost), d: { text: `${stockUnits} unidades`, cls: 'flat' } }
+  ];
+  host.innerHTML = cells.map(c => `<div class="kpi-cell${c.lead ? ' lead' : ''}"><span class="kpi-l">${esc(c.l)}</span><strong class="kpi-v num">${esc(c.v)}</strong><span class="kpi-d ${c.d.cls}">${esc(c.d.text)}</span></div>`).join('');
+}
+
+function renderOverviewAttention() {
+  const host = document.getElementById('ov-attention-list');
+  const countEl = document.getElementById('ov-attn-count');
+  const finding = document.getElementById('ov-finding');
+  if (!host) return;
+  const items = [];
+  const today = startOfToday();
+
+  const waiting = state.reservations.filter(r => r.status === 'new');
+  if (waiting.length) {
+    const oldest = Math.min(...waiting.map(r => new Date(r.createdAt || Date.now()).getTime()));
+    const d = Math.floor((Date.now() - oldest) / DAY_MS);
+    items.push({ level: d >= 1 ? 'bad' : 'warn', title: `${waiting.length} reserva${waiting.length > 1 ? 's' : ''} esperando resposta`, detail: d >= 1 ? `A mais antiga espera há ${d} dia${d > 1 ? 's' : ''}` : 'Chegaram hoje. Responda pelo WhatsApp', action: 'res-new', cta: 'Atender' });
+  }
+  const overdue = state.reservations.filter(r => ['new', 'contacted', 'confirmed'].includes(r.status) && r.requestedDate && new Date(r.requestedDate).getTime() < today);
+  if (overdue.length) items.push({ level: 'bad', title: `${overdue.length} retirada${overdue.length > 1 ? 's' : ''} com data vencida`, detail: 'Confirme ou cancele para liberar o estoque', action: 'res-all', cta: 'Revisar' });
+
+  const alerts = computeStockAlerts();
+  if (alerts.zero.length) items.push({ level: 'bad', title: `${alerts.zero.length} item${alerts.zero.length > 1 ? 'ns' : ''} sem estoque`, detail: alerts.zero.slice(0, 2).map(x => x.product.name).join(', ') + (alerts.zero.length > 2 ? '…' : ''), action: 'stock', cta: 'Repor' });
+  if (alerts.low.length) items.push({ level: 'warn', title: `${alerts.low.length} item${alerts.low.length > 1 ? 'ns' : ''} com estoque baixo`, detail: alerts.low.slice(0, 2).map(x => x.product.name).join(', ') + (alerts.low.length > 2 ? '…' : ''), action: 'stock', cta: 'Ver estoque' });
+
+  const stuck = computeOpenMaintenances().filter(m => (Date.now() - new Date(m.entryDate || m.createdAt).getTime()) > 3 * DAY_MS);
+  if (stuck.length) items.push({ level: 'warn', title: `${stuck.length} aparelho${stuck.length > 1 ? 's' : ''} parado${stuck.length > 1 ? 's' : ''} há mais de 3 dias`, detail: stuck.slice(0, 2).map(m => m.device).join(', '), action: 'maint', cta: 'Abrir quadro' });
+
+  let promos = [];
+  try { promos = getPromotions(); } catch (e) { /* optional */ }
+  promos.filter(p => p.status === 'active' && p.endsAt && new Date(p.endsAt).getTime() > Date.now() && (new Date(p.endsAt).getTime() - Date.now()) < 7 * DAY_MS).forEach(p => {
+    const left = Math.max(1, Math.ceil((new Date(p.endsAt).getTime() - Date.now()) / DAY_MS));
+    items.push({ level: 'info', title: `Promoção “${p.name}” termina em ${left} dia${left > 1 ? 's' : ''}`, detail: 'Renove ou deixe expirar', action: 'promo', cta: 'Ver promoções' });
+  });
+  const noCost = state.products.filter(p => p.status === 'active' && (p.variants || []).some(v => v.costCents == null));
+  if (noCost.length) items.push({ level: 'info', title: `${noCost.length} produto${noCost.length > 1 ? 's' : ''} sem preço de custo`, detail: 'Sem o custo, o lucro estimado fica incompleto', action: 'products', cta: 'Completar' });
+
+  if (countEl) countEl.textContent = items.length ? `${items.length} ${items.length > 1 ? 'pendências' : 'pendência'}` : '';
+  if (finding) finding.textContent = items.length ? items.slice(0, 2).map(i => i.title.replace(/^“?/, '')).join(' · ') : 'Nada pendente. A loja está em dia.';
+
+  if (!items.length) { host.innerHTML = '<div class="work-ok">Nada pendente por aqui.</div>'; return; }
+  host.innerHTML = items.map(it => `
+    <div class="work-row">
+      <i class="dot ${it.level}" aria-hidden="true"></i>
+      <div class="work-main"><strong>${esc(it.title)}</strong><span>${esc(it.detail)}</span></div>
+      <button type="button" class="btn btn-secondary btn-sm" data-attn="${esc(it.action)}">${esc(it.cta)}</button>
+    </div>`).join('');
+}
+
+function renderOverviewPickups() {
+  const host = document.getElementById('ov-pickups');
+  if (!host) return;
+  const open = state.reservations.filter(r => ['new', 'contacted', 'confirmed'].includes(r.status) && r.requestedDate);
+  const today = startOfToday();
+  const cols = [];
+  const late = open.filter(r => new Date(r.requestedDate).getTime() < today);
+  cols.push({ label: 'Atrasadas', sub: '', n: late.length, cls: late.length ? 'late' : '' });
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today + i * DAY_MS);
+    const n = open.filter(r => { const x = new Date(r.requestedDate); x.setHours(0, 0, 0, 0); return x.getTime() === d.getTime(); }).length;
+    cols.push({ label: i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''), sub: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), n, cls: i === 0 ? 'today' : '' });
+  }
+  const total = cols.reduce((a, c) => a + c.n, 0);
+  host.innerHTML = `<div class="pick-grid">${cols.map(c => `<button type="button" class="pick ${c.cls}" data-pick><span class="pick-l">${esc(c.label)}</span><span class="pick-s">${esc(c.sub) || '&nbsp;'}</span><strong class="num${c.n ? '' : ' zero'}">${c.n}</strong></button>`).join('')}</div>
+    <p class="pick-foot">${total ? `${total} retirada${total > 1 ? 's' : ''} combinada${total > 1 ? 's' : ''} nos próximos 7 dias ou em atraso.` : 'Nenhuma retirada combinada para os próximos 7 dias.'}</p>`;
+  host.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => handleAttentionAction('res-all')));
+}
+
+let overviewRevenueChart = null;
+
+function renderOverviewRevenueChart(m, days) {
+  const canvas = document.getElementById('ov-revenue-chart');
+  const empty = document.getElementById('ov-revenue-empty');
+  const sub = document.getElementById('ov-revenue-sub');
+  if (!canvas) return;
+  const buckets = [];
+  const dayStart = startOfToday();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(dayStart - i * DAY_MS);
+    buckets.push({ key: d.toDateString(), label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), value: 0 });
+  }
+  m.cur.forEach(s => { const b = buckets.find(x => x.key === new Date(s.createdAt).toDateString()); if (b) b.value += s.totalCents || 0; });
+  const total = buckets.reduce((a, b) => a + b.value, 0);
+  if (sub) sub.textContent = `${formatBRLFromCents(total)} em ${days} dias`;
+  if (empty) empty.classList.toggle('d-none', total > 0);
+  if (overviewRevenueChart) { overviewRevenueChart.destroy(); overviewRevenueChart = null; }
+  canvas.classList.toggle('d-none', total === 0);
+  if (!window.Chart || total === 0) return;
+  const max = Math.max(...buckets.map(b => b.value / 100));
+  const step = max > 4000 ? 2000 : max > 1500 ? 1000 : max > 600 ? 500 : 200;
+  overviewRevenueChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels: buckets.map(b => b.label), datasets: [{ label: 'Faturamento', data: buckets.map(b => b.value / 100), backgroundColor: '#F14D1D', hoverBackgroundColor: '#C93A12', borderRadius: 0, maxBarThickness: 22 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: { label: ctx => formatBRLFromCents(Math.round(ctx.parsed.y * 100)) } } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 7, color: '#5E5A63', font: { size: 12, family: 'IBM Plex Sans' }, maxRotation: 0 } },
+        y: { beginAtZero: true, suggestedMax: Math.ceil(max / step) * step, border: { display: false }, grid: { color: '#EDEBEE' }, ticks: { stepSize: step, color: '#5E5A63', font: { size: 12, family: 'IBM Plex Sans' }, callback: v => v.toLocaleString('pt-BR') } }
+      }
+    }
+  });
+}
+
+function renderDashboardOverview() {
+  state.products = getProducts();
+  state.reservations = getReservations();
+  state.sales = getSales();
+  state.maintenances = getMaintenances();
+  state.activityLogs = getActivityLog();
+
+  const days = state.overviewPeriod || 30;
+  document.querySelectorAll('.seg-btn[data-period]').forEach(b => b.classList.toggle('active', Number(b.dataset.period) === days));
+  const m = computePeriodMetrics(days);
+  renderOverviewAttention();
+  renderOverviewKpis(m, days);
+  renderOverviewPickups();
+  renderOverviewRevenueChart(m, days);
+  renderOverviewTopProducts(m);
+
+  const tbody = document.getElementById('dashboard-recent-reservations-tbody');
+  if (tbody) {
+    const open = state.reservations.filter(r => ['new', 'contacted', 'confirmed'].includes(r.status))
+      .sort((a, b) => new Date(a.requestedDate || 0) - new Date(b.requestedDate || 0)).slice(0, 5);
+    tbody.innerHTML = open.length ? open.map(r => {
+      const pk = pickupInfo(r);
+      return `<tr>
+        <td><div class="pcell">${avatarHtml(r.demoCustomerName, 'sm')}<div><strong>${esc(r.demoCustomerName)}</strong><span class="sub">${esc(r.code)}</span></div></div></td>
+        <td><span class="when ${pk.cls}">${esc(pk.text)}</span></td>
+        <td class="num">${formatBRLFromCents(r.estimatedTotalCents || 0)}</td>
+        <td><span class="pill r-${r.status}">${RES_LABEL[r.status]}</span></td></tr>`;
+    }).join('') : `<tr><td colspan="4"><div class="ui-empty"><strong>Nenhuma reserva em aberto</strong><span>Os pedidos do catálogo aparecem aqui.</span></div></td></tr>`;
+  }
+
+  const logList = document.getElementById('activity-log-list');
+  if (logList) {
+    const logs = [...state.activityLogs].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 6);
+    logList.innerHTML = logs.length ? logs.map(l => `<div class="activity-item"><div class="activity-content"><span class="activity-text">${esc(l.message || 'Atividade')}</span><span class="activity-time">${esc(formatDateTimePtBr(l.createdAt))}</span></div></div>`).join('')
+      : '<div class="ui-empty"><strong>Sem atividade registrada</strong></div>';
+  }
+  refreshIcons();
+}
+
+function renderCategorySalesChart() {
+  const host = document.getElementById('category-sales-breakdown-list');
+  if (!host) return;
+  const sales = getSales().filter(s => s.status === 'completed');
+  const products = getProducts();
+  const buckets = { phones: 0, acc: 0, svc: 0, other: 0 };
+  sales.forEach(sale => (sale.items || []).forEach(i => {
+    const p = products.find(x => x.id === i.productId);
+    const t = i.totalCents || (i.unitPriceCents * i.quantity);
+    const c = p ? p.categoryId : '';
+    if (['cat-iphones', 'cat-android'].includes(c)) buckets.phones += t; else if (c === 'cat-acessorios') buckets.acc += t; else buckets.other += t;
+  }));
+  getMaintenances().filter(m => m.status === 'Finalizado').forEach(m => { buckets.svc += m.estimatedCostCents || 0; });
+  const rows = [
+    { n: 'Celulares', v: buckets.phones }, { n: 'Acessórios', v: buckets.acc },
+    { n: 'Manutenção', v: buckets.svc }, { n: 'Outros', v: buckets.other }
+  ];
+  const total = rows.reduce((a, r) => a + r.v, 0);
+  const max = Math.max(...rows.map(r => r.v), 1);
+  host.innerHTML = rows.map(r => {
+    const pct = total ? Math.round(r.v / total * 100) : 0;
+    return `<div class="cat-cell"><span class="kpi-l">${r.n}</span><strong class="kpi-v num${r.v ? '' : ' zero'}">${formatBRLFromCents(r.v)}</strong><span class="kpi-d flat">${pct}% do total</span><div class="thin-bar"><i style="width:${Math.round(r.v / max * 100)}%"></i></div></div>`;
+  }).join('');
+}
