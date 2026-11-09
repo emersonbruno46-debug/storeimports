@@ -410,36 +410,46 @@ function navTo(rawTabName, afterNavigate = null) {
 
 function renderCurrentTab() {
   calculateOverviewKPIs();
-  
-  if (state.currentTab === 'overview') {
-    renderDashboardOverview();
-    renderCategorySalesChart();
-  } else if (state.currentTab === 'products') {
-    populateCategorySelects();
-    renderProductsTable();
-  } else if (state.currentTab === 'categories') {
-    renderCategoriesTable();
-  } else if (state.currentTab === 'stock') {
-    populateProductSelects();
-    renderStockLogsTable();
-  } else if (state.currentTab === 'maintenances') {
-    renderMaintenancesTab();
-  } else if (state.currentTab === 'reservations') {
-    renderReservationsTable();
-  } else if (state.currentTab === 'sales') {
-    populateProductSelects();
-    renderSalesLogsTable();
-  } else if (state.currentTab === 'settings') {
-    renderSettingsStatus();
-  } else if (state.currentTab === 'promo') {
-    const previewCard = document.getElementById('promo-preview-card');
-    if (previewCard) previewCard.classList.add('d-none');
-    
-    const scopeSelect = document.getElementById('promo-scope');
-    if (scopeSelect) {
-      scopeSelect.dispatchEvent(new Event('change'));
-    }
+
+  switch (state.currentTab) {
+    case 'overview':
+      renderDashboardOverview();
+      renderCategorySalesChart();
+      break;
+    case 'products':
+      populateCategorySelects();
+      renderProductsTable();
+      break;
+    case 'categories':
+      renderCategoriesTable();
+      break;
+    case 'stock':
+      populateProductSelects();
+      renderStockLogsTable();
+      break;
+    case 'maintenances':
+      renderMaintenancesTab();
+      break;
+    case 'reservations':
+      renderReservationsTable();
+      break;
+    case 'sales':
+      populateProductSelects();
+      renderSalesLogsTable();
+      break;
+    case 'promo':
+      renderPromoTab();
+      break;
+    case 'users':
+      renderTeam();
+      break;
+    case 'settings':
+      renderSettingsStatus();
+      break;
+    default:
+      break;
   }
+  if (window.lucide) lucide.createIcons();
 }
 
 // ==========================================
@@ -1003,50 +1013,6 @@ function initChartTooltips() {
 // ==========================================
 // CATEGORIES MANAGEMENT
 // ==========================================
-function renderCategoriesTable() {
-  const tbody = document.getElementById('admin-categories-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = (document.getElementById('admin-search-categories')?.value || '').trim().toLowerCase();
-  let filtered = state.categories.filter(c => query ? c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query) : true);
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align: center;">Nenhuma categoria encontrada.</td></tr>';
-  } else {
-    filtered.forEach(c => {
-      const tr = document.createElement('tr');
-      const statusLabel = c.status === 'active' ? 'Ativa' : 'Inativa';
-      const statusBadgeColor = c.status === 'active' ? 'var(--success)' : 'var(--danger)';
-      const productCount = state.products.filter(p => p.categoryId === c.id && p.status === 'active').length;
-      
-      const imgSrc = c.image
-        ? (c.image.startsWith('data:') || c.image.startsWith('http') ? c.image : `./assets/${c.image}`)
-        : '';
-      tr.innerHTML = `
-        <td><div style="width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center;">${imgSrc ? `<img src="${imgSrc}" alt="" style="max-width: 36px; max-height: 36px; object-fit: contain; border-radius: 4px;">` : '<i data-lucide="image" style="width:18px;height:18px;opacity:0.3;"></i>'}</div></td>
-        <td><strong></strong></td>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;"></span></td>
-        <td>${productCount} produto${productCount !== 1 ? 's' : ''}</td>
-        <td><span class="badge-capsule" style="background: ${statusBadgeColor}; font-size: 0.65rem;">${statusLabel}</span></td>
-        <td>
-          <button class="table-action-btn edit-btn-cat" data-id="${c.id}"><i data-lucide="edit"></i></button>
-          <button class="table-action-btn delete-btn-cat" data-id="${c.id}"><i data-lucide="trash-2"></i></button>
-        </td>
-      `;
-
-      tr.querySelector('td:nth-child(2) strong').textContent = c.name;
-      tr.querySelector('.badge-purple-light').textContent = c.id;
-
-      tr.querySelector('.edit-btn-cat').addEventListener('click', () => openCategoryFormModal(c.id));
-      tr.querySelector('.delete-btn-cat').addEventListener('click', () => deleteCategory(c.id));
-
-      tbody.appendChild(tr);
-    });
-  }
-  if (window.lucide) lucide.createIcons();
-}
-
 function openCategoryFormModal(catId = null) {
   const form = document.getElementById('admin-add-category-form');
   if (form) form.reset();
@@ -1262,79 +1228,6 @@ function populateCategorySelects() {
 // ==========================================
 // PRODUCTS MANAGEMENT (CRUD)
 // ==========================================
-function renderProductsTable() {
-  const tbody = document.getElementById('admin-products-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = adminSearchProducts ? adminSearchProducts.value.trim().toLowerCase() : '';
-  const category = adminFilterProductsCategory ? adminFilterProductsCategory.value : '';
-  
-  let filtered = state.products.filter(p => {
-    if (category && p.categoryId !== category) return false;
-    if (query) {
-      const matchName = (p.name || '').toLowerCase().includes(query);
-      const matchBrand = (p.brand || '').toLowerCase().includes(query);
-      const matchCode = (p.sku || '').toLowerCase().includes(query);
-      if (!matchName && !matchBrand && !matchCode) return false;
-    }
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Nenhum produto cadastrado correspondente aos filtros.</td></tr>';
-  } else {
-    filtered.forEach(p => {
-      const tr = document.createElement('tr');
-
-      const totalStock = getProductTotalStock(p);
-      const minStock = getProductMinimumStock(p);
-      const primaryVar = getPrimaryVariant(p);
-      const displayPriceCents = getProductDisplayPriceCents(p);
-      const hasPromo = primaryVar && primaryVar.promotionalPriceCents !== null && primaryVar.promotionalPriceCents !== undefined;
-      const condLabel = p.condition === 'new' ? 'Novo' : 'Seminovo';
-      const catName = (state.categories.find(c => c.id === p.categoryId) || {}).name || p.categoryId;
-      const isInactive = p.status === 'inactive';
-      const statusLabel = isInactive ? 'Inativo' : 'Ativo';
-      const statusBadgeColor = isInactive ? 'var(--danger)' : 'var(--success)';
-      
-      let stockColorStyle = '';
-      if (totalStock <= minStock && totalStock > 0) stockColorStyle = 'color: var(--alert); font-weight: 700;';
-      if (totalStock === 0) stockColorStyle = 'color: var(--danger); font-weight: 700;';
-
-      tr.innerHTML = `
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;"></span></td>
-        <td><strong></strong></td>
-        <td class="prod-name-cell"></td>
-        <td class="text-muted" style="font-size: 0.8rem;"></td>
-        <td></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td style="${stockColorStyle}"></td>
-        <td><span class="badge-capsule" style="background: ${statusBadgeColor}; font-size: 0.65rem; color: #fff;">${statusLabel}</span></td>
-        <td>
-          <button class="table-action-btn edit-btn" data-id="${p.id}" title="Editar"><i data-lucide="edit"></i></button>
-          <button class="table-action-btn delete-btn" data-id="${p.id}" title="${isInactive ? 'Ativar Produto' : 'Inativar Produto'}"><i data-lucide="${isInactive ? 'check-circle' : 'archive'}"></i></button>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('span').textContent = p.sku || 'N/A';
-      cells[1].querySelector('strong').textContent = p.brand;
-      cells[2].textContent = `${p.name} (${condLabel})`;
-      cells[3].textContent = catName;
-      cells[4].textContent = formatBRLFromCents(primaryVar ? primaryVar.priceCents : 0);
-      cells[5].textContent = hasPromo ? formatBRLFromCents(primaryVar.promotionalPriceCents) : '—';
-      cells[6].textContent = `${totalStock} un (Min: ${minStock})`;
-
-      tr.querySelector('.edit-btn').addEventListener('click', () => openProductFormModal(p.id));
-      tr.querySelector('.delete-btn').addEventListener('click', () => deleteProduct(p.id));
-
-      tbody.appendChild(tr);
-    });
-  }
-  
-  if (window.lucide) lucide.createIcons();
-}
-
 let currentFormStep = 1;
 let tempVariants = [];
 
@@ -1797,137 +1690,14 @@ function handleStockAdjustment(e) {
   createActivityLog({ id: generateId('act'), type: 'info', message: `Ajuste de estoque (${typeVal}): ${prod.name} — ${prod.variants[varIdx].color || ''} [Anterior: ${oldQty} un | Novo: ${newQty} un]`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
 
   adminStockAdjustForm.reset();
+  closeDrawer('drawer-stock');
   showAdminToast('Estoque atualizado com sucesso!', 'success');
   renderCurrentTab();
-}
-
-function renderStockLogsTable() {
-  const tbody = document.getElementById('admin-stock-logs-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const sorted = [...state.stockLogs].reverse();
-  
-  if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align: center;">Sem movimentações registradas.</td></tr>';
-  } else {
-    sorted.forEach(log => {
-      const tr = document.createElement('tr');
-      
-      const typeLabels = { 'entry': 'Entrada (+)', 'exit': 'Saída (-)', 'positive_adjustment': 'Ajuste (+)', 'negative_adjustment': 'Ajuste (-)' };
-      const typeLabel = typeLabels[log.type] || log.type || 'N/A';
-      
-      let typeStyle = 'color: var(--success); font-weight: 700;';
-      if (log.type === 'exit' || log.type === 'negative_adjustment') typeStyle = 'color: var(--danger); font-weight: 700;';
-      if (log.type === 'positive_adjustment') typeStyle = 'color: var(--purple-primary); font-weight: 700;';
-      
-      const prod = getProductById(log.productId);
-      const productName = prod ? prod.name : (log.productName || log.productId || 'N/A');
-      
-      tr.innerHTML = `
-        <td class="text-muted"></td>
-        <td><strong></strong></td>
-        <td>${log.quantity || 0} un</td>
-        <td style="${typeStyle}"></td>
-        <td></td>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.7rem; padding: 2px 8px;">Admin</span></td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].textContent = formatDateTimePtBr(log.createdAt || log.timestamp);
-      cells[1].querySelector('strong').textContent = productName;
-      cells[3].textContent = typeLabel;
-      cells[4].textContent = log.reason || 'N/A';
-      
-      tbody.appendChild(tr);
-    });
-  }
 }
 
 // ==========================================
 // RESERVATIONS CONTROLLER
 // ==========================================
-function renderReservationsTable() {
-  const tbody = document.getElementById('admin-reservations-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const query = adminSearchReservations ? adminSearchReservations.value.trim().toLowerCase() : '';
-  const status = adminFilterReservationsStatus ? adminFilterReservationsStatus.value : '';
-  
-  let filtered = state.reservations.filter(res => {
-    if (status && res.status !== status) return false;
-    
-    if (query) {
-      const matchName = (res.demoCustomerName || '').toLowerCase().includes(query);
-      const matchCode = (res.code || '').toLowerCase().includes(query);
-      const matchPhone = (res.demoContactLabel || '').replace(/\D/g, '').includes(query.replace(/\D/g, ''));
-      if (!matchName && !matchCode && !matchPhone) return false;
-    }
-    
-    return true;
-  });
-
-  filtered.sort((a, b) => b.id.localeCompare(a.id));
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center;">Nenhuma reserva encontrada correspondente aos filtros.</td></tr>';
-  } else {
-    filtered.forEach(res => {
-      const tr = document.createElement('tr');
-      
-      const statusLabel = getReservationStatusLabel(res.status);
-      const statusClass = {
-        'new': 'status-pending',
-        'contacted': 'status-confirmed',
-        'confirmed': 'status-confirmed',
-        'completed': 'status-finished',
-        'cancelled': 'status-cancelled'
-      }[res.status] || 'status-pending';
-      
-      const totalItems = (res.items || []).reduce((s, i) => s + (i.quantity || 0), 0);
-
-      tr.innerHTML = `
-        <td><strong></strong></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td><span class="status-pill ${statusClass}"></span></td>
-        <td class="text-muted"></td>
-        <td>
-          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-            ${res.status === 'new' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="contacted" style="padding: 4px 8px; font-size: 0.75rem;">Contatar</button>` : ''}
-            ${res.status === 'contacted' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="confirmed" style="padding: 4px 8px; font-size: 0.75rem;">Confirmar</button>` : ''}
-            ${res.status === 'confirmed' ? `<button class="btn btn-primary btn-sm btn-status-change" data-id="${res.id}" data-to="completed" style="background-color: var(--success); padding: 4px 8px; font-size: 0.75rem;">Faturar</button>` : ''}
-            ${['new','contacted','confirmed'].includes(res.status) ? `<button class="btn btn-secondary btn-sm btn-status-change" data-id="${res.id}" data-to="cancelled" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--danger); color: var(--danger);">Cancelar</button>` : ''}
-          </div>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('strong').textContent = res.code || 'N/A';
-      cells[1].textContent = res.demoCustomerName || 'N/A';
-      // Clickable WhatsApp link for contact number
-      cells[2].innerHTML = '';
-      cells[2].appendChild(renderWhatsappCell(res.demoContactLabel, res.demoContactLabel));
-      cells[3].textContent = formatDateTimePtBr(res.requestedDate);
-      cells[4].textContent = formatBRLFromCents(res.estimatedTotalCents || 0);
-      cells[5].querySelector('span').textContent = statusLabel;
-      cells[6].textContent = formatDateTimePtBr(res.createdAt);
-
-      tr.querySelectorAll('.btn-status-change').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const toStatus = btn.getAttribute('data-to');
-          changeReservationStatus(res.id, toStatus);
-        });
-      });
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  if (window.lucide) lucide.createIcons();
-}
-
 function changeReservationStatus(resId, nextStatus) {
   if (nextStatus === 'completed') {
     // Use centralized transactional invoicing with full stock validation
@@ -2044,74 +1814,9 @@ function handleSalesRegistry(e) {
   adminSalesRegistryForm.reset();
   document.getElementById('sale-discount').value = 0;
   document.getElementById('sale-qty').value = 1;
+  closeDrawer('drawer-sale');
   showAdminToast('Venda registrada com sucesso!', 'success');
   renderCurrentTab();
-}
-
-function renderSalesLogsTable() {
-  const tbody = document.getElementById('admin-sales-log-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const sorted = [...state.sales].reverse();
-  
-  if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align: center;">Sem vendas registradas.</td></tr>';
-  } else {
-    sorted.forEach(sale => {
-      const tr = document.createElement('tr');
-      
-      const totalItems = (sale.items || []).reduce((s, i) => s + (i.quantity || 0), 0);
-      const prodName = sale.items && sale.items.length > 0 ? (() => {
-        const prod = getProductById(sale.items[0].productId);
-        return prod ? prod.name : 'Produto';
-      })() : 'Venda';
-      
-      const isReversed = sale.status === 'cancelled';
-      const statusBadge = isReversed 
-        ? `<span class="badge-capsule" style="background-color: var(--danger); font-size: 0.7rem;">Estornada</span>`
-        : `<span class="badge-capsule" style="background-color: var(--success-bg); color: var(--success); font-size: 0.7rem;">Concluída</span>`;
-
-      tr.innerHTML = `
-        <td><strong></strong></td>
-        <td class="text-muted" style="max-width:180px;"></td>
-        <td></td>
-        <td></td>
-        <td class="text-muted"></td>
-        <td class="text-orange" style="font-weight: 700;"></td>
-        <td>${statusBadge}</td>
-        <td class="text-muted" style="font-size: 0.8rem;"></td>
-        <td>
-          <div style="display: flex; gap: 4px;">
-            <button class="table-action-btn print-btn" data-id="${sale.id}" title="Imprimir Cupom"><i data-lucide="printer"></i></button>
-            ${!isReversed ? `<button class="table-action-btn refund-btn" data-id="${sale.id}" title="Estornar Venda" style="color: var(--danger);"><i data-lucide="rotate-ccw"></i></button>` : ''}
-          </div>
-        </td>
-      `;
-      const cells = tr.querySelectorAll('td');
-      cells[0].querySelector('strong').textContent = sale.code || 'N/A';
-      cells[1].textContent = prodName;
-      cells[2].textContent = `${totalItems}x`;
-      cells[3].textContent = sale.demoCustomerName || 'Consumidor';
-      cells[4].textContent = getPaymentMethodLabel(sale.demoPaymentMethod);
-      cells[5].textContent = formatBRLFromCents(sale.totalCents || 0);
-      cells[7].textContent = formatDateTimePtBr(sale.createdAt);
-      
-      tr.querySelector('.print-btn').addEventListener('click', () => {
-        printSaleCoupon(sale.id);
-      });
-
-      const refundBtn = tr.querySelector('.refund-btn');
-      if (refundBtn) {
-        refundBtn.addEventListener('click', () => {
-          promptSaleReversal(sale.id);
-        });
-      }
-      
-      tbody.appendChild(tr);
-    });
-  }
-  if (window.lucide) lucide.createIcons();
 }
 
 /**
@@ -2468,7 +2173,7 @@ function setupPromoCalculatorListeners() {
       
       const brands = [...new Set(state.products.map(p => p.brand))].filter(Boolean);
       if (scopeDetailSelect) {
-        scopeDetailSelect.innerHTML = brands.map(b => `<option value="${b}">${b}</option>`).join('');
+        scopeDetailSelect.innerHTML = brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
       }
     } else if (scope === 'selected') {
       if (scopeDetailGroup) scopeDetailGroup.classList.add('d-none');
@@ -2498,89 +2203,13 @@ function setupPromoCalculatorListeners() {
   if (btnClear) btnClear.addEventListener('click', clearPromoDiscounts);
 }
 
-function generatePromoPreview() {
-  const scope = document.getElementById('promo-scope').value;
-  const detail = document.getElementById('promo-scope-detail') ? document.getElementById('promo-scope-detail').value : '';
-  const discountType = document.getElementById('promo-discount-type').value;
-  const discountValue = parseFloat(document.getElementById('promo-discount-value').value);
-  const previewCard = document.getElementById('promo-preview-card');
-  const tbody = document.getElementById('promo-preview-tbody');
-  
-  if (isNaN(discountValue) || discountValue <= 0) {
-    showAdminToast('Insira um valor de desconto positivo e válido.', 'danger');
-    return;
-  }
-  
-  let productsToApply = [];
-  if (scope === 'all') {
-    productsToApply = [...state.products];
-  } else if (scope === 'category') {
-    productsToApply = state.products.filter(p => p.categoryId === detail || p.categoryId === `cat-${detail}`);
-  } else if (scope === 'brand') {
-    productsToApply = state.products.filter(p => p.brand === detail);
-  } else if (scope === 'selected') {
-    const checkedBoxes = document.querySelectorAll('input[name="promo-select-product"]:checked');
-    const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-    productsToApply = state.products.filter(p => selectedIds.includes(p.id));
-  }
-  
-  if (productsToApply.length === 0) {
-    showAdminToast('Nenhum produto elegível encontrado para o escopo selecionado.', 'warning');
-    return;
-  }
-  
-  promoPreviewProducts = [];
-  
-  productsToApply.forEach(prod => {
-    (prod.variants || []).forEach(variant => {
-      const baseCents = variant.priceCents || 0;
-      let newPromoCents = baseCents;
-      
-      if (discountType === 'percent') {
-        newPromoCents = Math.round(baseCents * (1 - (discountValue / 100)));
-      } else {
-        const discountCents = Math.round(discountValue * 100);
-        newPromoCents = Math.max(0, baseCents - discountCents);
-      }
-      
-      if (newPromoCents >= baseCents) newPromoCents = baseCents;
-
-      promoPreviewProducts.push({
-        productId: prod.id,
-        variantId: variant.id,
-        productName: prod.name,
-        variantLabel: `${variant.color || ''} ${variant.capacity || ''}`.trim() || 'Padrão',
-        sku: variant.sku || prod.sku,
-        basePriceCents: baseCents,
-        oldPromoPriceCents: variant.promotionalPriceCents,
-        newPromoPriceCents: newPromoCents,
-        discountCents: baseCents - newPromoCents
-      });
-    });
-  });
-
-  if (tbody) {
-    tbody.innerHTML = promoPreviewProducts.map(item => `
-      <tr>
-        <td><span class="badge-capsule badge-purple-light" style="font-size: 0.75rem;">${esc(item.sku)}</span></td>
-        <td><strong>${esc(item.productName)}</strong> <span class="text-muted" style="font-size: 0.75rem;">(${esc(item.variantLabel)})</span></td>
-        <td>${formatBRLFromCents(item.basePriceCents)}</td>
-        <td class="text-muted">${item.oldPromoPriceCents !== null && item.oldPromoPriceCents !== undefined ? formatBRLFromCents(item.oldPromoPriceCents) : '—'}</td>
-        <td class="text-orange" style="font-weight: 700;">${formatBRLFromCents(item.newPromoPriceCents)}</td>
-        <td class="text-purple" style="font-weight: 700;">${formatBRLFromCents(item.discountCents)}</td>
-      </tr>
-    `).join('');
-  }
-  
-  if (previewCard) previewCard.classList.remove('d-none');
-  showAdminToast(`Prévia de promoção gerada para ${promoPreviewProducts.length} variações.`, 'info');
-}
-
 function applyPromoDiscount() {
+  generatePromoPreview({ silent: true });
   if (promoPreviewProducts.length === 0) {
-    showAdminToast('Gere a prévia de alterações antes de aplicar.', 'warning');
+    showAdminToast('Defina onde aplicar e um desconto válido antes de aplicar.', 'warning');
     return;
   }
+  if (!confirm(`Aplicar a promoção em ${promoPreviewProducts.length} variações? Os preços promocionais atuais serão substituídos.`)) return;
   
   let appliedCount = 0;
   promoPreviewProducts.forEach(item => {
@@ -2600,8 +2229,6 @@ function applyPromoDiscount() {
   showAdminToast(`Promoção aplicada com sucesso em ${appliedCount} variações!`, 'success');
   
   promoPreviewProducts = [];
-  const previewCard = document.getElementById('promo-preview-card');
-  if (previewCard) previewCard.classList.add('d-none');
   renderCurrentTab();
 }
 
@@ -2704,133 +2331,6 @@ function showAdminToast(message, type = 'info') {
 // ==========================================
 // MAINTENANCES TAB & MANAGEMENT CONTROLLER
 // ==========================================
-function renderMaintenancesTab() {
-  state.maintenances = getMaintenances();
-  
-  // KPIs
-  const kpiTotal = document.getElementById('kpi-maint-total');
-  const kpiOpen = document.getElementById('kpi-maint-open');
-  const kpiNotStarted = document.getElementById('kpi-maint-not-started');
-  const kpiFinished = document.getElementById('kpi-maint-finished');
-  
-  const total = state.maintenances.length;
-  const openCount = state.maintenances.filter(m => m.status === 'Aberto').length;
-  const notStartedCount = state.maintenances.filter(m => m.status === 'Não iniciado').length;
-  const finishedCount = state.maintenances.filter(m => m.status === 'Finalizado').length;
-
-  if (kpiTotal) kpiTotal.textContent = total;
-  if (kpiOpen) kpiOpen.textContent = openCount;
-  if (kpiNotStarted) kpiNotStarted.textContent = notStartedCount;
-  if (kpiFinished) kpiFinished.textContent = finishedCount;
-
-  // Filter list
-  const searchVal = (document.getElementById('admin-search-maintenances')?.value || '').toLowerCase().trim();
-  const statusFilter = document.getElementById('admin-filter-maintenances-status')?.value || '';
-
-  let filtered = state.maintenances.filter(m => {
-    if (searchVal) {
-      const matchDevice = (m.device || '').toLowerCase().includes(searchVal);
-      const matchClient = (m.customerName || '').toLowerCase().includes(searchVal);
-      const matchCode = (m.code || '').toLowerCase().includes(searchVal);
-      const matchProb = (m.problem || '').toLowerCase().includes(searchVal);
-      if (!matchDevice && !matchClient && !matchCode && !matchProb) return false;
-    }
-    if (statusFilter && m.status !== statusFilter) return false;
-    return true;
-  });
-
-  const tbody = document.getElementById('admin-maintenances-table-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align: center; padding: 24px;">Nenhuma manutenção cadastrada ou encontrada.</td></tr>';
-    return;
-  }
-
-  filtered.forEach(m => {
-    const tr = document.createElement('tr');
-    
-    let statusClass = 'maint-badge-aberto';
-    let iconName = 'clock';
-    if (m.status === 'Não iniciado') {
-      statusClass = 'maint-badge-nao-iniciado';
-      iconName = 'pause-circle';
-    } else if (m.status === 'Finalizado') {
-      statusClass = 'maint-badge-finalizado';
-      iconName = 'check-circle-2';
-    }
-
-    const costFormatted = formatBRLFromCents(m.estimatedCostCents || 0);
-
-    tr.innerHTML = `
-      <td><strong>${esc(m.code || 'N/A')}</strong></td>
-      <td style="font-weight: 700; color: var(--purple-primary);">${esc(m.device)}</td>
-      <td>
-        <div style="display: flex; flex-direction: column;">
-          <span>${esc(m.customerName)}</span>
-          <span class="whatsapp-cell-maint" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
-        </div>
-      </td>
-      <td style="max-width: 220px; white-space: normal; font-size: 0.82rem;">${esc(m.problem)}</td>
-      <td style="font-weight: 700; color: var(--purple-primary);">${costFormatted}</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="${statusClass}"><i data-lucide="${iconName}" style="width: 12px; height: 12px;"></i> ${esc(m.status)}</span>
-          <select class="form-control btn-sm status-quick-select" data-id="${esc(m.id)}" style="width: auto; padding: 2px 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-            <option value="Aberto" ${m.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
-            <option value="N\u00e3o iniciado" ${m.status === 'Não iniciado' ? 'selected' : ''}>Não iniciado</option>
-            <option value="Finalizado" ${m.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
-          </select>
-        </div>
-      </td>
-      <td class="text-muted" style="font-size: 0.8rem;">${formatDateTimePtBr(m.entryDate)}</td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn btn-secondary btn-sm btn-edit-maint" data-id="${m.id}" title="Editar"><i data-lucide="edit-3"></i></button>
-          <button class="btn btn-secondary btn-sm btn-delete-maint" data-id="${m.id}" title="Excluir" style="color: var(--danger); border-color: var(--danger);"><i data-lucide="trash-2"></i></button>
-        </div>
-      </td>
-    `;
-
-    // Render clickable WhatsApp phone link in maintenance table
-    const whatsappCellMaint = tr.querySelector('.whatsapp-cell-maint');
-    if (whatsappCellMaint) {
-      whatsappCellMaint.appendChild(renderWhatsappCell(m.customerPhone, m.customerPhone || 'Sem tel.'));
-    }
-
-    // Quick status select event
-    const selectEl = tr.querySelector('.status-quick-select');
-    selectEl.addEventListener('change', (e) => {
-      const newStatus = e.target.value;
-      updateMaintenanceStatus(m.id, newStatus);
-      showAdminToast(`Status da manutenção ${m.code} alterado para "${newStatus}".`, 'success');
-      createActivityLog({ id: `act-${Date.now()}`, type: 'info', message: `Manutenção ${m.code} (${m.device}) atualizada para: ${newStatus}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
-      renderMaintenancesTab();
-      renderCategorySalesChart();
-    });
-
-    // Edit event
-    tr.querySelector('.btn-edit-maint').addEventListener('click', () => {
-      openMaintenanceModal(m.id);
-    });
-
-    // Delete event
-    tr.querySelector('.btn-delete-maint').addEventListener('click', () => {
-      if (confirm(`Deseja excluir a manutenção "${m.code} - ${m.device}"?`)) {
-        deleteMaintenance(m.id);
-        showAdminToast('Manutenção removida com sucesso.', 'warning');
-        renderMaintenancesTab();
-        renderCategorySalesChart();
-      }
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  if (window.lucide) lucide.createIcons();
-}
-
 function openMaintenanceModal(maintId = null) {
   state.selectedMaintenanceToEdit = maintId;
   const overlay = document.getElementById('admin-maintenance-modal-overlay');

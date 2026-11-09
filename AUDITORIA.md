@@ -59,9 +59,14 @@ Legenda: ✅ corrigido nesta entrega · 🛠 preparado (falta ligar) · ⏳ pend
 - **Menu lateral** agrupado (Operação / Catálogo / Sistema) com contadores de pendências.
 - **Busca rápida** `Ctrl+K` (produtos, reservas, vendas, manutenções e páginas).
 - **Configurações**: status do banco, backup/restauração JSON, zona de risco.
+- **Todas as telas** passaram a usar um mesmo sistema visual (`admin-ui.css` + `admin_views.js`):
+  - **Reservas**: cartões com situação, itens, retirada ("hoje/amanhã/vencida"), botão de WhatsApp com mensagem pronta e um único botão com o próximo passo (contato → confirmar → faturar).
+  - **Estoque**: resumo, filtro por situação, barra de nível por variação e gaveta lateral de movimentação (entrada/saída/contagem, com o saldo resultante antes de salvar).
+  - **Promoções**: construtor em 3 passos com resumo ao vivo, aviso de preço abaixo do custo e lista de promoções ativas com remoção individual.
+  - **Produtos / Categorias / Vendas / Manutenções (quadro kanban) / Equipe**: filtros em chips, tabelas e cartões redesenhados, nova venda em gaveta com total em tempo real.
 
 ## Limitações desta entrega
 
 - Testado: carregamento do painel sem erros de console, navegação a partir dos alertas, busca rápida, troca de período, mapeadores do adaptador (ida e volta em produto). **Não testado:** SQL contra um Postgres real, `importBackup` contra um projeto Supabase, layout em celular físico.
-- As demais telas (Produtos, Vendas, Manutenções…) mantiveram o visual anterior; só receberam correções de bugs e de segurança.
+- Os formulários de cadastro de produto, categoria e manutenção (janelas modais) mantêm o visual anterior; herdam só as cores e bordas novas.
 - Lucro estimado só considera vendas cujos itens têm custo cadastrado; fica marcado como "parcial" quando faltam.

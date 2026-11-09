@@ -8,6 +8,7 @@
   <!-- Base CSS -->
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./admin.css">
+  <link rel="stylesheet" href="./admin-ui.css">
 
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@0.292.0"></script>
@@ -257,543 +258,249 @@
            TAB: PRODUTOS (PRODUCTS MANAGEMENT)
            ========================================== -->
       <div id="panel-products" class="admin-view-tab d-none">
-        
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between; align-items: stretch;">
-            <div class="grid-2-col" style="flex-grow: 1;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <input type="text" class="form-control" id="admin-search-products" placeholder="Buscar por Nome, Marca ou Código...">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <select class="form-control" id="admin-filter-products-category">
-                  <option value="">Todas as Categorias</option>
-                </select>
-              </div>
-            </div>
-            
-            <button class="btn btn-primary" id="btn-admin-add-product" style="align-self: flex-end;">
-              <i data-lucide="plus"></i> Adicionar Produto
-            </button>
+        <div class="pg-bar">
+          <p class="pg-sub">Cadastre produtos e acompanhe preço, promoção e estoque em um só lugar.</p>
+          <div class="pg-actions">
+            <button class="btn btn-primary" id="btn-admin-add-product"><i data-lucide="plus"></i> Novo produto</button>
           </div>
         </div>
-
-        <div class="panel-card">
+        <div class="toolbar">
+          <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-products" placeholder="Buscar por nome, marca ou código…"></label>
+          <div class="chips" id="products-chips" role="group" aria-label="Filtrar por categoria"></div>
+          <select id="admin-filter-products-category" class="d-none" aria-hidden="true" tabindex="-1"><option value="">Todas</option></select>
+        </div>
+        <div class="panel-card flush">
           <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Ref. Código</th>
-                  <th>Marca</th>
-                  <th>Nome do Produto</th>
-                  <th>Categoria</th>
-                  <th>Preço Base</th>
-                  <th>Preço Promo</th>
-                  <th>Estoque Atual</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="admin-products-table-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
+            <table class="admin-table rich">
+              <thead><tr><th>Produto</th><th>Categoria</th><th class="num">Preço</th><th>Estoque</th><th>Status</th><th class="actions-col"></th></tr></thead>
+              <tbody id="admin-products-table-tbody"></tbody>
             </table>
           </div>
         </div>
-
       </div>
 
       <!-- ==========================================
            TAB: CATEGORIAS (CATEGORIES MANAGEMENT)
            ========================================== -->
       <div id="panel-categories" class="admin-view-tab d-none">
-        
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="form-group" style="margin-bottom: 0; flex: 1; max-width: 400px;">
-              <input type="text" class="form-control" id="admin-search-categories" placeholder="Buscar categoria...">
-            </div>
-            <button class="btn btn-primary" id="btn-admin-add-category">
-              <i data-lucide="plus"></i> Nova Categoria
-            </button>
+        <div class="pg-bar">
+          <p class="pg-sub">As categorias organizam a vitrine do catálogo. Inativar uma categoria a esconde do site.</p>
+          <div class="pg-actions">
+            <button class="btn btn-primary" id="btn-admin-add-category"><i data-lucide="plus"></i> Nova categoria</button>
           </div>
         </div>
-
-        <div class="panel-card">
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Imagem</th>
-                  <th>Nome da Categoria</th>
-                  <th>Identificador (Slug)</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="admin-categories-table-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+        <div class="toolbar">
+          <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-categories" placeholder="Buscar categoria…"></label>
         </div>
-
+        <div class="cat-grid" id="admin-categories-grid"></div>
       </div>
 
       <!-- ==========================================
            TAB: ESTOQUE (INVENTORY CONTROL)
            ========================================== -->
       <div id="panel-stock" class="admin-view-tab d-none">
-        
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="sliders-horizontal"></i> Realizar Ajuste Manual de Estoque</h3>
-          
-          <form id="admin-stock-adjust-form" novalidate>
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label for="stock-adjust-product" class="form-label">Selecionar Produto *</label>
-                <select class="form-control" id="stock-adjust-product" required>
-                  <!-- Populated via JS -->
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="stock-adjust-type" class="form-label">Tipo de Movimentação *</label>
-                <select class="form-control" id="stock-adjust-type" required>
-                  <option value="Entrada">Entrada (+) - Compra/Reposição</option>
-                  <option value="Saída">Saída (-) - Perda/Avaria/Uso Próprio</option>
-                  <option value="Ajuste">Ajuste Direto (=) - Inventário Correção</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label for="stock-adjust-amount" class="form-label">Quantidade / Novo Valor *</label>
-                <input type="number" class="form-control" id="stock-adjust-amount" placeholder="Ex: 5" required min="0">
-              </div>
-              <div class="form-group">
-                <label for="stock-adjust-reason" class="form-label">Motivo do Ajuste *</label>
-                <input type="text" class="form-control" id="stock-adjust-reason" placeholder="Ex: Correção de contagem de inventário" required>
-              </div>
-            </div>
-
-            <!-- IMEI Tracking Panel (Show for Phones only) -->
-            <div class="form-group d-none" id="stock-adjust-imeis-group">
-              <label for="stock-adjust-imeis" class="form-label">IMEIs do Smartphone (Separados por vírgula para novos aparelhos)</label>
-              <textarea class="form-control" id="stock-adjust-imeis" rows="2" placeholder="Ex: 359998887776661, 359998887776662"></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="margin-top: 8px;">
-              Registrar Movimentação <i data-lucide="check"></i>
-            </button>
-          </form>
-        </div>
-
-        <div class="panel-card">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="history"></i> Histórico de Movimentações de Estoque</h3>
-          
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Produto</th>
-                  <th>Quantidade</th>
-                  <th>Tipo</th>
-                  <th>Motivo</th>
-                  <th>Funcionário</th>
-                </tr>
-              </thead>
-              <tbody id="admin-stock-logs-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
+        <div class="pg-bar">
+          <p class="pg-sub">Veja o que está acabando e lance entradas e saídas sem sair da tela.</p>
+          <div class="pg-actions">
+            <button class="btn btn-primary" id="btn-stock-new-movement" type="button"><i data-lucide="arrow-left-right"></i> Registrar movimentação</button>
           </div>
         </div>
 
+        <section class="tiles" id="stock-summary" aria-label="Resumo do estoque"></section>
+
+        <div class="tabs-lite" role="tablist">
+          <button type="button" class="tab-lite active" data-stock-view="position" role="tab">Posição atual</button>
+          <button type="button" class="tab-lite" data-stock-view="history" role="tab">Histórico de movimentações</button>
+        </div>
+
+        <div id="stock-view-position">
+          <div class="toolbar">
+            <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-stock" placeholder="Buscar produto, cor ou código…"></label>
+            <div class="chips" id="stock-chips" role="group" aria-label="Filtrar estoque"></div>
+          </div>
+          <div class="panel-card flush">
+            <div class="table-responsive">
+              <table class="admin-table rich">
+                <thead><tr><th>Produto</th><th>Código</th><th>Nível de estoque</th><th>Situação</th><th class="actions-col">Ajuste rápido</th></tr></thead>
+                <tbody id="admin-stock-position-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="stock-view-history" class="d-none">
+          <div class="panel-card flush">
+            <div class="table-responsive">
+              <table class="admin-table rich">
+                <thead><tr><th>Quando</th><th>Produto</th><th>Movimento</th><th>Saldo</th><th>Motivo</th><th>Por</th></tr></thead>
+                <tbody id="admin-stock-logs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ==========================================
            TAB: MANUTENÇÕES (CONTROLE OPERACIONAL DE ASSISTÊNCIA)
            ========================================== -->
       <div id="panel-maintenances" class="admin-view-tab d-none">
-        
-        <!-- KPIs Row -->
-        <section class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Total de Manutenções</span>
-              <span class="kpi-value" id="kpi-maint-total">0</span>
-            </div>
-            <div class="kpi-icon-box purple flex-center"><i data-lucide="wrench"></i></div>
-          </div>
-          
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Em Aberto</span>
-              <span class="kpi-value" id="kpi-maint-open" style="color: #D97706;">0</span>
-            </div>
-            <div class="kpi-icon-box orange flex-center"><i data-lucide="clock"></i></div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Não Iniciados</span>
-              <span class="kpi-value" id="kpi-maint-not-started" style="color: #0284C7;">0</span>
-            </div>
-            <div class="kpi-icon-box flex-center" style="background-color: #E0F2FE; color: #0284C7;"><i data-lucide="pause-circle"></i></div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-details">
-              <span class="kpi-label">Finalizados</span>
-              <span class="kpi-value" id="kpi-maint-finished" style="color: #059669;">0</span>
-            </div>
-            <div class="kpi-icon-box flex-center" style="background-color: #D1FAE5; color: #059669;"><i data-lucide="check-circle-2"></i></div>
-          </div>
-        </section>
-
-        <!-- Search and Action Bar -->
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center;">
-            <div class="grid-2-col" style="flex-grow: 1; max-width: 600px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <input type="text" class="form-control" id="admin-search-maintenances" placeholder="Buscar por Aparelho, Cliente ou ID...">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <select class="form-control" id="admin-filter-maintenances-status">
-                  <option value="">Todos os Status</option>
-                  <option value="Aberto">Aberto</option>
-                  <option value="Não iniciado">Não iniciado</option>
-                  <option value="Finalizado">Finalizado</option>
-                </select>
-              </div>
-            </div>
-            
-            <button class="btn btn-primary" id="btn-admin-add-maintenance">
-              <i data-lucide="plus"></i> Nova Manutenção
-            </button>
+        <div class="pg-bar">
+          <p class="pg-sub">Acompanhe cada aparelho do balcão até a entrega. Use os botões do cartão para avançar o serviço.</p>
+          <div class="pg-actions">
+            <button class="btn btn-primary" id="btn-admin-add-maintenance"><i data-lucide="plus"></i> Nova manutenção</button>
           </div>
         </div>
-
-        <!-- Maintenances Table -->
-        <div class="panel-card">
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Cód. Manutenção</th>
-                  <th>Aparelho</th>
-                  <th>Cliente</th>
-                  <th>Defeito / Serviço</th>
-                  <th>Valor Estimado</th>
-                  <th>Status Atual</th>
-                  <th>Data Entrada</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="admin-maintenances-table-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+        <div class="toolbar">
+          <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-maintenances" placeholder="Buscar aparelho, cliente ou código…"></label>
         </div>
-
+        <div class="board" id="maint-board"></div>
       </div>
 
       <!-- ==========================================
            TAB: RESERVAS (RESERVATIONS TABLE)
            ========================================== -->
       <div id="panel-reservations" class="admin-view-tab d-none">
-        
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <div class="grid-2-col">
-            <div class="form-group" style="margin-bottom: 0;">
-              <input type="text" class="form-control" id="admin-search-reservations" placeholder="Buscar por Nome do Cliente, Código ou WhatsApp...">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <select class="form-control" id="admin-filter-reservations-status">
-                <option value="">Todos os Status</option>
-                <option value="new">Aguardando confirmação</option>
-                <option value="confirmed">Confirmada</option>
-                <option value="contacted">Aguardando retirada</option>
-                <option value="completed">Finalizada</option>
-                <option value="cancelled">Cancelada</option>
-              </select>
-            </div>
-          </div>
+        <div class="pg-bar">
+          <p class="pg-sub">Pedidos feitos no catálogo. Chame o cliente no WhatsApp, confirme a retirada e fature quando ele chegar.</p>
         </div>
-
-        <div class="panel-card">
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Cliente</th>
-                  <th>WhatsApp</th>
-                  <th>Data Retirada</th>
-                  <th>Valor Estimado</th>
-                  <th>Status</th>
-                  <th>Data Solicitação</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="admin-reservations-table-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+        <div class="toolbar">
+          <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-reservations" placeholder="Buscar por cliente, código ou telefone…"></label>
+          <div class="chips" id="reservation-chips" role="group" aria-label="Filtrar por situação"></div>
+          <select id="admin-filter-reservations-status" class="d-none" aria-hidden="true" tabindex="-1">
+            <option value="">Todos</option><option value="new">new</option><option value="contacted">contacted</option><option value="confirmed">confirmed</option><option value="completed">completed</option><option value="cancelled">cancelled</option>
+          </select>
         </div>
-
+        <div class="res-list" id="admin-reservations-list"></div>
       </div>
 
       <!-- ==========================================
            TAB: VENDAS (REGISTRY PRESENCIAL SALES)
            ========================================== -->
       <div id="panel-sales" class="admin-view-tab d-none">
-        
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="plus-circle"></i> Registrar Nova Venda Física Direta</h3>
-          
-          <form id="admin-sales-registry-form" novalidate>
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label for="sale-select-product" class="form-label">Selecionar Produto *</label>
-                <select class="form-control" id="sale-select-product" required>
-                  <!-- Populated via JS -->
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="sale-qty" class="form-label">Quantidade Vendida *</label>
-                <input type="number" class="form-control" id="sale-qty" required min="1" value="1">
-              </div>
-            </div>
-
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label for="sale-payment-method" class="form-label">Forma de Pagamento *</label>
-                <select class="form-control" id="sale-payment-method" required>
-                  <option value="Pix">Pix Presencial</option>
-                  <option value="Cartão de Crédito">Cartão de Crédito</option>
-                  <option value="Cartão de Débito">Cartão de Débito</option>
-                  <option value="Dinheiro">Dinheiro físico</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="sale-seller" class="form-label">Vendedor Responsável *</label>
-                <select class="form-control" id="sale-seller" required>
-                  <option value="Lucas (Vendedor)">Lucas (Vendedor)</option>
-                  <option value="Mariana (Vendedora)">Mariana (Vendedora)</option>
-                  <option value="Administrador">Administrador</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label for="sale-discount" class="form-label">Desconto Aplicado (R$, opcional)</label>
-                <input type="number" class="form-control" id="sale-discount" placeholder="Ex: 100" min="0" value="0">
-              </div>
-              <div class="form-group">
-                <label for="sale-client" class="form-label">Cliente (opcional)</label>
-                <input type="text" class="form-control" id="sale-client" placeholder="Nome do comprador presencial">
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-              Finalizar e Dar Baixa <i data-lucide="check-circle-2"></i>
-            </button>
-          </form>
+        <div class="pg-bar">
+          <p class="pg-sub">Registre vendas de balcão, imprima o cupom e estorne quando necessário.</p>
+          <div class="pg-actions">
+            <button class="btn btn-primary" id="btn-sale-new" type="button"><i data-lucide="shopping-cart"></i> Nova venda</button>
+          </div>
         </div>
-
-
-        <div class="panel-card">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="history"></i> Vendas Físicas Registradas</h3>
-          
+        <section class="tiles" id="sales-summary" aria-label="Resumo de vendas"></section>
+        <div class="toolbar">
+          <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-sales" placeholder="Buscar por código ou cliente…"></label>
+          <div class="chips" id="sales-chips" role="group" aria-label="Filtrar vendas"></div>
+        </div>
+        <div class="panel-card flush">
           <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Código Venda</th>
-                  <th>Produto</th>
-                  <th>Quant.</th>
-                  <th>Cliente</th>
-                  <th>Forma Pagamento</th>
-                  <th>Valor Total</th>
-                  <th>Status</th>
-                  <th>Data Venda</th>
-                  <th>Vendedor</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="admin-sales-log-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
+            <table class="admin-table rich">
+              <thead><tr><th>Venda</th><th>Itens</th><th>Cliente</th><th>Pagamento</th><th class="num">Total</th><th>Situação</th><th class="actions-col"></th></tr></thead>
+              <tbody id="admin-sales-log-tbody"></tbody>
             </table>
           </div>
         </div>
-
       </div>
 
       <!-- ==========================================
            TAB: PROMOÇÕES (PROMOTIONS CALCULATOR)
            ========================================== -->
       <div id="panel-promo" class="admin-view-tab d-none">
-        <div class="panel-card" style="margin-bottom: 24px;">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="percent"></i> Calculadora de Promoções</h3>
-          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 20px;">
-            Selecione o escopo do desconto (toda a loja, categoria, marca ou individual), configure o desconto e aplique-o de forma massiva.
-          </p>
-          
-          <form id="admin-promo-calc-form" novalidate>
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label class="form-label">Aplicar desconto em:</label>
-                <select class="form-control" id="promo-scope">
-                  <option value="all">Toda a Loja (Todos os Produtos)</option>
-                  <option value="category">Por Categoria</option>
-                  <option value="brand">Por Marca</option>
-                  <option value="selected">Produtos Selecionados</option>
-                </select>
-              </div>
-              
-              <div class="form-group d-none" id="promo-scope-detail-group">
-                <label class="form-label" id="promo-scope-detail-label">Detalhe do Escopo</label>
-                <select class="form-control" id="promo-scope-detail">
-                  <!-- Populated dynamically via JS -->
-                </select>
-              </div>
-            </div>
-
-            <!-- Manual checkbox product selection (Hidden initially) -->
-            <div class="form-group d-none" id="promo-manual-select-group">
-              <label class="form-label">Selecione os Produtos:</label>
-              <div class="promo-product-checkbox-list" id="promo-manual-products-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 8px; background: var(--bg-secondary);">
-                <!-- Populated via JS -->
-              </div>
-            </div>
-            
-            <div class="grid-2-col">
-              <div class="form-group">
-                <label class="form-label">Tipo de Desconto *</label>
-                <select class="form-control" id="promo-discount-type">
-                  <option value="percent">Porcentagem (%) Off</option>
-                  <option value="fixed">Valor Fixo (R$) Off</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Valor do Desconto *</label>
-                <input type="number" class="form-control" id="promo-discount-value" placeholder="Ex: 5" required min="0" value="5">
-              </div>
-            </div>
-            
-            <div style="display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-secondary" id="btn-promo-preview">
-                Visualizar Alterações <i data-lucide="eye"></i>
-              </button>
-              <button type="submit" class="btn btn-primary" id="btn-promo-apply-submit" style="display: inline-block; cursor: pointer; padding: 10px 20px; border-radius: var(--radius-sm); border: none; background: var(--purple-primary); color: var(--white); font-weight: 600;">
-                Aplicar Promoção <i data-lucide="check" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;"></i>
-              </button>
-              <button type="button" class="btn btn-secondary" id="btn-promo-clear" style="border-color: var(--danger); color: var(--danger); background: transparent;">
-                Limpar Descontos <i data-lucide="trash-2"></i>
-              </button>
-            </div>
-          </form>
+        <div class="pg-bar">
+          <p class="pg-sub">Monte um desconto em 3 passos e confira o resultado antes de aplicar.</p>
         </div>
-        
-        <div class="panel-card d-none" id="promo-preview-card">
-          <h3 class="panel-card-title" style="margin-bottom: 16px;"><i data-lucide="eye"></i> Prévia de Alterações de Preço</h3>
+
+        <form id="admin-promo-calc-form" novalidate class="promo-layout">
+          <div class="promo-steps">
+            <section class="panel-card pstep">
+              <h3 class="pstep-title"><span class="pstep-num">1</span> Onde aplicar o desconto?</h3>
+              <div class="opt-grid" id="promo-scope-cards">
+                <button type="button" class="opt-card active" data-scope="all"><i data-lucide="store"></i><strong>Toda a loja</strong><span>Todos os produtos</span></button>
+                <button type="button" class="opt-card" data-scope="category"><i data-lucide="folder-tree"></i><strong>Categoria</strong><span>Ex.: só iPhones</span></button>
+                <button type="button" class="opt-card" data-scope="brand"><i data-lucide="tag"></i><strong>Marca</strong><span>Ex.: só Samsung</span></button>
+                <button type="button" class="opt-card" data-scope="selected"><i data-lucide="list-checks"></i><strong>Escolher produtos</strong><span>Marque um a um</span></button>
+              </div>
+              <select class="d-none" id="promo-scope" aria-hidden="true" tabindex="-1">
+                <option value="all">all</option><option value="category">category</option><option value="brand">brand</option><option value="selected">selected</option>
+              </select>
+              <div class="form-group d-none" id="promo-scope-detail-group" style="margin-top:16px;">
+                <label class="form-label" id="promo-scope-detail-label" for="promo-scope-detail">Detalhe</label>
+                <select class="form-control" id="promo-scope-detail"></select>
+              </div>
+              <div class="form-group d-none" id="promo-manual-select-group" style="margin-top:16px;">
+                <label class="form-label">Marque os produtos</label>
+                <div class="promo-product-checkbox-list" id="promo-manual-products-list"></div>
+              </div>
+            </section>
+
+            <section class="panel-card pstep">
+              <h3 class="pstep-title"><span class="pstep-num">2</span> Quanto de desconto?</h3>
+              <div class="seg-control" role="group" aria-label="Tipo de desconto" id="promo-type-seg">
+                <button type="button" class="seg-btn active" data-dtype="percent">Porcentagem (%)</button>
+                <button type="button" class="seg-btn" data-dtype="fixed">Valor fixo (R$)</button>
+              </div>
+              <select class="d-none" id="promo-discount-type" aria-hidden="true" tabindex="-1"><option value="percent">percent</option><option value="fixed">fixed</option></select>
+              <div class="amount-row">
+                <div class="amount-input"><span id="promo-affix">%</span><input type="number" class="form-control" id="promo-discount-value" required min="0" step="any" value="5" aria-label="Valor do desconto"></div>
+                <div class="chips" id="promo-quick-values"></div>
+              </div>
+            </section>
+
+            <section class="panel-card pstep">
+              <h3 class="pstep-title"><span class="pstep-num">3</span> Conferir os preços</h3>
+              <div class="table-responsive" style="max-height:340px;overflow:auto;">
+                <table class="admin-table rich compact">
+                  <thead><tr><th>Produto</th><th class="num">Preço</th><th class="num">Promoção atual</th><th class="num">Novo preço</th></tr></thead>
+                  <tbody id="promo-preview-tbody"></tbody>
+                </table>
+              </div>
+              <div id="promo-preview-card" class="d-none"></div>
+            </section>
+          </div>
+
+          <aside class="promo-summary panel-card" aria-live="polite">
+            <h3 class="pstep-title" style="margin-bottom:12px;"><i data-lucide="receipt-text"></i> Resumo</h3>
+            <div id="promo-summary-body"></div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-promo-apply-submit"><i data-lucide="check"></i> Aplicar promoção</button>
+            <button type="button" class="btn btn-ghost-danger btn-block" id="btn-promo-clear"><i data-lucide="eraser"></i> Remover promoções deste escopo</button>
+          </aside>
+        </form>
+
+        <section class="panel-card flush" style="margin-top:24px;">
+          <div class="panel-card-header"><h3 class="panel-card-title"><i data-lucide="badge-percent"></i> Promoções ativas no catálogo</h3><span class="results-count" id="promo-active-count"></span></div>
           <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Ref. Código</th>
-                  <th>Produto</th>
-                  <th>Preço Base</th>
-                  <th>Preço Promo Atual</th>
-                  <th>Novo Preço Promo</th>
-                  <th>Desconto Real</th>
-                </tr>
-              </thead>
-              <tbody id="promo-preview-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
+            <table class="admin-table rich">
+              <thead><tr><th>Produto</th><th class="num">Preço</th><th class="num">Promoção</th><th class="num">Desconto</th><th class="actions-col"></th></tr></thead>
+              <tbody id="promo-active-tbody"></tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- ==========================================
            TAB: USUÁRIOS & PERMISSÕES (ROLES LIST)
            ========================================== -->
       <div id="panel-users" class="admin-view-tab d-none">
-        
-        <div class="dashboard-grid" style="grid-template-columns: repeat(2, 1fr) !important; gap: 24px;">
-          
-          <!-- Card Admin -->
-          <div class="panel-card">
-            <div class="panel-card-header" style="border-bottom: 3px solid var(--purple-primary);">
-              <h3 class="panel-card-title"><i data-lucide="shield-check" class="text-purple"></i> Administrador</h3>
-              <span class="badge-capsule badge-purple-light">Acesso Completo</span>
-            </div>
-            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Nível hierárquico principal. Responsável pelas configurações de segurança, contratação e auditoria de vendas.</p>
-            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
-              <li>Visualizar painel financeiro e relatórios de lucros.</li>
-              <li>Cadastrar, editar e excluir produtos do catálogo.</li>
-              <li>Fazer ajustes diretos de estoque e cadastrar novos IMEIs.</li>
-              <li>Aprovar, cancelar e auditar reservas de clientes.</li>
-              <li>Gerenciar cargos, usuários e redefinir senhas.</li>
-            </ul>
-          </div>
-
-          <!-- Card Gerente -->
-          <div class="panel-card">
-            <div class="panel-card-header" style="border-bottom: 3px solid var(--purple-medium);">
-              <h3 class="panel-card-title"><i data-lucide="shield" style="color: var(--purple-medium);"></i> Gerente</h3>
-              <span class="badge-capsule badge-purple-light">Gestão e Estoque</span>
-            </div>
-            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Supervisão operacional da loja física. Administra as atividades cotidianas e o fluxo de inventário.</p>
-            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
-              <li>Visualizar e atualizar o estoque mínimo de alertas.</li>
-              <li>Adicionar novos produtos e realizar correções de preços.</li>
-              <li>Aprovar e modificar reservas de clientes.</li>
-              <li>Registrar saídas por avaria de peças ou perdas de aparelhos.</li>
-              <li>Sem acesso ao gerenciamento de usuários.</li>
-            </ul>
-          </div>
-
-          <!-- Card Vendedor -->
-          <div class="panel-card">
-            <div class="panel-card-header" style="border-bottom: 3px solid var(--orange-primary);">
-              <h3 class="panel-card-title"><i data-lucide="user-check" class="text-orange"></i> Vendedor</h3>
-              <span class="badge-capsule badge-orange-light">Reservas e Balcão</span>
-            </div>
-            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Atendimento direto no balcão físico da loja. Foca no contato presencial com o cliente final.</p>
-            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
-              <li>Consultar a disponibilidade de modelos do estoque em tempo real.</li>
-              <li>Confirmar a retirada do aparelho e converter reserva em venda concluída.</li>
-              <li>Registrar novas vendas presenciais e emitir avisos de reserva.</li>
-              <li>Bloqueado para alteração de custos de compra ou edição de produtos.</li>
-            </ul>
-          </div>
-
-          <!-- Card Estoquista -->
-          <div class="panel-card">
-            <div class="panel-card-header" style="border-bottom: 3px solid var(--text-secondary);">
-              <h3 class="panel-card-title"><i data-lucide="package" style="color: var(--text-secondary);"></i> Estoquista</h3>
-              <span class="badge-capsule" style="background-color: var(--bg-secondary); color: var(--text-secondary);">Inventário</span>
-            </div>
-            <p class="text-muted" style="font-size: 0.8rem; margin: 12px 0;">Manuseio físico do estoque. Recebimento de mercadorias, conferência e etiquetagem dos IMEIs.</p>
-            <ul style="font-size: 0.8rem; padding-left: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px;">
-              <li>Lançar entradas de notas fiscais de compra no painel.</li>
-              <li>Listar códigos de barras e vincular números de série aos celulares.</li>
-              <li>Ajustar quantidades de acessórios e capinhas após contagem de inventário.</li>
-              <li>Bloqueado para faturamento de vendas ou visualização financeira.</li>
-            </ul>
-          </div>
-
+        <div class="pg-bar">
+          <p class="pg-sub">Quem usa o painel e o que cada cargo pode fazer. Os acessos passam a ser aplicados quando o login for ativado.</p>
         </div>
-
+        <section class="panel-card flush" style="margin-bottom:24px;">
+          <div class="panel-card-header"><h3 class="panel-card-title"><i data-lucide="users"></i> Equipe</h3></div>
+          <div class="team-list" id="team-list"></div>
+        </section>
+        <section class="panel-card flush">
+          <div class="panel-card-header"><h3 class="panel-card-title"><i data-lucide="shield-check"></i> Permissões por cargo</h3></div>
+          <div class="table-responsive">
+            <table class="admin-table rich perm-table">
+              <thead><tr><th>Ação</th><th>Administrador</th><th>Gerente</th><th>Vendedor</th><th>Estoquista</th></tr></thead>
+              <tbody>
+                <tr><td>Ver financeiro e lucro</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Cadastrar e editar produtos / preços</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Lançar entradas e ajustes de estoque</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Atender reservas e registrar vendas</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Estornar vendas</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Criar promoções</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Gerenciar usuários e configurações</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       <!-- ==========================================
@@ -832,6 +539,83 @@
     </main>
 
   </div>
+
+  
+  <!-- ==========================================
+       DRAWERS (painéis laterais de ação rápida)
+       ========================================== -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <aside class="drawer" id="drawer-stock" aria-hidden="true" aria-labelledby="drawer-stock-title">
+    <header class="drawer-head"><h3 id="drawer-stock-title">Registrar movimentação</h3><button type="button" class="icon-btn" data-close-drawer aria-label="Fechar"><i data-lucide="x"></i></button></header>
+    <form id="admin-stock-adjust-form" novalidate class="drawer-body">
+      <div class="form-group">
+        <label for="stock-adjust-product" class="form-label">Produto</label>
+        <select class="form-control" id="stock-adjust-product" required></select>
+        <p class="hint" id="stock-current-hint"></p>
+      </div>
+      <div class="form-group">
+        <span class="form-label">O que aconteceu?</span>
+        <div class="opt-grid three" id="stock-type-cards">
+          <button type="button" class="opt-card active" data-type="Entrada"><i data-lucide="arrow-down-to-line"></i><strong>Entrada</strong><span>Chegou mercadoria</span></button>
+          <button type="button" class="opt-card" data-type="Saída"><i data-lucide="arrow-up-from-line"></i><strong>Saída</strong><span>Perda ou avaria</span></button>
+          <button type="button" class="opt-card" data-type="Ajuste"><i data-lucide="scale"></i><strong>Contagem</strong><span>Definir saldo exato</span></button>
+        </div>
+        <select class="d-none" id="stock-adjust-type" aria-hidden="true" tabindex="-1"><option value="Entrada">Entrada</option><option value="Saída">Saída</option><option value="Ajuste">Ajuste</option></select>
+      </div>
+      <div class="form-group">
+        <label for="stock-adjust-amount" class="form-label" id="stock-amount-label">Quantidade que entrou</label>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="Diminuir">−</button><input type="number" class="form-control" id="stock-adjust-amount" placeholder="0" required min="0"><button type="button" data-step="1" aria-label="Aumentar">+</button></div>
+        <p class="hint" id="stock-result-hint"></p>
+      </div>
+      <div class="form-group">
+        <label for="stock-adjust-reason" class="form-label">Motivo</label>
+        <input type="text" class="form-control" id="stock-adjust-reason" placeholder="Ex.: compra do fornecedor" required>
+        <div class="chips small" id="stock-reason-chips"></div>
+      </div>
+      <div class="form-group d-none" id="stock-adjust-imeis-group">
+        <label for="stock-adjust-imeis" class="form-label">IMEIs (separe por vírgula)</label>
+        <textarea class="form-control" id="stock-adjust-imeis" rows="2" placeholder="359998887776661, 359998887776662"></textarea>
+      </div>
+      <footer class="drawer-foot"><button type="button" class="btn btn-secondary" data-close-drawer>Cancelar</button><button type="submit" class="btn btn-primary"><i data-lucide="check"></i> Salvar movimentação</button></footer>
+    </form>
+  </aside>
+
+  <aside class="drawer" id="drawer-sale" aria-hidden="true" aria-labelledby="drawer-sale-title">
+    <header class="drawer-head"><h3 id="drawer-sale-title">Nova venda</h3><button type="button" class="icon-btn" data-close-drawer aria-label="Fechar"><i data-lucide="x"></i></button></header>
+    <form id="admin-sales-registry-form" novalidate class="drawer-body">
+      <div class="form-group">
+        <label for="sale-select-product" class="form-label">Produto</label>
+        <select class="form-control" id="sale-select-product" required></select>
+      </div>
+      <div class="form-group">
+        <label for="sale-qty" class="form-label">Quantidade</label>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="Diminuir">−</button><input type="number" class="form-control" id="sale-qty" required min="1" value="1"><button type="button" data-step="1" aria-label="Aumentar">+</button></div>
+      </div>
+      <div class="form-group">
+        <span class="form-label">Forma de pagamento</span>
+        <div class="opt-grid four" id="sale-pay-cards">
+          <button type="button" class="opt-card active" data-pay="Pix"><i data-lucide="qr-code"></i><strong>Pix</strong></button>
+          <button type="button" class="opt-card" data-pay="Cartão de Crédito"><i data-lucide="credit-card"></i><strong>Crédito</strong></button>
+          <button type="button" class="opt-card" data-pay="Cartão de Débito"><i data-lucide="credit-card"></i><strong>Débito</strong></button>
+          <button type="button" class="opt-card" data-pay="Dinheiro"><i data-lucide="banknote"></i><strong>Dinheiro</strong></button>
+        </div>
+        <select class="d-none" id="sale-payment-method" aria-hidden="true" tabindex="-1">
+          <option value="Pix">Pix</option><option value="Cartão de Crédito">Cartão de Crédito</option><option value="Cartão de Débito">Cartão de Débito</option><option value="Dinheiro">Dinheiro</option>
+        </select>
+      </div>
+      <div class="grid-2-col">
+        <div class="form-group"><label for="sale-client" class="form-label">Cliente <small>(opcional)</small></label><input type="text" class="form-control" id="sale-client" placeholder="Nome do comprador"></div>
+        <div class="form-group"><label for="sale-discount" class="form-label">Desconto em R$ <small>(opcional)</small></label><input type="number" class="form-control" id="sale-discount" placeholder="0" min="0" value="0"></div>
+      </div>
+      <div class="form-group">
+        <label for="sale-seller" class="form-label">Vendedor</label>
+        <select class="form-control" id="sale-seller" required><option value="Thallys">Thallys</option><option value="Joice">Joice</option></select>
+      </div>
+      <div class="total-box"><span>Total da venda</span><strong id="sale-total-preview">R$ 0,00</strong></div>
+      <footer class="drawer-foot"><button type="button" class="btn btn-secondary" data-close-drawer>Cancelar</button><button type="submit" class="btn btn-primary"><i data-lucide="check-circle-2"></i> Finalizar venda</button></footer>
+    </form>
+  </aside>
 
   <!-- ==========================================
        ADMIN ADD/EDIT PRODUCT MODAL
@@ -1115,5 +899,6 @@
   <script src="./store_data.js"></script>
   <script src="./supabase_adapter.js"></script>
   <script src="./admin.js"></script>
+  <script src="./admin_views.js"></script>
 </body>
 </html>
