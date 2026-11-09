@@ -7,12 +7,12 @@
    Loaded after admin.css and overrides it.
    ========================================================================== */
 body.admin-body {
-  --ui-frame: #F5F3F6;
+  --ui-frame: #F3ECF3;
   --ui-sheet: #FFFFFF;
-  --ui-raised: #FAF9FB;
-  --ui-active: #E9E6EB;
-  --ui-line: #E8E5EA;
-  --ui-rule: #F1EFF3;
+  --ui-raised: #FBF7FB;
+  --ui-active: #EAD9EA;
+  --ui-line: #E9E0E9;
+  --ui-rule: #F3EDF3;
   --ui-control: #D3D0D6;
   --ui-ink: #17151A;
   --ui-muted: #5E5A63;
@@ -474,3 +474,28 @@ body.admin-body .preview-thumb-card .primary-badge { background: var(--ui-ink); 
 .fallback-opt summary { cursor: pointer; font-size: 13px; color: var(--ui-muted); } .fallback-opt summary small { color: var(--ui-faint); }
 .fallback-opt > div { margin-top: 12px; }
 #cat-img-preview-wrapper { text-align: left !important; }
+
+/* ---------- A touch more brand colour (plum chrome, orange data) ---------- */
+body.admin-body .menu-item-link svg { color: #85607F; }
+body.admin-body .menu-item-link.active, body.admin-body .menu-item-link.active svg { color: var(--ui-primary); }
+body.admin-body .menu-item-link:hover { background: rgba(60, 18, 57, .07); }
+body.admin-body .menu-group-label span { color: #85607F; }
+.sheet-title { color: var(--ui-primary); }
+.kpi-cell.lead .kpi-v { color: var(--ui-primary); }
+.card-head h2, body.admin-body .panel-card-title { color: var(--ui-primary); }
+.chip.active { background: var(--ui-primary); border-color: var(--ui-primary); }
+.seg-btn.active { color: var(--ui-primary); border-color: #D9C3D8; font-weight: 600; }
+.opt-card.active { border-color: var(--ui-primary); outline-color: var(--ui-primary); background: #FAF2FA; }
+.opt-card.active svg { color: var(--ui-primary); }
+.top-item:first-child .top-bar i { background: var(--ui-data); }
+.top-bar i { background: #CDB7CB; }
+.meter.ok i { background: #A07F9C; }
+.pick.today .pick-l { color: var(--ui-data); }
+.dot { background: #A07F9C; }
+.pstep-num { background: var(--ui-primary); }
+.tab-lite.active, body.admin-body .admin-tab-btn.active { color: var(--ui-primary); }
+.cmdk-item.active, .cmdk-item:hover { background: #F3E6F3; }
+.ui-switch.on { background: #2F8F5B; }
+.search-field input:focus, body.admin-body .form-control:focus { border-color: var(--ui-primary); box-shadow: 0 0 0 3px rgba(60, 18, 57, .12); }
+.link-btn { color: var(--ui-primary); }
+.scope-mark { background: var(--ui-primary); }
