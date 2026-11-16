@@ -191,6 +191,9 @@ function handleRoute() {
   } else if (hash === '#catalogo') {
     navigateToView('home');
     scrollToSection('catalogo');
+  } else if (hash === '#perfumes') {
+    navigateToView('home');
+    scrollToSection('perfumes');
   } else if (hash === '#categorias') {
     navigateToView('home');
     scrollToSection('categorias');
@@ -264,7 +267,7 @@ function scrollToSection(sectionId) {
 }
 
 function updateActiveMenuLinks(hash) {
-  const links = ['home', 'catalogo', 'categorias', 'como-funciona', 'assistencia', 'diferenciais', 'contato'];
+  const links = ['home', 'catalogo', 'categorias', 'perfumes', 'como-funciona', 'assistencia', 'diferenciais', 'contato'];
   links.forEach(link => {
     const el = document.getElementById(`nav-${link}`);
     if (el) {
@@ -341,6 +344,15 @@ function setupEventListeners() {
     const target = document.getElementById('catalogo');
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
+
+  const btnPerfAll = document.getElementById('btn-perfumes-all');
+  if (btnPerfAll) btnPerfAll.addEventListener('click', () => {
+    state.filters.category = 'perfumes';
+    state.filters.search = '';
+    if (mainSearchInput) mainSearchInput.value = '';
+    renderCatalogGrid();
+    window.location.hash = '#catalogo';
+  });
 
   const btnFilters = document.getElementById('btn-toggle-filters');
   if (btnFilters) btnFilters.addEventListener('click', () => {
@@ -741,8 +753,52 @@ function handleSearchSubmit() {
   renderCatalogGrid();
 }
 
+function renderPerfumeShelf() {
+  const host = document.getElementById('perfumes-container');
+  if (!host) return;
+  const perfumes = (getProducts() || []).filter(p => p.categoryId === 'cat-perfumes' && p.status === 'active');
+  const section = document.getElementById('perfumes');
+  if (section) section.classList.toggle('d-none', perfumes.length === 0);
+  host.innerHTML = '';
+  perfumes.forEach(prod => {
+    const v = getPrimaryVariant(prod);
+    const total = getProductTotalStock(prod);
+    const img = (prod.images || []).find(i => i.isPrimary) || (prod.images || [])[0];
+    const hasPromo = v && v.promotionalPriceCents != null && v.promotionalPriceCents < v.priceCents;
+    const card = document.createElement('article');
+    card.className = 'perfume-card';
+    card.innerHTML = `
+      <div class="perfume-media">${hasPromo ? '<span class="perfume-tag">Oferta</span>' : ''}<img alt="" loading="lazy"></div>
+      <div class="perfume-body">
+        <span class="perfume-brand"></span>
+        <h3 class="perfume-name"></h3>
+        <span class="perfume-spec"></span>
+        <div class="perfume-price"></div>
+        <div class="perfume-actions">
+          <button type="button" class="btn btn-secondary btn-sm btn-perf-detail">Detalhes</button>
+          <button type="button" class="btn btn-primary btn-sm btn-perf-add" ${total === 0 ? 'disabled' : ''}>${total === 0 ? 'Sem estoque' : 'Selecionar'}</button>
+        </div>
+      </div>`;
+    const imgEl = card.querySelector('img');
+    imgEl.src = img ? img.src : './assets/perfumes.svg';
+    imgEl.alt = prod.name;
+    imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = './assets/perfumes.svg'; };
+    card.querySelector('.perfume-brand').textContent = prod.brand;
+    card.querySelector('.perfume-name').textContent = prod.name;
+    card.querySelector('.perfume-spec').textContent = [v && v.capacity, v && v.color].filter(Boolean).join(' · ');
+    const priceCents = v ? (hasPromo ? v.promotionalPriceCents : v.priceCents) : 0;
+    card.querySelector('.perfume-price').innerHTML = (hasPromo ? '<s></s>' : '') + '<strong></strong>';
+    if (hasPromo) card.querySelector('.perfume-price s').textContent = formatBRLFromCents(v.priceCents);
+    card.querySelector('.perfume-price strong').textContent = formatBRLFromCents(priceCents);
+    card.querySelector('.btn-perf-detail').addEventListener('click', () => showProductDetail(prod.id));
+    card.querySelector('.btn-perf-add').addEventListener('click', () => addToCart(prod.id));
+    host.appendChild(card);
+  });
+}
+
 function renderCatalogGrid() {
   initData();
+  renderPerfumeShelf();
   if (!productsContainer) return;
   productsContainer.innerHTML = '';
   
@@ -776,7 +832,8 @@ function renderCatalogGrid() {
       }
     }
     
-    // 2. Category Match
+    // 2. Category Match (perfumes live in their own section unless searched or chosen by category)
+    if (!state.filters.category && !state.filters.search && prod.categoryId === 'cat-perfumes') return false;
     if (state.filters.category) {
       const catSlug = (prod.categoryId || '').replace('cat-', '');
       if (catSlug !== state.filters.category) return false;
