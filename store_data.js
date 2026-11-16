@@ -25,7 +25,7 @@ const DEMO_CONFIG = Object.freeze({
 
 const DEMO_SCHEMA_VERSION = 3;
 const DEMO_DATA_REVISION = 4;
-const PATCH_ID = 'perfumes-capas-perfis-2026-11-16';
+const PATCH_ID = 'imagens-webp-2026-11-16';
 const PREFIX = 'store_imports_demo_v3_';
 const V2_PREFIX = 'store_imports_demo_v2_';
 
@@ -47,9 +47,9 @@ const SEED_CATEGORIES = [
   { id: 'cat-notebooks', name: 'Notebooks', slug: 'notebooks', description: 'Laptops de alta performance', image: 'notebooks.png', icon: 'laptop', status: 'active', displayOrder: 4, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'cat-smartwatches', name: 'Smartwatches', slug: 'smartwatches', description: 'Relógios inteligentes', image: 'relógios.png', icon: 'watch', status: 'active', displayOrder: 5, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'cat-acessorios', name: 'Acessórios', slug: 'acessorios', description: 'Capas, películas e periféricos', image: 'acessórios.png', icon: 'headphones', status: 'active', displayOrder: 6, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'cat-capas', name: 'Capas', slug: 'capas', description: 'Capas e cases para celulares', image: 'capas.svg', icon: 'shield', status: 'active', displayOrder: 7, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'cat-peliculas', name: 'Películas', slug: 'peliculas', description: 'Películas de vidro, 3D e hidrogel', image: 'peliculas.svg', icon: 'layers', status: 'active', displayOrder: 8, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'cat-perfumes', name: 'Perfumes', slug: 'perfumes', description: 'Perfumes importados masculinos, femininos e unissex', image: 'perfumes.svg', icon: 'sparkles', status: 'active', displayOrder: 9, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  { id: 'cat-capas', name: 'Capas', slug: 'capas', description: 'Capas e cases para celulares', image: 'capas.webp', icon: 'shield', status: 'active', displayOrder: 7, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'cat-peliculas', name: 'Películas', slug: 'peliculas', description: 'Películas de vidro, 3D e hidrogel', image: 'peliculas.webp', icon: 'layers', status: 'active', displayOrder: 8, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'cat-perfumes', name: 'Perfumes', slug: 'perfumes', description: 'Perfumes importados masculinos, femininos e unissex', image: 'perfumes.webp', icon: 'sparkles', status: 'active', displayOrder: 9, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
 ];
 
 const SEED_PRODUCTS = [
@@ -166,7 +166,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "MagSafe 15 Pro", categoryId: 'cat-capas', condition: 'new',
     shortDescription: "Silicone macio com ímãs MagSafe e forro de microfibra.",
     status: 'active',
-    images: [{ id: 'img-13', src: './assets/capas.svg', alt: "Capa Silicone MagSafe iPhone 15 Pro", isPrimary: true }],
+    images: [{ id: 'img-13', src: './assets/capas.webp', alt: "Capa Silicone MagSafe iPhone 15 Pro", isPrimary: true }],
     variants: [{ id: 'var-13', sku: 'DEMO-CAPA-MAGSAFE-15P-V1', color: "Preta", capacity: "", priceCents: 14900, promotionalPriceCents: 12900, costCents: 4500, stockQuantity: 12, minimumStock: 4, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -175,7 +175,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "Antichoque 14", categoryId: 'cat-capas', condition: 'new',
     shortDescription: "Transparente, bordas reforçadas e proteção para a câmera.",
     status: 'active',
-    images: [{ id: 'img-14', src: './assets/capas.svg', alt: "Capa Antichoque iPhone 14", isPrimary: true }],
+    images: [{ id: 'img-14', src: './assets/capas.webp', alt: "Capa Antichoque iPhone 14", isPrimary: true }],
     variants: [{ id: 'var-14', sku: 'DEMO-CAPA-AC-IP14-V1', color: "Transparente", capacity: "", priceCents: 8900, promotionalPriceCents: null, costCents: 2200, stockQuantity: 18, minimumStock: 5, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -184,7 +184,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "Anti-impacto S23 Ultra", categoryId: 'cat-capas', condition: 'new',
     shortDescription: "Proteção dupla com suporte para a S Pen.",
     status: 'active',
-    images: [{ id: 'img-15', src: './assets/capas.svg', alt: "Capa Anti-impacto Galaxy S23 Ultra", isPrimary: true }],
+    images: [{ id: 'img-15', src: './assets/capas.webp', alt: "Capa Anti-impacto Galaxy S23 Ultra", isPrimary: true }],
     variants: [{ id: 'var-15', sku: 'DEMO-CAPA-S23U-V1', color: "Fumê", capacity: "", priceCents: 9900, promotionalPriceCents: null, costCents: 2500, stockQuantity: 9, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -193,7 +193,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "Slim A55", categoryId: 'cat-capas', condition: 'new',
     shortDescription: "Fina, leve e com acabamento fosco.",
     status: 'active',
-    images: [{ id: 'img-16', src: './assets/capas.svg', alt: "Capa Slim Galaxy A55", isPrimary: true }],
+    images: [{ id: 'img-16', src: './assets/capas.webp', alt: "Capa Slim Galaxy A55", isPrimary: true }],
     variants: [{ id: 'var-16', sku: 'DEMO-CAPA-A55-V1', color: "Azul", capacity: "", priceCents: 5900, promotionalPriceCents: null, costCents: 1400, stockQuantity: 14, minimumStock: 4, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -202,7 +202,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "3D 15 Pro", categoryId: 'cat-peliculas', condition: 'new',
     shortDescription: "Vidro temperado 3D com borda preta e alta resistência a riscos.",
     status: 'active',
-    images: [{ id: 'img-17', src: './assets/peliculas.svg', alt: "Película 3D iPhone 15 Pro", isPrimary: true }],
+    images: [{ id: 'img-17', src: './assets/peliculas.webp', alt: "Película 3D iPhone 15 Pro", isPrimary: true }],
     variants: [{ id: 'var-17', sku: 'DEMO-PEL-3D-15P-V1', color: "Transparente", capacity: "", priceCents: 4900, promotionalPriceCents: null, costCents: 800, stockQuantity: 25, minimumStock: 8, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -211,7 +211,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "Hidrogel", categoryId: 'cat-peliculas', condition: 'new',
     shortDescription: "Cortada na hora para o seu aparelho. Autorregenerável.",
     status: 'active',
-    images: [{ id: 'img-18', src: './assets/peliculas.svg', alt: "Película Hidrogel Universal", isPrimary: true }],
+    images: [{ id: 'img-18', src: './assets/peliculas.webp', alt: "Película Hidrogel Universal", isPrimary: true }],
     variants: [{ id: 'var-18', sku: 'DEMO-PEL-HIDRO-V1', color: "Transparente", capacity: "", priceCents: 2900, promotionalPriceCents: null, costCents: 500, stockQuantity: 40, minimumStock: 10, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -220,7 +220,7 @@ const SEED_PRODUCTS = [
     brand: "Store Imports", model: "Privacidade S23 Ultra", categoryId: 'cat-peliculas', condition: 'new',
     shortDescription: "Escurece a tela em ângulos laterais. Vidro temperado.",
     status: 'active',
-    images: [{ id: 'img-19', src: './assets/peliculas.svg', alt: "Película Privacidade Galaxy S23 Ultra", isPrimary: true }],
+    images: [{ id: 'img-19', src: './assets/peliculas.webp', alt: "Película Privacidade Galaxy S23 Ultra", isPrimary: true }],
     variants: [{ id: 'var-19', sku: 'DEMO-PEL-PRIV-S23U-V1', color: "Fumê", capacity: "", priceCents: 5900, promotionalPriceCents: null, costCents: 1100, stockQuantity: 10, minimumStock: 4, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -229,7 +229,7 @@ const SEED_PRODUCTS = [
     brand: "Maison Orla", model: "Noir Intense EDP", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Amadeirado e especiado, com fundo de baunilha. Masculino.",
     status: 'active',
-    images: [{ id: 'img-20', src: './assets/perfumes.svg', alt: "Noir Intense", isPrimary: true }],
+    images: [{ id: 'img-20', src: './assets/perfumes.webp', alt: "Noir Intense", isPrimary: true }],
     variants: [{ id: 'var-20', sku: 'DEMO-PERF-NOIR-V1', color: "Masculino", capacity: "100 ml", priceCents: 28900, promotionalPriceCents: null, costCents: 14500, stockQuantity: 8, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -238,7 +238,7 @@ const SEED_PRODUCTS = [
     brand: "Maison Orla", model: "Flor de Cerrado EDP", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Floral suave com toque de frutas brancas. Feminino.",
     status: 'active',
-    images: [{ id: 'img-21', src: './assets/perfumes.svg', alt: "Flor de Cerrado", isPrimary: true }],
+    images: [{ id: 'img-21', src: './assets/perfumes.webp', alt: "Flor de Cerrado", isPrimary: true }],
     variants: [{ id: 'var-21', sku: 'DEMO-PERF-FLOR-V1', color: "Feminino", capacity: "50 ml", priceCents: 21900, promotionalPriceCents: null, costCents: 10500, stockQuantity: 6, minimumStock: 2, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -247,7 +247,7 @@ const SEED_PRODUCTS = [
     brand: "Atelier Veredas", model: "Âmbar Solar EDP", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Âmbar quente com notas cítricas. Unissex.",
     status: 'active',
-    images: [{ id: 'img-22', src: './assets/perfumes.svg', alt: "Âmbar Solar", isPrimary: true }],
+    images: [{ id: 'img-22', src: './assets/perfumes.webp', alt: "Âmbar Solar", isPrimary: true }],
     variants: [{ id: 'var-22', sku: 'DEMO-PERF-AMBAR-V1', color: "Unissex", capacity: "100 ml", priceCents: 24900, promotionalPriceCents: null, costCents: 12000, stockQuantity: 5, minimumStock: 2, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -256,7 +256,7 @@ const SEED_PRODUCTS = [
     brand: "Atelier Veredas", model: "Brisa Marina EDT", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Fresco e aquático, ideal para o dia a dia. Masculino.",
     status: 'active',
-    images: [{ id: 'img-23', src: './assets/perfumes.svg', alt: "Brisa Marina", isPrimary: true }],
+    images: [{ id: 'img-23', src: './assets/perfumes.webp', alt: "Brisa Marina", isPrimary: true }],
     variants: [{ id: 'var-23', sku: 'DEMO-PERF-BRISA-V1', color: "Masculino", capacity: "100 ml", priceCents: 17900, promotionalPriceCents: 15900, costCents: 8200, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -265,7 +265,7 @@ const SEED_PRODUCTS = [
     brand: "Maison Orla", model: "Jasmim Real EDP", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Jasmim e flor de laranjeira com fundo cremoso. Feminino.",
     status: 'active',
-    images: [{ id: 'img-24', src: './assets/perfumes.svg', alt: "Jasmim Real", isPrimary: true }],
+    images: [{ id: 'img-24', src: './assets/perfumes.webp', alt: "Jasmim Real", isPrimary: true }],
     variants: [{ id: 'var-24', sku: 'DEMO-PERF-JASMIM-V1', color: "Feminino", capacity: "75 ml", priceCents: 26900, promotionalPriceCents: null, costCents: 13000, stockQuantity: 4, minimumStock: 2, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
@@ -274,7 +274,7 @@ const SEED_PRODUCTS = [
     brand: "Atelier Veredas", model: "Madeira Escura EDP", categoryId: 'cat-perfumes', condition: 'new',
     shortDescription: "Cedro, patchouli e couro. Intenso e duradouro. Unissex.",
     status: 'active',
-    images: [{ id: 'img-25', src: './assets/perfumes.svg', alt: "Madeira Escura", isPrimary: true }],
+    images: [{ id: 'img-25', src: './assets/perfumes.webp', alt: "Madeira Escura", isPrimary: true }],
     variants: [{ id: 'var-25', sku: 'DEMO-PERF-MADEIRA-V1', color: "Unissex", capacity: "100 ml", priceCents: 31900, promotionalPriceCents: null, costCents: 16000, stockQuantity: 3, minimumStock: 2, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   }
@@ -624,7 +624,21 @@ function ensureDemoDataIntegrity() {
   };
 
   mergeCollection('categories', SEED_CATEGORIES);
+  // seeded items created before the real photos existed keep their old image path: refresh it
+  const refreshSeedImages = (key, seedList) => {
+    const list = getStoreData(key);
+    let changed = false;
+    list.forEach(item => {
+      const seed = seedList.find(x => x.id === item.id);
+      if (!seed) return;
+      if (key === 'categories' && item.image !== seed.image && /\.svg$/.test(item.image || '')) { item.image = seed.image; changed = true; }
+      if (key === 'products' && item.images && item.images[0] && /\.svg$/.test(item.images[0].src || '') && seed.images) { item.images = seed.images; changed = true; }
+    });
+    if (changed) saveStoreData(key, list);
+  };
   mergeCollection('products', SEED_PRODUCTS, normalizeProduct);
+  refreshSeedImages('categories', SEED_CATEGORIES);
+  refreshSeedImages('products', SEED_PRODUCTS);
   mergeCollection('reservations', SEED_RESERVATIONS, normalizeReservation);
   mergeCollection('sales', SEED_SALES, normalizeSale);
   mergeCollection('maintenances', SEED_MAINTENANCES);
