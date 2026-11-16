@@ -499,3 +499,5 @@ body.admin-body .menu-group-label span { color: #85607F; }
 .search-field input:focus, body.admin-body .form-control:focus { border-color: var(--ui-primary); box-shadow: 0 0 0 3px rgba(60, 18, 57, .12); }
 .link-btn { color: var(--ui-primary); }
 .scope-mark { background: var(--ui-primary); }
+
+body.no-finance .fin-only { display: none !important; }

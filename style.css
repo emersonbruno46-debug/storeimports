@@ -2853,3 +2853,94 @@ input:checked + .slider:before {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* ==========================================
+   SEARCH FIRST (V2): the first thing on screen
+   ========================================== */
+.search-section {
+  position: sticky;
+  top: var(--header-h, 64px);
+  z-index: 90;
+  margin-top: 0;
+  padding-top: 12px;
+  padding-bottom: 10px;
+  background: var(--white);
+  box-shadow: 0 0 0 100vmax var(--white);
+  clip-path: inset(0 -100vmax);
+}
+.search-bar-wrapper {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border: 2px solid var(--purple-primary);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 24px rgba(60, 18, 57, 0.14);
+}
+.search-bar-wrapper:focus-within {
+  border-color: var(--orange-primary);
+  box-shadow: 0 8px 28px rgba(241, 77, 29, 0.22);
+}
+.search-input-container { padding: 0; gap: 10px; min-width: 0; }
+.search-icon { width: 22px; height: 22px; flex: none; }
+.search-bar-input { height: 48px; font-size: 1rem; min-width: 0; outline: none; -webkit-appearance: none; appearance: none; }
+.search-bar-input::-webkit-search-cancel-button { display: none; }
+.search-btn { width: auto; height: 48px; padding: 0 22px; border-radius: var(--radius-pill); flex: none; }
+.search-btn-icon { display: none; width: 20px; height: 20px; }
+@media (max-width: 479px) {
+  .search-btn { padding: 0 16px; }
+  .search-btn span { display: none; }
+  .search-btn-icon { display: inline-block; }
+}
+@media (min-width: 768px) {
+  .search-section { padding-top: 24px; padding-bottom: 14px; }
+  .search-bar-wrapper { max-width: 880px; margin: 0 auto; padding: 8px 8px 8px 24px; }
+  .search-bar-input { height: 56px; font-size: 1.15rem; }
+  .search-btn { height: 56px; padding: 0 36px; font-size: 1.05rem; }
+}
+.search-autocomplete-dropdown { top: calc(100% + 16px); }
+
+.search-quick-row { padding-bottom: 8px; }
+.search-quick {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.search-quick::-webkit-scrollbar { display: none; }
+@media (min-width: 768px) { .search-quick { justify-content: center; } }
+.chip-quick {
+  flex: none; height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border-color);
+  background: var(--white); color: var(--purple-primary); font: 600 0.85rem var(--font-body); cursor: pointer;
+}
+.chip-quick:hover { background: var(--purple-light); border-color: var(--purple-medium); }
+
+/* products and categories first: tighter rhythm */
+.section-tight { padding-top: 16px; padding-bottom: 24px; }
+#categorias .section-header { margin-bottom: 16px; }
+#categorias .section-subtitle { display: none; }
+#catalogo.section-spacing { padding-top: 32px; }
+.categories-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (min-width: 992px) { .categories-grid { grid-template-columns: repeat(9, 1fr); gap: 12px; } }
+
+/* compact category strip: horizontal scroll on phones, one row on desktop */
+.categories-grid { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.categories-grid::-webkit-scrollbar { display: none; }
+.category-card { flex: 0 0 112px; padding: 12px 8px; gap: 6px; scroll-snap-align: start; }
+.category-card-img-wrapper { width: 64px; height: 64px; margin-bottom: 0; }
+.category-card-name { font-size: 0.8rem; }
+.category-card-arrow { display: none; }
+@media (min-width: 992px) {
+  .categories-grid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); overflow: visible; }
+  .category-card { flex: none; padding: 14px 8px; }
+  .category-card-img-wrapper { width: 72px; height: 72px; }
+}
+/* phones: no announcement bar above the search */
+@media (max-width: 767px) { .top-bar { display: none; } .main-header { padding: 10px 0; } }
+
+/* filters: collapsed on phones so products come first */
+.filters-toggle { display: none; width: 100%; height: 44px; margin-bottom: 12px; }
+@media (max-width: 991px) {
+  .filters-toggle { display: inline-flex; }
+  .filters-sidebar { display: none; }
+  .filters-sidebar.open { display: block; margin-bottom: 16px; }
+  .demo-badge-container { display: none; }
+}

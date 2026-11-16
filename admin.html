@@ -130,6 +130,7 @@
           <div class="profile-dropdown-menu d-none" id="profile-dropdown-menu">
             <div class="dropdown-item" data-profile="Thallys"><span class="avatar sm" style="background:hsl(300 30% 92%);color:hsl(300 35% 28%)">T</span><span>Thallys</span></div>
             <div class="dropdown-item" data-profile="Joice"><span class="avatar sm" style="background:hsl(20 60% 92%);color:hsl(20 55% 28%)">J</span><span>Joice</span></div>
+            <div class="dropdown-item" data-profile="Recepção"><span class="avatar sm" style="background:hsl(200 45% 92%);color:hsl(200 45% 26%)">R</span><span>Recepção</span></div>
           </div>
         </div>
       </div>
@@ -158,7 +159,7 @@
           </div>
         </div>
 
-        <section class="kpi-strip" id="ov-kpis" aria-label="Indicadores do período"></section>
+        <section class="kpi-strip fin-only" id="ov-kpis" aria-label="Indicadores do período"></section>
 
         <div class="grid-12">
           <section class="card span-7" aria-labelledby="ov-work-title">
@@ -171,7 +172,7 @@
           </section>
         </div>
 
-        <div class="grid-12">
+        <div class="grid-12 fin-only">
           <section class="card span-7">
             <header class="card-head"><h2>Faturamento por dia</h2><span class="card-meta" id="ov-revenue-sub"></span></header>
             <div class="ov-chart-box">
@@ -185,7 +186,7 @@
           </section>
         </div>
 
-        <section class="card" style="margin-bottom:16px;">
+        <section class="card fin-only" style="margin-bottom:16px;">
           <header class="card-head"><h2>Faturamento por categoria</h2><span class="card-meta">desde o início</span></header>
           <div class="cat-strip" id="category-sales-breakdown-list"></div>
         </section>
@@ -336,7 +337,7 @@
             <button class="btn btn-primary" id="btn-sale-new" type="button"><i data-lucide="shopping-cart"></i> Nova venda</button>
           </div>
         </div>
-        <section class="tiles" id="sales-summary" aria-label="Resumo de vendas"></section>
+        <section class="tiles fin-only" id="sales-summary" aria-label="Resumo de vendas"></section>
         <div class="toolbar">
           <label class="search-field"><i data-lucide="search"></i><input type="text" id="admin-search-sales" placeholder="Buscar por código ou cliente…"></label>
           <div class="chips" id="sales-chips" role="group" aria-label="Filtrar vendas"></div>
@@ -344,7 +345,7 @@
         <div class="panel-card flush">
           <div class="table-responsive">
             <table class="admin-table rich">
-              <thead><tr><th>Venda</th><th>Itens</th><th>Cliente</th><th>Pagamento</th><th class="num">Total</th><th>Situação</th><th class="actions-col"></th></tr></thead>
+              <thead><tr><th>Venda</th><th>Itens</th><th>Cliente</th><th>Pagamento</th><th class="num fin-only">Total</th><th>Situação</th><th class="actions-col"></th></tr></thead>
               <tbody id="admin-sales-log-tbody"></tbody>
             </table>
           </div>
@@ -441,15 +442,14 @@
           <div class="panel-card-header"><h3 class="panel-card-title"><i data-lucide="shield-check"></i> Permissões por cargo</h3></div>
           <div class="table-responsive">
             <table class="admin-table rich perm-table">
-              <thead><tr><th>Ação</th><th>Administrador</th><th>Gerente</th><th>Vendedor</th><th>Estoquista</th></tr></thead>
+              <thead><tr><th>Ação</th><th>Thallys (proprietário)</th><th>Joice</th><th>Recepção</th></tr></thead>
               <tbody>
-                <tr><td>Ver financeiro e lucro</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Cadastrar e editar produtos / preços</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Lançar entradas e ajustes de estoque</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
-                <tr><td>Atender reservas e registrar vendas</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Estornar vendas</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Criar promoções</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Gerenciar usuários e configurações</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Ver faturamento, lucro e custos</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Estoque e produtos de capas e películas</td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Estoque e produtos de todo o resto</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Reservas, vendas e manutenções</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Criar promoções e mudar preços</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
+                <tr><td>Gerenciar equipe e configurações</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
               </tbody>
             </table>
           </div>
@@ -563,7 +563,7 @@
       </div>
       <div class="form-group">
         <label for="sale-seller" class="form-label">Vendedor</label>
-        <select class="form-control" id="sale-seller" required><option value="Thallys">Thallys</option><option value="Joice">Joice</option></select>
+        <select class="form-control" id="sale-seller" required><option value="Thallys">Thallys</option><option value="Joice">Joice</option><option value="Recepção">Recepção</option></select>
       </div>
       <div class="total-box"><span>Total da venda</span><strong id="sale-total-preview">R$ 0,00</strong></div>
       <footer class="drawer-foot"><button type="button" class="btn btn-secondary" data-close-drawer>Cancelar</button><button type="submit" class="btn btn-primary"><i data-lucide="check-circle-2"></i> Finalizar venda</button></footer>

@@ -123,131 +123,39 @@
     <!-- HOME VIEW (LANDING PAGE) -->
     <div id="view-home" class="app-view">
       
-      <!-- HERO PRINCIPAL -->
-      <section class="hero">
-        <div class="hero-bg-shapes">
-          <div class="hero-shape-purple"></div>
-          <div class="hero-shape-orange"></div>
-        </div>
-        
-        <div class="container hero-grid">
-          <div class="hero-content">
-            <h1 class="hero-title">
-              Seu próximo celular pode estar <span class="text-gradient-orange-white">esperando por você.</span>
-            </h1>
-            
-            <p class="hero-description">
-              Consulte produtos disponíveis, escolha suas opções e solicite a retirada diretamente na Store Imports.
-            </p>
-            
-            <div class="hero-buttons">
-              <a href="#catalogo" class="btn btn-primary" id="btn-hero-catalog">
-                Ver produtos <i data-lucide="arrow-right"></i>
-              </a>
-              <a href="#como-funciona" class="btn btn-secondary" id="btn-hero-steps">
-                Como funciona
-              </a>
-              <a href="#assistencia" class="btn btn-secondary" id="btn-hero-assistencia" style="border-color: var(--purple-primary); color: var(--purple-primary);">
-                Assistência Técnica
-              </a>
-            </div>
-            
-            <div class="hero-stats">
-              <div class="hero-stat-item">
-                <div class="hero-stat-icon"><img src="./assets/ICONES-6.svg" alt="Estoque"></div>
-                <div class="hero-stat-text">Estoque atualizado</div>
-              </div>
-              <div class="hero-stat-item">
-                <div class="hero-stat-icon"><img src="./assets/ICONES-1.svg" alt="Reserva"></div>
-                <div class="hero-stat-text">Reserva rápida</div>
-              </div>
-              <div class="hero-stat-item">
-                <div class="hero-stat-icon"><img src="./assets/ICONES-4.svg" alt="Pagamento"></div>
-                <div class="hero-stat-text">Pagamento presencial</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="hero-visual">
-            <img src="./assets/hero-image.png" class="hero-img" alt="Store Imports Promoção">
-            
-            <!-- Glassmorphism Card Container (prevents glow clipping) -->
-            <div class="promo-glass-card-container">
-              <div class="glass-glow-purple"></div>
-              <div class="glass-glow-orange"></div>
-              
-              <div class="promo-glass-card">
-                <div class="glass-wave-line"></div>
-                <span class="badge-scarcity">⚡ estoque limitado</span>
-                <h3 class="glass-card-title">Celulares em Promoção</h3>
-                <p class="glass-card-text">Todos os celulares com descontos especiais de inauguração! Estoque limitado.</p>
-                <a href="#catalogo" class="btn-glass-cta">Ver Promoções <i data-lucide="arrow-right" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STICKY SEARCH SECTION -->
+      <!-- SEARCH (first thing the visitor sees) -->
       <div class="container search-section" id="sticky-search-anchor">
         <div class="search-bar-wrapper">
           <div class="search-input-container" style="position: relative;">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" class="search-bar-input" id="main-search-input" placeholder="Qual produto você está procurando?" autocomplete="off">
-            
+            <input type="search" class="search-bar-input" id="main-search-input" placeholder="Buscar produto: iPhone, capa, perfume…" autocomplete="off" aria-label="Buscar produto">
+
             <!-- Autocomplete Search Suggestions Dropdown -->
             <div class="search-autocomplete-dropdown d-none" id="search-autocomplete-dropdown">
               <!-- Dynamically populated via JS -->
             </div>
           </div>
           <button class="btn btn-primary search-btn" id="btn-main-search">
-            Buscar
+            <i data-lucide="search" class="search-btn-icon"></i><span>Buscar</span>
           </button>
         </div>
       </div>
 
-      <!-- BENEFITS BAR -->
-      <section class="benefits section-spacing">
-        <div class="container benefits-grid">
-          <div class="benefit-item scroll-animate">
-            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-6.svg" alt="Estoque"></div>
-            <div class="benefit-info">
-              <h4 class="benefit-title">Estoque atualizado</h4>
-              <p class="benefit-desc">Consulte produtos antes de sair de casa.</p>
-            </div>
-          </div>
-          
-          <div class="benefit-item scroll-animate">
-            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-1.svg" alt="Reserva"></div>
-            <div class="benefit-info">
-              <h4 class="benefit-title">Reserva rápida</h4>
-              <p class="benefit-desc">Separe o produto e garanta sua retirada.</p>
-            </div>
-          </div>
-          
-          <div class="benefit-item scroll-animate">
-            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-3.svg" alt="Retirada"></div>
-            <div class="benefit-info">
-              <h4 class="benefit-title">Retirada presencial</h4>
-              <p class="benefit-desc">Pague na loja apenas no momento de retirar.</p>
-            </div>
-          </div>
-          
-          <div class="benefit-item scroll-animate">
-            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-5.svg" alt="Suporte"></div>
-            <div class="benefit-info">
-              <h4 class="benefit-title">Atendimento especializado</h4>
-              <p class="benefit-desc">Equipe pronta para te apoiar na escolha.</p>
-            </div>
-          </div>
+      <div class="container search-quick-row">
+        <div class="search-quick" id="search-quick" aria-label="Buscas rápidas">
+          <button type="button" class="chip-quick" data-q="perfume">Perfumes</button>
+          <button type="button" class="chip-quick" data-q="iphone">iPhone</button>
+          <button type="button" class="chip-quick" data-q="capa">Capas</button>
+          <button type="button" class="chip-quick" data-q="película">Películas</button>
+          <button type="button" class="chip-quick" data-q="galaxy">Galaxy</button>
         </div>
-      </section>
+      </div>
 
       <!-- CATEGORIES SECTION -->
-      <section class="section-spacing" id="categorias">
+      <section class="section-spacing section-tight" id="categorias">
         <div class="container">
           <div class="section-header">
-            <h2 class="section-title">Encontre por categoria</h2>
+            <h2 class="section-title">Categorias</h2>
             <p class="section-subtitle">Navegue pelas principais categorias da Store Imports.</p>
           </div>
 
@@ -304,7 +212,8 @@
               <div class="catalog-page-layout">
                 
                 <!-- SIDEBAR FILTERS -->
-                <aside class="filters-sidebar">
+                <button type="button" class="btn btn-secondary filters-toggle" id="btn-toggle-filters" aria-expanded="false" aria-controls="filters-sidebar"><i data-lucide="sliders-horizontal"></i> Filtrar e ordenar</button>
+                <aside class="filters-sidebar" id="filters-sidebar">
                   <div class="filter-group">
                     <h4 class="filter-title">Categoria</h4>
                     <div class="filter-options" id="filter-categories-list">
@@ -391,6 +300,108 @@
       </section>
 
       <!-- COMO FUNCIONA SECTION -->
+      <!-- HERO PRINCIPAL -->
+      <section class="hero">
+        <div class="hero-bg-shapes">
+          <div class="hero-shape-purple"></div>
+          <div class="hero-shape-orange"></div>
+        </div>
+        
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <h1 class="hero-title">
+              Seu próximo celular pode estar <span class="text-gradient-orange-white">esperando por você.</span>
+            </h1>
+            
+            <p class="hero-description">
+              Consulte produtos disponíveis, escolha suas opções e solicite a retirada diretamente na Store Imports.
+            </p>
+            
+            <div class="hero-buttons">
+              <a href="#catalogo" class="btn btn-primary" id="btn-hero-catalog">
+                Ver produtos <i data-lucide="arrow-right"></i>
+              </a>
+              <a href="#como-funciona" class="btn btn-secondary" id="btn-hero-steps">
+                Como funciona
+              </a>
+              <a href="#assistencia" class="btn btn-secondary" id="btn-hero-assistencia" style="border-color: var(--purple-primary); color: var(--purple-primary);">
+                Assistência Técnica
+              </a>
+            </div>
+            
+            <div class="hero-stats">
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><img src="./assets/ICONES-6.svg" alt="Estoque"></div>
+                <div class="hero-stat-text">Estoque atualizado</div>
+              </div>
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><img src="./assets/ICONES-1.svg" alt="Reserva"></div>
+                <div class="hero-stat-text">Reserva rápida</div>
+              </div>
+              <div class="hero-stat-item">
+                <div class="hero-stat-icon"><img src="./assets/ICONES-4.svg" alt="Pagamento"></div>
+                <div class="hero-stat-text">Pagamento presencial</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <img src="./assets/hero-image.png" class="hero-img" alt="Store Imports Promoção">
+            
+            <!-- Glassmorphism Card Container (prevents glow clipping) -->
+            <div class="promo-glass-card-container">
+              <div class="glass-glow-purple"></div>
+              <div class="glass-glow-orange"></div>
+              
+              <div class="promo-glass-card">
+                <div class="glass-wave-line"></div>
+                <span class="badge-scarcity">⚡ estoque limitado</span>
+                <h3 class="glass-card-title">Celulares em Promoção</h3>
+                <p class="glass-card-text">Todos os celulares com descontos especiais de inauguração! Estoque limitado.</p>
+                <a href="#catalogo" class="btn-glass-cta">Ver Promoções <i data-lucide="arrow-right" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BENEFITS BAR -->
+      <section class="benefits section-spacing">
+        <div class="container benefits-grid">
+          <div class="benefit-item scroll-animate">
+            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-6.svg" alt="Estoque"></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Estoque atualizado</h4>
+              <p class="benefit-desc">Consulte produtos antes de sair de casa.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item scroll-animate">
+            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-1.svg" alt="Reserva"></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Reserva rápida</h4>
+              <p class="benefit-desc">Separe o produto e garanta sua retirada.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item scroll-animate">
+            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-3.svg" alt="Retirada"></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Retirada presencial</h4>
+              <p class="benefit-desc">Pague na loja apenas no momento de retirar.</p>
+            </div>
+          </div>
+          
+          <div class="benefit-item scroll-animate">
+            <div class="benefit-icon-wrapper"><img src="./assets/ICONES-5.svg" alt="Suporte"></div>
+            <div class="benefit-info">
+              <h4 class="benefit-title">Atendimento especializado</h4>
+              <p class="benefit-desc">Equipe pronta para te apoiar na escolha.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="section-spacing como-funciona" id="como-funciona">
         <div class="container">
           <div class="section-header">

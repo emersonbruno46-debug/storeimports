@@ -188,7 +188,7 @@ function stockLevel(v) {
 }
 
 function renderStockLogsTable() {
-  state.products = getProducts();
+  state.products = getScopedProducts();
   state.stockLogs = getStockMovements();
   const rows = flattenVariants();
   const units = rows.reduce((s, r) => s + (r.v.stockQuantity || 0), 0);
@@ -200,7 +200,7 @@ function renderStockLogsTable() {
   if (sum) {
     sum.innerHTML = [
       { l: 'Unidades em estoque', v: units, s: `${rows.length} variações`, c: 'purple', i: 'boxes' },
-      { l: 'Valor a custo', v: formatBRLFromCents(cost), s: 'capital parado', c: 'green', i: 'wallet' },
+      ...(canSeeFinance() ? [{ l: 'Valor a custo', v: formatBRLFromCents(cost), s: 'capital parado', c: 'green', i: 'wallet' }] : []),
       { l: 'Estoque baixo', v: low, s: 'abaixo do mínimo', c: 'amber', i: 'package-minus', f: 'low' },
       { l: 'Sem estoque', v: zero, s: 'indisponíveis no site', c: 'red', i: 'package-x', f: 'zero' }
     ].map(t => `<button type="button" class="tile ${t.c}${t.f ? ' clickable' : ''}" ${t.f ? `data-stock-filter="${t.f}"` : 'tabindex="-1"'}><span class="tile-l">${esc(t.l)}</span><strong>${esc(t.v)}</strong><span class="tile-s">${esc(t.s)}</span></button>`).join('');
@@ -351,7 +351,7 @@ function pickupInfo(res) {
 function renderReservationsTable() {
   const host = document.getElementById('admin-reservations-list');
   if (!host) return;
-  state.reservations = getReservations();
+  state.reservations = getScopedReservations();
   const query = adminSearchReservations ? adminSearchReservations.value.trim().toLowerCase() : '';
   const status = adminFilterReservationsStatus ? adminFilterReservationsStatus.value : '';
   const all = state.reservations;
@@ -429,7 +429,7 @@ function renderReservationsTable() {
 // VENDAS
 // ==========================================
 function renderSalesLogsTable() {
-  state.sales = getSales();
+  state.sales = getScopedSales();
   const tbody = document.getElementById('admin-sales-log-tbody');
   if (!tbody) return;
 
@@ -476,7 +476,7 @@ function renderSalesLogsTable() {
       <td>${esc(first ? first.name : 'Venda')}${items.length > 1 ? ` <span class="tag">+${items.length - 1}</span>` : ''}<span class="sub">${qty} unidade${qty !== 1 ? 's' : ''}</span></td>
       <td>${esc(sale.demoCustomerName || 'Consumidor')}</td>
       <td><span class="payment">${icon(payIcon[pk], 14)} ${esc(pay)}</span></td>
-      <td class="num"><strong>${formatBRLFromCents(sale.totalCents || 0)}</strong>${sale.discountCents ? `<span class="sub">desc. ${formatBRLFromCents(sale.discountCents)}</span>` : ''}</td>
+      <td class="num fin-only"><strong>${formatBRLFromCents(sale.totalCents || 0)}</strong>${sale.discountCents ? `<span class="sub">desc. ${formatBRLFromCents(sale.discountCents)}</span>` : ''}</td>
       <td><span class="pill ${reversed ? 'zero' : 'ok'}">${reversed ? 'Estornada' : 'Concluída'}</span>${reversed && sale.reversalReason ? `<span class="sub" title="${esc(sale.reversalReason)}">${esc(sale.reversalReason.slice(0, 28))}${sale.reversalReason.length > 28 ? '…' : ''}</span>` : ''}</td>
       <td class="actions-col"><button type="button" class="icon-btn" data-print="${esc(sale.id)}" title="Imprimir cupom">${icon('printer')}</button>${reversed ? '' : `<button type="button" class="icon-btn danger" data-refund="${esc(sale.id)}" title="Estornar venda">${icon('rotate-ccw')}</button>`}</td>
     </tr>`;
@@ -546,7 +546,7 @@ function renderMaintenancesTab() {
           </div>
         </article>`;
     }).join('');
-    return `<section class="col ${col.cls}"><header class="col-head"><div><strong>${col.title}</strong><span class="sub">${col.hint}</span></div><div class="col-sum"><b>${items.length}</b><span>${formatBRLFromCents(total)}</span></div></header><div class="col-body">${cards || `<div class="col-empty">Nenhum aparelho aqui</div>`}</div></section>`;
+    return `<section class="col ${col.cls}"><header class="col-head"><div><strong>${col.title}</strong><span class="sub">${col.hint}</span></div><div class="col-sum"><b>${items.length}</b><span class="fin-only">${formatBRLFromCents(total)}</span></div></header><div class="col-body">${cards || `<div class="col-empty">Nenhum aparelho aqui</div>`}</div></section>`;
   }).join('');
 
   board.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', () => {
@@ -673,7 +673,7 @@ function renderPromoActive() {
     if (!variant) return;
     variant.promotionalPriceCents = null;
     updateProduct(prod);
-    state.products = getProducts();
+    state.products = getScopedProducts();
     showAdminToast('Promoção removida.', 'success');
     renderCurrentTab();
   }));
@@ -681,7 +681,7 @@ function renderPromoActive() {
 }
 
 function renderPromoTab() {
-  state.products = getProducts();
+  state.products = getScopedProducts();
   document.getElementById('promo-scope').dispatchEvent(new Event('change'));
   renderPromoQuickValues();
   generatePromoPreview({ silent: true });
@@ -728,14 +728,16 @@ function setupPromoV2() {
 function renderTeam() {
   const host = document.getElementById('team-list');
   if (!host) return;
-  const roles = { admin: 'Administrador', manager: 'Gerente', sales: 'Vendedor', stock: 'Estoquista' };
-  const users = getUsers();
-  host.innerHTML = users.map(u => `
-    <div class="team-row">${avatarHtml(u.name)}
-      <div class="grow"><strong>${esc(u.name)}</strong><span class="sub">${esc(u.email)}</span></div>
-      <span class="tag">${esc(roles[u.roleId] || u.roleId)}</span>
-      <span class="pill ${u.status === 'active' ? 'ok' : 'off'}">${u.status === 'active' ? 'Ativo' : 'Inativo'}</span></div>`).join('')
-    || emptyState('users', 'Nenhum usuário', 'Os usuários reais serão criados no banco de dados.');
+  const notes = {
+    'Thallys': 'Dono da loja. Vê tudo, menos capas e películas.',
+    'Joice': 'Cuida só do estoque de capas e películas.',
+    'Recepção': 'Funcionários. Vê todo o estoque, sem a parte financeira.'
+  };
+  host.innerHTML = Object.keys(ACCESS).map(name => `
+    <div class="team-row">${avatarHtml(name)}
+      <div class="grow"><strong>${esc(name)}</strong><span class="sub">${esc(notes[name])}</span></div>
+      <span class="tag">${esc(ACCESS[name].role)}</span>
+      ${state.activeProfile === name ? '<span class="pill ok">Em uso agora</span>' : '<span class="pill off">Ativo</span>'}</div>`).join('');
   refreshIcons();
 }
 
@@ -854,7 +856,7 @@ function renderOverviewAttention() {
     items.push({ level: 'info', title: `Promoção “${p.name}” termina em ${left} dia${left > 1 ? 's' : ''}`, detail: 'Renove ou deixe expirar', action: 'promo', cta: 'Ver promoções' });
   });
   const noCost = state.products.filter(p => p.status === 'active' && (p.variants || []).some(v => v.costCents == null));
-  if (noCost.length) items.push({ level: 'info', title: `${noCost.length} produto${noCost.length > 1 ? 's' : ''} sem preço de custo`, detail: 'Sem o custo, o lucro estimado fica incompleto', action: 'products', cta: 'Completar' });
+  if (canSeeFinance() && noCost.length) items.push({ level: 'info', title: `${noCost.length} produto${noCost.length > 1 ? 's' : ''} sem preço de custo`, detail: 'Sem o custo, o lucro estimado fica incompleto', action: 'products', cta: 'Completar' });
 
   if (countEl) countEl.textContent = items.length ? `${items.length} ${items.length > 1 ? 'pendências' : 'pendência'}` : '';
   if (finding) finding.textContent = items.length ? items.slice(0, 2).map(i => i.title.replace(/^“?/, '')).join(' · ') : 'Nada pendente. A loja está em dia.';
@@ -924,9 +926,9 @@ function renderOverviewRevenueChart(m, days) {
 }
 
 function renderDashboardOverview() {
-  state.products = getProducts();
-  state.reservations = getReservations();
-  state.sales = getSales();
+  state.products = getScopedProducts();
+  state.reservations = getScopedReservations();
+  state.sales = getScopedSales();
   state.maintenances = getMaintenances();
   state.activityLogs = getActivityLog();
 
@@ -965,7 +967,7 @@ function renderDashboardOverview() {
 function renderCategorySalesChart() {
   const host = document.getElementById('category-sales-breakdown-list');
   if (!host) return;
-  const sales = getSales().filter(s => s.status === 'completed');
+  const sales = getScopedSales().filter(s => s.status === 'completed');
   const products = getProducts();
   const buckets = { phones: 0, acc: 0, svc: 0, other: 0 };
   sales.forEach(sale => (sale.items || []).forEach(i => {
@@ -1045,8 +1047,8 @@ function renderPricingBuilder() {
         <div class="form-group"><label class="form-label">Preço (R$)</label><input type="number" step="0.01" class="form-control var-price" value="${money(v.priceCents)}" placeholder="0,00" data-idx="${i}"></div>
         <div class="form-group"><label class="form-label">Preço promocional <small>(opcional)</small></label><input type="number" step="0.01" class="form-control var-promo" value="${money(v.promotionalPriceCents)}" placeholder="0,00" data-idx="${i}"></div>
       </div>
-      <div class="form-group" style="margin-bottom:8px"><label class="form-label">Custo <small>(interno)</small></label><input type="number" step="0.01" class="form-control var-cost" value="${money(v.costCents)}" placeholder="0,00" data-idx="${i}"></div>
-      <p class="hint margin-line${h.bad ? ' bad' : ''}" data-margin="${i}">${esc(h.text)}</p>
+      <div class="form-group fin-only" style="margin-bottom:8px"><label class="form-label">Custo <small>(interno)</small></label><input type="number" step="0.01" class="form-control var-cost" value="${money(v.costCents)}" placeholder="0,00" data-idx="${i}"></div>
+      <p class="hint margin-line fin-only${h.bad ? ' bad' : ''}" data-margin="${i}">${esc(h.text)}</p>
     </fieldset>`;
   }).join('');
   const upd = (i) => { const el = c.querySelector(`[data-margin="${i}"]`); const h = marginHint(tempVariants[i]); el.textContent = h.text; el.classList.toggle('bad', h.bad); };

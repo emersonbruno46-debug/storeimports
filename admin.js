@@ -56,6 +56,54 @@ const TAB_ALIASES = {
 const tabs = ['overview', 'products', 'categories', 'stock', 'maintenances', 'reservations', 'sales', 'promo', 'users', 'settings'];
 
 // ==========================================
+// ACCESS PROFILES (screen-level control; real enforcement needs the database, see DATABASE.md)
+//  - Thallys (owner): everything except capas and películas, which are Joice's business
+//  - Joice: only capas and películas (stock and products)
+//  - Recepção: everything, including capas and películas, but nothing financial
+// ==========================================
+const CASE_CATEGORIES = ['cat-capas', 'cat-peliculas'];
+const ALL_TABS = tabs.slice();
+const ACCESS = {
+  'Thallys': { role: 'Proprietário', tabs: ALL_TABS, hideCats: CASE_CATEGORIES, onlyCats: null, finance: true, color: 300 },
+  'Joice': { role: 'Capas e películas', tabs: ['stock', 'products'], hideCats: [], onlyCats: CASE_CATEGORIES, finance: true, color: 20 },
+  'Recepção': { role: 'Equipe da loja', tabs: ['overview', 'reservations', 'sales', 'maintenances', 'products', 'categories', 'stock'], hideCats: [], onlyCats: null, finance: false, color: 200 }
+};
+
+function currentAccess() { return ACCESS[state.activeProfile] || ACCESS['Thallys']; }
+function canOpenTab(tab) { return currentAccess().tabs.includes(tab); }
+function canSeeFinance() { return currentAccess().finance; }
+function defaultTabForProfile() { return currentAccess().tabs[0]; }
+function categoryInScope(categoryId) {
+  const a = currentAccess();
+  if (a.onlyCats) return a.onlyCats.includes(categoryId);
+  return !a.hideCats.includes(categoryId);
+}
+function getScopedCategories() { return getCategories().filter(c => categoryInScope(c.id)); }
+function getScopedProducts() { return getProducts().filter(p => categoryInScope(p.categoryId)); }
+function itemsInScope(items) {
+  const all = getProducts();
+  return (items || []).every(i => { const p = all.find(x => x.id === i.productId); return !p || categoryInScope(p.categoryId); });
+}
+function getScopedSales() { return getSales().filter(sale => itemsInScope(sale.items)); }
+function getScopedReservations() { return getReservations().filter(r => itemsInScope(r.items)); }
+
+/** Shows only the menu items, money and controls the active profile may use. */
+function applyAccess() {
+  const a = currentAccess();
+  document.body.classList.toggle('no-finance', !a.finance);
+  document.querySelectorAll('.sidebar-menu .menu-item-link[data-tab]').forEach(link => {
+    const li = link.closest('li');
+    if (li) li.style.display = a.tabs.includes(TAB_ALIASES[link.dataset.tab]) ? '' : 'none';
+  });
+  document.querySelectorAll('.sidebar-menu .menu-group-label').forEach(label => {
+    let n = label.nextElementSibling; let any = false;
+    while (n && !n.classList.contains('menu-group-label')) { if (n.style.display !== 'none') any = true; n = n.nextElementSibling; }
+    label.style.display = any ? '' : 'none';
+  });
+}
+
+
+// ==========================================
 // WHATSAPP LINK UTILITIES
 // ==========================================
 /**
@@ -131,6 +179,7 @@ const adminSalesRegistryForm = document.getElementById('admin-sales-registry-for
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   setupSidebar();
+  state.activeProfile = localStorage.getItem('store_imports_active_profile') || 'Thallys';
   loadDatabase();
   setupActiveProfile();
   setupEventListeners();
@@ -170,10 +219,10 @@ document.addEventListener('keydown', (e) => {
 });
 
 function loadDatabase() {
-  state.products = getProducts();
-  state.categories = getCategories();
-  state.reservations = getReservations();
-  state.sales = getSales();
+  state.products = getScopedProducts();
+  state.categories = getScopedCategories();
+  state.reservations = getScopedReservations();
+  state.sales = getScopedSales();
   state.maintenances = getMaintenances();
   state.stockLogs = getStockMovements();
   state.activityLogs = getActivityLog();
@@ -185,6 +234,13 @@ function loadDatabase() {
     try { sessionStorage.setItem('si_admin_session_logged', '1'); } catch (e) { /* storage blocked */ }
     state.activityLogs = getActivityLog();
   }
+}
+
+function loadScopedState() {
+  state.products = getScopedProducts();
+  state.categories = getScopedCategories();
+  state.reservations = getScopedReservations();
+  state.sales = getScopedSales();
 }
 
 function saveToLocalStorage(key, data) {
@@ -349,7 +405,8 @@ function setupEventListeners() {
 }
 
 function switchTab(rawTabName) {
-  const tabName = TAB_ALIASES[rawTabName] || 'overview';
+  let tabName = TAB_ALIASES[rawTabName] || 'overview';
+  if (!canOpenTab(tabName)) { tabName = defaultTabForProfile(); rawTabName = tabName; }
   state.currentTab = tabName;
   
   history.replaceState(null, '', `#${tabName}`);
@@ -936,7 +993,7 @@ function handleCategorySubmit(e) {
       cat.image = imgVal;
       cat.status = visVal ? 'active' : 'inactive';
       updateCategory(cat);
-      state.categories = getCategories();
+      state.categories = getScopedCategories();
       createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Categoria "${nameVal}" editada.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
     }
   } else {
@@ -952,7 +1009,7 @@ function handleCategorySubmit(e) {
       displayOrder: state.categories.length + 1
     };
     createCategory(newCat);
-    state.categories = getCategories();
+    state.categories = getScopedCategories();
     createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Categoria "${nameVal}" criada.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
   }
   renderCategoriesTable();
@@ -963,7 +1020,7 @@ function handleCategorySubmit(e) {
 function deleteCategory(catId) {
   if (confirm("Inativar esta categoria? Os produtos associados continuarão armazenados.")) {
     setCategoryStatus(catId, 'inactive');
-    state.categories = getCategories();
+    state.categories = getScopedCategories();
     createActivityLog({ id: `act-${Date.now()}`, type: 'warning', message: `Categoria "${catId}" desativada.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
     renderCategoriesTable();
     populateCategorySelects();
@@ -1188,7 +1245,7 @@ function handleProductFormSubmit(e) {
         updatedAt: new Date().toISOString()
       };
       updateProduct(updatedProd);
-      state.products = getProducts();
+      state.products = getScopedProducts();
       createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Produto editado: ${name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
     }
   } else {
@@ -1220,7 +1277,7 @@ function handleProductFormSubmit(e) {
       updatedAt: new Date().toISOString()
     };
     createProduct(newProd);
-    state.products = getProducts();
+    state.products = getScopedProducts();
     createActivityLog({ id: `act-${Date.now()}`, type: 'success', message: `Novo produto cadastrado com foto: ${name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
   }
   renderCurrentTab();
@@ -1238,7 +1295,7 @@ function deleteProduct(prodId) {
   
   if (confirm(`${actionText} o produto "${p.name}"?`)) {
     setProductStatus(prodId, newStatus);
-    state.products = getProducts();
+    state.products = getScopedProducts();
     createActivityLog({ id: `act-${Date.now()}`, type: isInactive ? 'success' : 'warning', message: `Produto ${isInactive ? 'ativado' : 'inativado'}: ${p.name}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
     showAdminToast(`Produto ${isInactive ? 'ativado' : 'inativado'}.`, isInactive ? 'success' : 'warning');
     renderCurrentTab();
@@ -1328,7 +1385,7 @@ function handleStockAdjustment(e) {
 
   prod.variants[varIdx].stockQuantity = newQty;
   updateProduct(prod);
-  state.products = getProducts();
+  state.products = getScopedProducts();
 
   registerStockMovement({
     id: generateId('mov'),
@@ -1366,14 +1423,14 @@ function changeReservationStatus(resId, nextStatus) {
       showAdminToast(result.error, 'danger');
       return;
     }
-    state.reservations = getReservations();
-    state.sales = getSales();
-    state.products = getProducts();
+    state.reservations = getScopedReservations();
+    state.sales = getScopedSales();
+    state.products = getScopedProducts();
     state.stockLogs = getStockMovements();
     showAdminToast(`Reserva faturada com sucesso! Venda ${result.sale.code} gerada.`, 'success');
   } else {
     updateReservationStatus(resId, nextStatus, 'user-1');
-    state.reservations = getReservations();
+    state.reservations = getScopedReservations();
     showAdminToast(`Status da reserva alterado para "${getReservationStatusLabel(nextStatus)}".`, 'info');
   }
 
@@ -1420,7 +1477,7 @@ function handleSalesRegistry(e) {
   const newQty = oldQty - qty; // NO Math.max(0, saldo) hiding!
   prod.variants[varIdx].stockQuantity = newQty;
   updateProduct(prod);
-  state.products = getProducts();
+  state.products = getScopedProducts();
 
   const priceCents = (variant.promotionalPriceCents !== null && variant.promotionalPriceCents !== undefined) ? variant.promotionalPriceCents : variant.priceCents;
   const unitCents = priceCents || 0;
@@ -1450,7 +1507,7 @@ function handleSalesRegistry(e) {
     reversalReason: null
   });
 
-  state.sales = getSales();
+  state.sales = getScopedSales();
 
   registerStockMovement({
     id: generateId('mov'),
@@ -1629,8 +1686,8 @@ function promptSaleReversal(saleId) {
     return;
   }
 
-  state.sales = getSales();
-  state.products = getProducts();
+  state.sales = getScopedSales();
+  state.products = getScopedProducts();
   state.stockLogs = getStockMovements();
   
   showAdminToast("Venda estornada com sucesso! Estoque recomposto.", "success");
@@ -1667,6 +1724,8 @@ function setupActiveProfile() {
       state.activeProfile = profile;
       localStorage.setItem('store_imports_active_profile', profile);
       updateProfileDisplay();
+      loadScopedState();
+      switchTab(canOpenTab(state.currentTab) ? state.currentTab : defaultTabForProfile());
       menu.classList.add('d-none');
       showAdminToast(`Perfil alterado para ${profile}`, 'success');
       createActivityLog({ id: generateId('act'), type: 'info', message: `Perfil do operador alterado para: ${profile}`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
@@ -1678,18 +1737,12 @@ function updateProfileDisplay() {
   const avatarEl = document.getElementById('active-profile-avatar');
   const nameEl = document.getElementById('active-profile-name');
   const roleEl = document.getElementById('active-profile-role');
-  
-  if (!avatarEl || !nameEl || !roleEl) return;
-  
-  if (state.activeProfile === 'Thallys') {
-    avatarEl.textContent = 'T';
-    nameEl.textContent = 'Thallys';
-    roleEl.textContent = 'Gerente geral';
-  } else {
-    avatarEl.textContent = 'J';
-    nameEl.textContent = 'Joice';
-    roleEl.textContent = 'Gerente comercial';
-  }
+  if (!ACCESS[state.activeProfile]) state.activeProfile = 'Thallys';
+  const a = currentAccess();
+  if (avatarEl) avatarEl.textContent = state.activeProfile.charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = state.activeProfile;
+  if (roleEl) roleEl.textContent = a.role;
+  applyAccess();
 }
 
 // ==========================================
@@ -1881,7 +1934,7 @@ function applyPromoDiscount() {
     }
   });
   
-  state.products = getProducts();
+  state.products = getScopedProducts();
   createActivityLog({ id: generateId('act'), type: 'success', message: `Desconto promocional em lote aplicado para ${appliedCount} variações de produtos. Operador: ${state.activeProfile}.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
   showAdminToast(`Promoção aplicada com sucesso em ${appliedCount} variações!`, 'success');
   
@@ -1925,7 +1978,7 @@ function clearPromoDiscounts() {
     return;
   }
   
-  state.products = getProducts();
+  state.products = getScopedProducts();
   createActivityLog({ id: generateId('act'), type: 'warning', message: `Descontos promocionais removidos de ${clearedCount} variações. Operador: ${state.activeProfile}.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
   showAdminToast(`${clearedCount} promoções removidas.`, 'success');
   

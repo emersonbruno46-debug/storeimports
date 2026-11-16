@@ -331,6 +331,31 @@ function setupEventListeners() {
     });
   }
   
+  document.querySelectorAll('#search-quick [data-q]').forEach(chip => chip.addEventListener('click', () => {
+    if (!mainSearchInput) return;
+    mainSearchInput.value = chip.dataset.q;
+    state.filters.search = chip.dataset.q;
+    const dropdown = document.getElementById('search-autocomplete-dropdown');
+    if (dropdown) dropdown.classList.add('d-none');
+    renderCatalogGrid();
+    const target = document.getElementById('catalogo');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+
+  const btnFilters = document.getElementById('btn-toggle-filters');
+  if (btnFilters) btnFilters.addEventListener('click', () => {
+    const open = document.getElementById('filters-sidebar').classList.toggle('open');
+    btnFilters.setAttribute('aria-expanded', String(open));
+  });
+
+  const syncHeaderHeight = () => {
+    const h = mainHeader ? mainHeader.offsetHeight : 64;
+    document.documentElement.style.setProperty('--header-h', h + 'px');
+  };
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+  window.addEventListener('load', syncHeaderHeight);
+
   if (btnMainSearch) btnMainSearch.addEventListener('click', () => {
     handleSearchSubmit();
     const dropdown = document.getElementById('search-autocomplete-dropdown');
@@ -615,10 +640,9 @@ function renderSearchAutocomplete(query) {
   const activeProds = allProds.filter(p => p.status === 'active' && getActiveVariants(p).length > 0);
   
   const matches = activeProds.filter(p => {
-    const nameStr = (p.name || '').toLowerCase();
-    const brandStr = (p.brand || '').toLowerCase();
-    const modelStr = (p.model || '').toLowerCase();
-    return nameStr.includes(q) || brandStr.includes(q) || modelStr.includes(q);
+    const nq = normText(q);
+    const catName = ((getCategories() || []).find(c => c.id === p.categoryId) || {}).name;
+    return [p.name, p.brand, p.model, catName].some(v => normText(v).includes(nq));
   }).slice(0, 8); // Display max 8 matching suggestions
 
   dropdown.innerHTML = '';
@@ -698,6 +722,10 @@ function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function normText(v) {
+  return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -734,14 +762,14 @@ function renderCatalogGrid() {
 
     // 1. Search Query Match
     if (state.filters.search) {
-      const q = state.filters.search.toLowerCase();
-      const matchName = (prod.name || '').toLowerCase().includes(q);
-      const matchBrand = (prod.brand || '').toLowerCase().includes(q);
-      const matchModel = (prod.model || '').toLowerCase().includes(q);
-      const matchDesc = (prod.shortDescription || '').toLowerCase().includes(q);
-      const matchCode = (prod.sku || '').toLowerCase().includes(q);
+      const q = normText(state.filters.search);
+      const matchName = normText(prod.name).includes(q);
+      const matchBrand = normText(prod.brand).includes(q);
+      const matchModel = normText(prod.model).includes(q);
+      const matchDesc = normText(prod.shortDescription).includes(q);
+      const matchCode = normText(prod.sku).includes(q);
       const catObj = allCats.find(c => c.id === prod.categoryId);
-      const matchCat = catObj && (catObj.name || '').toLowerCase().includes(q);
+      const matchCat = catObj && normText(catObj.name).includes(q);
       
       if (!matchName && !matchBrand && !matchModel && !matchDesc && !matchCode && !matchCat) {
         return false;
