@@ -2944,3 +2944,7 @@ input:checked + .slider:before {
   .filters-sidebar.open { display: block; margin-bottom: 16px; }
   .demo-badge-container { display: none; }
 }
+
+/* hero sits between search and products: keep it from pushing products too far down */
+.hero { padding-top: 24px; padding-bottom: 32px; }
+@media (min-width: 992px) { .hero { padding-top: 32px; padding-bottom: 40px; } }
