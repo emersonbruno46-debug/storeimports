@@ -780,9 +780,9 @@ function renderPerfumeShelf() {
         </div>
       </div>`;
     const imgEl = card.querySelector('img');
-    imgEl.src = img ? img.src : './assets/perfumes.svg';
+    imgEl.src = img ? img.src : './assets/perfumes.webp';
     imgEl.alt = prod.name;
-    imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = './assets/perfumes.svg'; };
+    imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = './assets/perfumes.webp'; };
     card.querySelector('.perfume-brand').textContent = prod.brand;
     card.querySelector('.perfume-name').textContent = prod.name;
     card.querySelector('.perfume-spec').textContent = [v && v.capacity, v && v.color].filter(Boolean).join(' · ');

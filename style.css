@@ -2973,3 +2973,5 @@ input:checked + .slider:before {
 .perfume-price s { font-size: .8rem; color: var(--text-secondary); }
 .perfume-actions { margin-top: auto; display: flex; gap: 6px; }
 .perfume-actions .btn { flex: 1; padding: 8px 6px; font-size: .8rem; }
+
+.perfume-media { background: var(--white); }
