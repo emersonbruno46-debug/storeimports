@@ -729,8 +729,8 @@ function renderTeam() {
   const host = document.getElementById('team-list');
   if (!host) return;
   const notes = {
-    'Thallys': 'Dono da loja. Vê tudo, menos capas e películas.',
-    'Joice': 'Cuida só do estoque de capas e películas.',
+    'Thallys': 'Dono da loja. Vê tudo, menos capas, películas e perfumes.',
+    'Joice': 'Cuida só de capas, películas e perfumes.',
     'Recepção': 'Funcionários. Vê todo o estoque, sem a parte financeira.'
   };
   host.innerHTML = Object.keys(ACCESS).map(name => `
@@ -1056,3 +1056,226 @@ function renderPricingBuilder() {
   c.querySelectorAll('.var-promo').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].promotionalPriceCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null; upd(e.target.dataset.idx); }));
   c.querySelectorAll('.var-cost').forEach(el => el.addEventListener('input', e => { tempVariants[e.target.dataset.idx].costCents = e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null; upd(e.target.dataset.idx); }));
 }
+
+function normText(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+// ==========================================
+// IMPORTAR LISTA DE PRODUTOS (texto -> produtos, por categoria)
+// ==========================================
+const importState = { rows: [] };
+
+function stripEmoji(t) {
+  return String(t || '').replace(/[\p{Extended_Pictographic}️‍]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
+const IMPORT_CATEGORY_RULES = [
+  [/body splash/, 'cat-body-splash'],
+  [/hidrat|body cream|creme corporal/, 'cat-hidratantes'],
+  [/perfume|colonia|fragranc|parfum/, 'cat-perfumes'],
+  [/pelicula/, 'cat-peliculas'],
+  [/\bcapa|\bcase\b|capinha/, 'cat-capas'],
+  [/ipad/, 'cat-ipads'],
+  [/iphone/, 'cat-iphones'],
+  [/galaxy|samsung|xiaomi|motorola|android|redmi/, 'cat-android'],
+  [/notebook|macbook|laptop/, 'cat-notebooks'],
+  [/watch|relogio/, 'cat-smartwatches'],
+  [/carregador|fone|cabo|acessor|airpods/, 'cat-acessorios']
+];
+
+function guessImportCategory(section, name) {
+  for (const text of [name, section]) {
+    const t = normText(text || '');
+    if (!t) continue;
+    for (const [re, id] of IMPORT_CATEGORY_RULES) if (re.test(t)) return id;
+  }
+  return '';
+}
+
+function makeImportRow(rawName, cents, section) {
+  let name = rawName.trim();
+  let brand = '';
+  const bm = name.match(/\s[–—-]\s*([^–—-]{2,24})$/);
+  if (bm && !/\d/.test(bm[1])) { brand = bm[1].trim(); name = name.slice(0, bm.index).trim(); }
+  const vm = name.match(/(\d+(?:[.,]\d+)?)\s*(ml|g|kg|l)\b/i);
+  const capacity = vm ? `${vm[1]} ${vm[2].toLowerCase()}` : '';
+  if (vm && name.slice(vm.index + vm[0].length).trim() === '') name = name.slice(0, vm.index).trim();
+  let categoryId = guessImportCategory(section, name);
+  if (categoryId && !categoryInScope(categoryId)) categoryId = '';
+  if (categoryId && !state.categories.some(c => c.id === categoryId)) categoryId = '';
+  const stripVol = t => normText(t).replace(/\d+(?:[.,]\d+)?\s*(ml|g|kg|l)/g, '').replace(/\s+/g, ' ').trim();
+  const dup = getProducts().some(p => stripVol(p.name) === stripVol(name) && normText(p.brand || '') === normText(brand));
+  return { include: !dup && !!categoryId, name, brand, capacity, section, categoryId, priceCents: cents, stock: 0, photo: '', photoUrl: '', dup };
+}
+
+function parseProductList(text) {
+  const rows = [];
+  let section = '';
+  let pending = '';
+  text.split(/\r?\n/).forEach(raw => {
+    let line = stripEmoji(raw);
+    if (!line || /^[\s⸻—–_=*.-]+$/.test(line)) return;
+    const pm = line.match(/R\$\s*([\d.]+(?:,\d{1,2})?)/i);
+    if (pm) {
+      const cents = Math.round(parseFloat(pm[1].replace(/\./g, '').replace(',', '.')) * 100);
+      const inline = line.slice(0, pm.index).replace(/[\s:–—-]+$/, '').trim();
+      const name = inline || pending;
+      if (name && cents > 0) rows.push(makeImportRow(name, cents, section));
+      pending = '';
+      return;
+    }
+    const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    if (letters.length >= 3 && letters === letters.toUpperCase()) { section = line.replace(/[:–—-]+$/, '').trim(); pending = ''; return; }
+    pending = line;
+  });
+  return rows;
+}
+
+function importCategoryOptions(selected, section) {
+  const canCreate = !currentAccess().onlyCats && section;
+  const opts = ['<option value="">Escolher…</option>'].concat(state.categories.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(c.name)}</option>`));
+  if (canCreate) opts.push(`<option value="__new__">Nova categoria: ${esc(section)}</option>`);
+  return opts.join('');
+}
+
+function renderImportPreview() {
+  const host = document.getElementById('import-preview');
+  const run = document.getElementById('btn-import-run');
+  const sum = document.getElementById('import-summary');
+  if (!host) return;
+  const rows = importState.rows;
+  if (!rows.length) { host.innerHTML = ''; run.disabled = true; sum.textContent = ''; return; }
+  host.innerHTML = `
+    <div class="table-responsive"><table class="admin-table rich compact import-table">
+      <thead><tr><th></th><th>Produto</th><th>Categoria</th><th class="num">Preço (R$)</th><th class="num">Estoque</th><th>Foto</th></tr></thead>
+      <tbody>${rows.map((r, i) => `
+        <tr class="${r.include ? '' : 'is-off'}">
+          <td><input type="checkbox" data-i="${i}" data-f="include" ${r.include ? 'checked' : ''} aria-label="Importar ${esc(r.name)}"></td>
+          <td><input class="form-control" data-i="${i}" data-f="name" value="${esc(r.name)}">${r.brand ? `<span class="sub">${esc(r.brand)}${r.capacity ? ' · ' + esc(r.capacity) : ''}</span>` : ''}${r.dup ? '<span class="sub warn-text">já cadastrado</span>' : ''}</td>
+          <td><select class="form-control" data-i="${i}" data-f="categoryId">${importCategoryOptions(r.categoryId, r.section)}</select></td>
+          <td class="num"><input class="form-control" type="number" step="0.01" min="0" data-i="${i}" data-f="price" value="${(r.priceCents / 100).toFixed(2)}"></td>
+          <td class="num"><input class="form-control" type="number" min="0" data-i="${i}" data-f="stock" value="${r.stock}"></td>
+          <td class="photo-cell">
+            ${r.photo ? `<img class="thumb-sm" src="${esc(r.photo)}" alt="">` : '<span class="thumb-sm empty-thumb"></span>'}
+            <div class="photo-ctl">
+              <label class="link-btn">Enviar foto<input type="file" accept="image/*" hidden data-i="${i}" data-f="photofile"></label>
+              <input class="form-control" data-i="${i}" data-f="photourl" placeholder="ou cole o link da foto" value="${esc(r.photoUrl)}">
+              <a class="link-btn" target="_blank" rel="noopener noreferrer" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent((r.name + ' ' + r.brand).trim())}">Buscar foto na internet</a>
+            </div>
+          </td>
+        </tr>`).join('')}</tbody></table></div>`;
+  updateImportSummary();
+}
+
+function updateImportSummary() {
+  const rows = importState.rows;
+  const ready = rows.filter(r => r.include && r.categoryId && r.name.trim() && r.priceCents > 0);
+  const noStock = ready.filter(r => !r.stock).length;
+  document.getElementById('btn-import-run').disabled = ready.length === 0;
+  document.getElementById('btn-import-run').textContent = ready.length ? `Importar ${ready.length} produto${ready.length > 1 ? 's' : ''}` : 'Importar';
+  document.getElementById('import-summary').textContent = `${rows.length} lido${rows.length > 1 ? 's' : ''} · ${ready.length} pronto${ready.length > 1 ? 's' : ''}${noStock ? ` · ${noStock} sem estoque informado (aparece como esgotado no site)` : ''}`;
+}
+
+function imageToWebp(img, size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+  const k = Math.min(size / img.width, size / img.height);
+  const w = img.width * k, h = img.height * k;
+  ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+  return canvas.toDataURL('image/webp', 0.85);
+}
+
+function loadImportPhoto(i, source, isUrl) {
+  const img = new Image();
+  if (isUrl) img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try { importState.rows[i].photo = imageToWebp(img, 900); renderImportPreview(); }
+    catch (e) { showAdminToast('Não deu para converter essa foto. Envie o arquivo.', 'danger'); }
+  };
+  img.onerror = () => showAdminToast(isUrl ? 'Esse site não deixa copiar a foto. Baixe a imagem e use “Enviar foto”.' : 'Arquivo de imagem inválido.', 'danger');
+  img.src = source;
+}
+
+function runImport() {
+  const rows = importState.rows.filter(r => r.include && r.categoryId && r.name.trim() && r.priceCents > 0);
+  if (!rows.length) return;
+  const slugOf = t => normText(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const newCats = {};
+  let created = 0;
+  rows.forEach(r => {
+    let catId = r.categoryId;
+    if (catId === '__new__') {
+      const title = r.section.toLowerCase().replace(/\b\p{L}/gu, c => c.toUpperCase());
+      const id = 'cat-' + slugOf(title);
+      if (!getCategories().some(c => c.id === id) && !newCats[id]) {
+        newCats[id] = true;
+        createCategory({ id, name: title, slug: slugOf(title), description: '', image: 'perfumes.webp', icon: 'tag', status: 'active', displayOrder: getCategories().length + 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      }
+      catId = id;
+    }
+    const cat = getCategories().find(c => c.id === catId);
+    const photo = r.photo || (cat && cat.image ? `./assets/${cat.image}` : './assets/placeholder.svg');
+    const vid = generateId('var');
+    const sku = `IMP-${slugOf(r.name).toUpperCase().slice(0, 40)}`;
+    createProduct({
+      id: generateId('prod'), sku, barcodeDemo: '', name: r.name.trim(), brand: r.brand || '', model: r.name.trim(), categoryId: catId, condition: 'new',
+      shortDescription: `${r.name.trim()}${r.brand ? ' - ' + r.brand : ''}`, status: 'active',
+      images: [{ id: generateId('img'), src: photo, alt: r.name, isPrimary: true }],
+      variants: [{ id: vid, sku: sku + '-V1', color: '', capacity: r.capacity, priceCents: r.priceCents, promotionalPriceCents: null, costCents: null, stockQuantity: r.stock || 0, minimumStock: 1, active: true, demoImeis: [] }],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    });
+    created++;
+  });
+  createActivityLog({ id: generateId('act'), type: 'success', message: `${created} produtos importados de lista por ${state.activeProfile}.`, actorUserId: 'user-1', createdAt: new Date().toISOString() });
+  closeDrawer('drawer-import');
+  importState.rows = [];
+  document.getElementById('import-text').value = '';
+  renderImportPreview();
+  loadScopedState();
+  showAdminToast(`${created} produtos importados.`, 'success');
+  renderCurrentTab();
+}
+
+function setupImport() {
+  document.getElementById('btn-import-list')?.addEventListener('click', () => { openDrawer('drawer-import'); });
+  document.getElementById('btn-import-parse')?.addEventListener('click', () => {
+    const text = document.getElementById('import-text').value;
+    importState.rows = parseProductList(text);
+    if (!importState.rows.length) showAdminToast('Não achei nenhum produto com preço na lista.', 'warning');
+    renderImportPreview();
+  });
+  document.getElementById('btn-import-clear')?.addEventListener('click', () => { importState.rows = []; document.getElementById('import-text').value = ''; renderImportPreview(); });
+  document.getElementById('import-file')?.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { document.getElementById('import-text').value = String(rd.result); };
+    rd.readAsText(f);
+    e.target.value = '';
+  });
+  document.getElementById('btn-import-run')?.addEventListener('click', runImport);
+  const host = document.getElementById('import-preview');
+  if (host) {
+    host.addEventListener('input', e => {
+      const t = e.target; const i = Number(t.dataset.i); const f = t.dataset.f; if (isNaN(i) || !f) return;
+      const r = importState.rows[i];
+      if (f === 'name') r.name = t.value;
+      else if (f === 'price') r.priceCents = Math.round((parseFloat(t.value) || 0) * 100);
+      else if (f === 'stock') r.stock = Math.max(0, parseInt(t.value) || 0);
+      else if (f === 'photourl') { r.photoUrl = t.value; return; }
+      updateImportSummary();
+    });
+    host.addEventListener('change', e => {
+      const t = e.target; const i = Number(t.dataset.i); const f = t.dataset.f; if (isNaN(i) || !f) return;
+      const r = importState.rows[i];
+      if (f === 'include') { r.include = t.checked; renderImportPreview(); }
+      else if (f === 'categoryId') { r.categoryId = t.value; if (t.value && !r.dup) r.include = true; renderImportPreview(); }
+      else if (f === 'photourl') { if (t.value.trim()) loadImportPhoto(i, t.value.trim(), true); }
+      else if (f === 'photofile') {
+        const file = t.files[0]; if (!file) return;
+        const rd = new FileReader(); rd.onload = () => loadImportPhoto(i, String(rd.result), false); rd.readAsDataURL(file);
+      }
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', setupImport);

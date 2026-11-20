@@ -2975,3 +2975,9 @@ input:checked + .slider:before {
 .perfume-actions .btn { flex: 1; padding: 8px 6px; font-size: .8rem; }
 
 .perfume-media { background: var(--white); }
+
+.perfumes-block { margin-bottom: 28px; position: relative; }
+.perfumes-block:last-child { margin-bottom: 0; }
+.perfumes-block-title { font-family: var(--font-title); font-size: 1.15rem; color: var(--white); margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+.perfumes-block-title::after { content: ''; flex: 1; height: 1px; background: rgba(255, 255, 255, .22); }
+@media (min-width: 1100px) { .perfumes-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
