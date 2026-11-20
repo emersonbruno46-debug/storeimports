@@ -501,3 +501,20 @@ body.admin-body .menu-group-label span { color: #85607F; }
 .scope-mark { background: var(--ui-primary); }
 
 body.no-finance .fin-only { display: none !important; }
+
+/* ---------- Import list drawer ---------- */
+.drawer-wide { width: min(920px, 100vw); }
+.import-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 16px; }
+.import-actions label.btn { cursor: pointer; }
+.import-table td, .import-table th { padding: 8px 10px; vertical-align: top; }
+.import-table .form-control { height: 32px; font-size: 13px; padding: 0 8px; }
+.import-table td.num .form-control { width: 92px; text-align: right; }
+.import-table select.form-control { min-width: 150px; }
+.import-table td:nth-child(2) { min-width: 240px; }
+.import-table .sub.warn-text { color: var(--ui-warn-ink); }
+.photo-cell { min-width: 230px; }
+.photo-cell { display: table-cell; }
+.photo-ctl { display: flex; flex-direction: column; gap: 4px; }
+.thumb-sm { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: var(--ui-rule); float: left; margin-right: 8px; }
+.empty-thumb { display: inline-block; border: 1px dashed var(--ui-control); background: #fff; }
+.drawer-body > #import-preview { margin-bottom: 8px; }

@@ -24,8 +24,11 @@ const DEMO_CONFIG = Object.freeze({
 });
 
 const DEMO_SCHEMA_VERSION = 3;
-const DEMO_DATA_REVISION = 4;
-const PATCH_ID = 'imagens-webp-2026-11-16';
+// Perfumery family: shown in its own section on the home page and managed by Joice
+const PERFUME_CATS = ['cat-perfumes', 'cat-body-splash', 'cat-hidratantes'];
+const RETIRED_SEED_PRODUCT_IDS = ['prod-020', 'prod-021', 'prod-022', 'prod-023', 'prod-024', 'prod-025'];
+const DEMO_DATA_REVISION = 5;
+const PATCH_ID = 'wepink-2026-11-19';
 const PREFIX = 'store_imports_demo_v3_';
 const V2_PREFIX = 'store_imports_demo_v2_';
 
@@ -49,7 +52,9 @@ const SEED_CATEGORIES = [
   { id: 'cat-acessorios', name: 'Acessórios', slug: 'acessorios', description: 'Capas, películas e periféricos', image: 'acessórios.png', icon: 'headphones', status: 'active', displayOrder: 6, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'cat-capas', name: 'Capas', slug: 'capas', description: 'Capas e cases para celulares', image: 'capas.webp', icon: 'shield', status: 'active', displayOrder: 7, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'cat-peliculas', name: 'Películas', slug: 'peliculas', description: 'Películas de vidro, 3D e hidrogel', image: 'peliculas.webp', icon: 'layers', status: 'active', displayOrder: 8, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'cat-perfumes', name: 'Perfumes', slug: 'perfumes', description: 'Perfumes importados masculinos, femininos e unissex', image: 'perfumes.webp', icon: 'sparkles', status: 'active', displayOrder: 9, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  { id: 'cat-perfumes', name: 'Perfumes', slug: 'perfumes', description: 'Desodorante colônia 75 ml e 100 ml', image: 'perfumes.webp', icon: 'sparkles', status: 'active', displayOrder: 9, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'cat-body-splash', name: 'Body Splash', slug: 'body-splash', description: 'Body splash perfumado 200 ml', image: 'perfumes.webp', icon: 'sparkles', status: 'active', displayOrder: 10, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'cat-hidratantes', name: 'Hidratantes', slug: 'hidratantes', description: 'Body cream e hidratantes corporais', image: 'perfumes.webp', icon: 'droplets', status: 'active', displayOrder: 11, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
 ];
 
 const SEED_PRODUCTS = [
@@ -225,57 +230,165 @@ const SEED_PRODUCTS = [
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-020', sku: 'DEMO-PERF-NOIR', barcodeDemo: '7891000200020', name: "Noir Intense",
-    brand: "Maison Orla", model: "Noir Intense EDP", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Amadeirado e especiado, com fundo de baunilha. Masculino.",
+    id: 'prod-030', sku: 'WP-OBSESSED-DESODORANTE-COLONIA', barcodeDemo: '', name: "Obsessed Desodorante Colônia",
+    brand: 'WePink', model: "Obsessed Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "Obsessed Desodorante Colônia 100 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-20', src: './assets/perfumes.webp', alt: "Noir Intense", isPrimary: true }],
-    variants: [{ id: 'var-20', sku: 'DEMO-PERF-NOIR-V1', color: "Masculino", capacity: "100 ml", priceCents: 28900, promotionalPriceCents: null, costCents: 14500, stockQuantity: 8, minimumStock: 3, active: true, demoImeis: [] }],
+    images: [{ id: 'img-30', src: './assets/wepink-obsessed-desodorante-colonia-100ml.webp', alt: "Obsessed Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-30', sku: 'WP-OBSESSED-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 12990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-021', sku: 'DEMO-PERF-FLOR', barcodeDemo: '7891000200021', name: "Flor de Cerrado",
-    brand: "Maison Orla", model: "Flor de Cerrado EDP", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Floral suave com toque de frutas brancas. Feminino.",
+    id: 'prod-031', sku: 'WP-LIBERTE-DESODORANTE-COLONIA', barcodeDemo: '', name: "Liberté Desodorante Colônia",
+    brand: 'WePink', model: "Liberté Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "Liberté Desodorante Colônia 100 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-21', src: './assets/perfumes.webp', alt: "Flor de Cerrado", isPrimary: true }],
-    variants: [{ id: 'var-21', sku: 'DEMO-PERF-FLOR-V1', color: "Feminino", capacity: "50 ml", priceCents: 21900, promotionalPriceCents: null, costCents: 10500, stockQuantity: 6, minimumStock: 2, active: true, demoImeis: [] }],
+    images: [{ id: 'img-31', src: './assets/wepink-liberte-desodorante-colonia-100ml.webp', alt: "Liberté Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-31', sku: 'WP-LIBERTE-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 13990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-022', sku: 'DEMO-PERF-AMBAR', barcodeDemo: '7891000200022', name: "Âmbar Solar",
-    brand: "Atelier Veredas", model: "Âmbar Solar EDP", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Âmbar quente com notas cítricas. Unissex.",
+    id: 'prod-032', sku: 'WP-VF-BLOOM-DESODORANTE-COLONIA', barcodeDemo: '', name: "VF Bloom Desodorante Colônia",
+    brand: 'WePink', model: "VF Bloom Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "VF Bloom Desodorante Colônia 75 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-22', src: './assets/perfumes.webp', alt: "Âmbar Solar", isPrimary: true }],
-    variants: [{ id: 'var-22', sku: 'DEMO-PERF-AMBAR-V1', color: "Unissex", capacity: "100 ml", priceCents: 24900, promotionalPriceCents: null, costCents: 12000, stockQuantity: 5, minimumStock: 2, active: true, demoImeis: [] }],
+    images: [{ id: 'img-32', src: './assets/wepink-vf-bloom-desodorante-colonia-75ml.webp', alt: "VF Bloom Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-32', sku: 'WP-VF-BLOOM-DESODORANTE-COLONIA-V1', color: '', capacity: "75 ml", priceCents: 10990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-023', sku: 'DEMO-PERF-BRISA', barcodeDemo: '7891000200023', name: "Brisa Marina",
-    brand: "Atelier Veredas", model: "Brisa Marina EDT", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Fresco e aquático, ideal para o dia a dia. Masculino.",
+    id: 'prod-033', sku: 'WP-VF-GOLDEN-DESODORANTE-COLONIA', barcodeDemo: '', name: "VF Golden Desodorante Colônia",
+    brand: 'WePink', model: "VF Golden Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "VF Golden Desodorante Colônia 75 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-23', src: './assets/perfumes.webp', alt: "Brisa Marina", isPrimary: true }],
-    variants: [{ id: 'var-23', sku: 'DEMO-PERF-BRISA-V1', color: "Masculino", capacity: "100 ml", priceCents: 17900, promotionalPriceCents: 15900, costCents: 8200, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    images: [{ id: 'img-33', src: './assets/wepink-vf-golden-desodorante-colonia-75ml.webp', alt: "VF Golden Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-33', sku: 'WP-VF-GOLDEN-DESODORANTE-COLONIA-V1', color: '', capacity: "75 ml", priceCents: 13990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-024', sku: 'DEMO-PERF-JASMIM', barcodeDemo: '7891000200024', name: "Jasmim Real",
-    brand: "Maison Orla", model: "Jasmim Real EDP", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Jasmim e flor de laranjeira com fundo cremoso. Feminino.",
+    id: 'prod-034', sku: 'WP-FATAL-BLACK-FOR-HER-DESODORANTE-COLONIA', barcodeDemo: '', name: "Fatal Black For Her Desodorante Colônia",
+    brand: 'WePink', model: "Fatal Black For Her Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "Fatal Black For Her Desodorante Colônia 100 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-24', src: './assets/perfumes.webp', alt: "Jasmim Real", isPrimary: true }],
-    variants: [{ id: 'var-24', sku: 'DEMO-PERF-JASMIM-V1', color: "Feminino", capacity: "75 ml", priceCents: 26900, promotionalPriceCents: null, costCents: 13000, stockQuantity: 4, minimumStock: 2, active: true, demoImeis: [] }],
+    images: [{ id: 'img-34', src: './assets/wepink-fatal-black-for-her-desodorante-colonia-100ml.webp', alt: "Fatal Black For Her Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-34', sku: 'WP-FATAL-BLACK-FOR-HER-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 13990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   },
   {
-    id: 'prod-025', sku: 'DEMO-PERF-MADEIRA', barcodeDemo: '7891000200025', name: "Madeira Escura",
-    brand: "Atelier Veredas", model: "Madeira Escura EDP", categoryId: 'cat-perfumes', condition: 'new',
-    shortDescription: "Cedro, patchouli e couro. Intenso e duradouro. Unissex.",
+    id: 'prod-035', sku: 'WP-ONE-TOUCH-LATTE-DESODORANTE-COLONIA', barcodeDemo: '', name: "One Touch Latte Desodorante Colônia",
+    brand: 'WePink', model: "One Touch Latte Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "One Touch Latte Desodorante Colônia 100 ml - WePink",
     status: 'active',
-    images: [{ id: 'img-25', src: './assets/perfumes.webp', alt: "Madeira Escura", isPrimary: true }],
-    variants: [{ id: 'var-25', sku: 'DEMO-PERF-MADEIRA-V1', color: "Unissex", capacity: "100 ml", priceCents: 31900, promotionalPriceCents: null, costCents: 16000, stockQuantity: 3, minimumStock: 2, active: true, demoImeis: [] }],
+    images: [{ id: 'img-35', src: './assets/wepink-one-touch-latte-desodorante-colonia-100ml.webp', alt: "One Touch Latte Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-35', sku: 'WP-ONE-TOUCH-LATTE-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 13990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-036', sku: 'WP-FEIVE-CELESTIAL-DESODORANTE-COLONIA', barcodeDemo: '', name: "Feive Celestial Desodorante Colônia",
+    brand: 'WePink', model: "Feive Celestial Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "Feive Celestial Desodorante Colônia 100 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-36', src: './assets/wepink-feive-celestial-desodorante-colonia-100ml.webp', alt: "Feive Celestial Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-36', sku: 'WP-FEIVE-CELESTIAL-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 13990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-037', sku: 'WP-FATAL-WHITE-DESODORANTE-COLONIA', barcodeDemo: '', name: "Fatal White Desodorante Colônia",
+    brand: 'WePink', model: "Fatal White Desodorante Colônia", categoryId: 'cat-perfumes', condition: 'new',
+    shortDescription: "Fatal White Desodorante Colônia 100 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-37', src: './assets/wepink-fatal-white-desodorante-colonia-100ml.webp', alt: "Fatal White Desodorante Colônia", isPrimary: true }],
+    variants: [{ id: 'var-37', sku: 'WP-FATAL-WHITE-DESODORANTE-COLONIA-V1', color: '', capacity: "100 ml", priceCents: 12990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-038', sku: 'WP-BODY-SPLASH-LIBERTE', barcodeDemo: '', name: "Body Splash Liberté",
+    brand: 'WePink', model: "Body Splash Liberté", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Liberté 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-38', src: './assets/wepink-body-splash-liberte-200ml.webp', alt: "Body Splash Liberté", isPrimary: true }],
+    variants: [{ id: 'var-38', sku: 'WP-BODY-SPLASH-LIBERTE-V1', color: '', capacity: "200 ml", priceCents: 4990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-039', sku: 'WP-BODY-SPLASH-OBSESSED', barcodeDemo: '', name: "Body Splash Obsessed",
+    brand: 'WePink', model: "Body Splash Obsessed", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Obsessed 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-39', src: './assets/wepink-body-splash-obsessed-200ml.webp', alt: "Body Splash Obsessed", isPrimary: true }],
+    variants: [{ id: 'var-39', sku: 'WP-BODY-SPLASH-OBSESSED-V1', color: '', capacity: "200 ml", priceCents: 4490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-040', sku: 'WP-BODY-SPLASH-VF-BLOOM', barcodeDemo: '', name: "Body Splash VF Bloom",
+    brand: 'WePink', model: "Body Splash VF Bloom", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash VF Bloom 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-40', src: './assets/wepink-body-splash-vf-bloom-200ml.webp', alt: "Body Splash VF Bloom", isPrimary: true }],
+    variants: [{ id: 'var-40', sku: 'WP-BODY-SPLASH-VF-BLOOM-V1', color: '', capacity: "200 ml", priceCents: 4490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-041', sku: 'WP-BODY-SPLASH-VF-GOLDEN', barcodeDemo: '', name: "Body Splash VF Golden",
+    brand: 'WePink', model: "Body Splash VF Golden", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash VF Golden 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-41', src: './assets/wepink-body-splash-vf-golden-200ml.webp', alt: "Body Splash VF Golden", isPrimary: true }],
+    variants: [{ id: 'var-41', sku: 'WP-BODY-SPLASH-VF-GOLDEN-V1', color: '', capacity: "200 ml", priceCents: 5490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-042', sku: 'WP-BODY-SPLASH-FATAL-BLACK-FOR-HER', barcodeDemo: '', name: "Body Splash Fatal Black For Her",
+    brand: 'WePink', model: "Body Splash Fatal Black For Her", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Fatal Black For Her 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-42', src: './assets/wepink-body-splash-fatal-black-for-her-200ml.webp', alt: "Body Splash Fatal Black For Her", isPrimary: true }],
+    variants: [{ id: 'var-42', sku: 'WP-BODY-SPLASH-FATAL-BLACK-FOR-HER-V1', color: '', capacity: "200 ml", priceCents: 5490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-043', sku: 'WP-BODY-SPLASH-OBSESSED-LOVELY', barcodeDemo: '', name: "Body Splash Obsessed Lovely",
+    brand: 'WePink', model: "Body Splash Obsessed Lovely", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Obsessed Lovely 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-43', src: './assets/wepink-body-splash-obsessed-lovely-200ml.webp', alt: "Body Splash Obsessed Lovely", isPrimary: true }],
+    variants: [{ id: 'var-43', sku: 'WP-BODY-SPLASH-OBSESSED-LOVELY-V1', color: '', capacity: "200 ml", priceCents: 5490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-044', sku: 'WP-BODY-SPLASH-ONE-TOUCH-LATTE', barcodeDemo: '', name: "Body Splash One Touch Latte",
+    brand: 'WePink', model: "Body Splash One Touch Latte", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash One Touch Latte 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-44', src: './assets/wepink-body-splash-one-touch-latte-200ml.webp', alt: "Body Splash One Touch Latte", isPrimary: true }],
+    variants: [{ id: 'var-44', sku: 'WP-BODY-SPLASH-ONE-TOUCH-LATTE-V1', color: '', capacity: "200 ml", priceCents: 5490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-045', sku: 'WP-BODY-SPLASH-FEIVE-CELESTIAL', barcodeDemo: '', name: "Body Splash Feive Celestial",
+    brand: 'WePink', model: "Body Splash Feive Celestial", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Feive Celestial 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-45', src: './assets/wepink-body-splash-feive-celestial-200ml.webp', alt: "Body Splash Feive Celestial", isPrimary: true }],
+    variants: [{ id: 'var-45', sku: 'WP-BODY-SPLASH-FEIVE-CELESTIAL-V1', color: '', capacity: "200 ml", priceCents: 5490, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-046', sku: 'WP-BODY-SPLASH-FATAL-WHITE', barcodeDemo: '', name: "Body Splash Fatal White",
+    brand: 'WePink', model: "Body Splash Fatal White", categoryId: 'cat-body-splash', condition: 'new',
+    shortDescription: "Body Splash Fatal White 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-46', src: './assets/wepink-body-splash-fatal-white-200ml.webp', alt: "Body Splash Fatal White", isPrimary: true }],
+    variants: [{ id: 'var-46', sku: 'WP-BODY-SPLASH-FATAL-WHITE-V1', color: '', capacity: "200 ml", priceCents: 4990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod-047', sku: 'WP-BODY-CREAM-VF-BLOOM', barcodeDemo: '', name: "Body Cream VF Bloom",
+    brand: 'WePink', model: "Body Cream VF Bloom", categoryId: 'cat-hidratantes', condition: 'new',
+    shortDescription: "Body Cream VF Bloom 200 ml - WePink",
+    status: 'active',
+    images: [{ id: 'img-47', src: './assets/wepink-body-cream-vf-bloom-200ml.webp', alt: "Body Cream VF Bloom", isPrimary: true }],
+    variants: [{ id: 'var-47', sku: 'WP-BODY-CREAM-VF-BLOOM-V1', color: '', capacity: "200 ml", priceCents: 5990, promotionalPriceCents: null, costCents: null, stockQuantity: 10, minimumStock: 3, active: true, demoImeis: [] }],
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   }
 ];
@@ -636,6 +749,11 @@ function ensureDemoDataIntegrity() {
     });
     if (changed) saveStoreData(key, list);
   };
+  // drop the placeholder perfumes that were replaced by the real WePink list
+  const storedProducts = getStoreData('products');
+  if (storedProducts.some(p => RETIRED_SEED_PRODUCT_IDS.includes(p.id))) {
+    saveStoreData('products', storedProducts.filter(p => !RETIRED_SEED_PRODUCT_IDS.includes(p.id)));
+  }
   mergeCollection('products', SEED_PRODUCTS, normalizeProduct);
   refreshSeedImages('categories', SEED_CATEGORIES);
   refreshSeedImages('products', SEED_PRODUCTS);

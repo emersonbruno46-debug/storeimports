@@ -215,6 +215,7 @@
         <div class="pg-bar">
           <p class="pg-sub">Cadastre produtos e acompanhe preço, promoção e estoque em um só lugar.</p>
           <div class="pg-actions">
+            <button class="btn btn-secondary" id="btn-import-list"><i data-lucide="list-plus"></i> Importar lista</button>
             <button class="btn btn-primary" id="btn-admin-add-product"><i data-lucide="plus"></i> Novo produto</button>
           </div>
         </div>
@@ -445,8 +446,8 @@
               <thead><tr><th>Ação</th><th>Thallys (proprietário)</th><th>Joice</th><th>Recepção</th></tr></thead>
               <tbody>
                 <tr><td>Ver faturamento, lucro e custos</td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
-                <tr><td>Estoque e produtos de capas e películas</td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
-                <tr><td>Estoque e produtos de todo o resto</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Estoque e produtos de capas, películas e perfumes</td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
+                <tr><td>Estoque e produtos de todo o resto (celulares, acessórios…)</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
                 <tr><td>Reservas, vendas e manutenções</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="yes" data-lucide="check"></i></td></tr>
                 <tr><td>Criar promoções e mudar preços</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
                 <tr><td>Gerenciar equipe e configurações</td><td><i class="yes" data-lucide="check"></i></td><td><i class="no" data-lucide="minus"></i></td><td><i class="no" data-lucide="minus"></i></td></tr>
@@ -568,6 +569,22 @@
       <div class="total-box"><span>Total da venda</span><strong id="sale-total-preview">R$ 0,00</strong></div>
       <footer class="drawer-foot"><button type="button" class="btn btn-secondary" data-close-drawer>Cancelar</button><button type="submit" class="btn btn-primary"><i data-lucide="check-circle-2"></i> Finalizar venda</button></footer>
     </form>
+  </aside>
+
+  
+  <aside class="drawer drawer-wide" id="drawer-import" aria-hidden="true" aria-labelledby="drawer-import-title">
+    <header class="drawer-head"><h3 id="drawer-import-title">Importar lista de produtos</h3><button type="button" class="icon-btn" data-close-drawer aria-label="Fechar"><i data-lucide="x"></i></button></header>
+    <div class="drawer-body">
+      <p class="hint" style="margin:0 0 10px;">Cole a lista com o nome e o preço de cada produto. Títulos em MAIÚSCULAS (como “BODY SPLASH”) separam as seções e escolhem a categoria. Você confere tudo antes de importar.</p>
+      <textarea id="import-text" class="form-control" rows="7" placeholder="PERFUMES&#10;Nome do produto 100ml – Marca&#10;R$ 129,90"></textarea>
+      <div class="import-actions">
+        <button type="button" class="btn btn-primary" id="btn-import-parse"><i data-lucide="scan-text"></i> Ler lista</button>
+        <label class="btn btn-secondary">Abrir arquivo .txt<input type="file" id="import-file" accept=".txt,text/plain" hidden></label>
+        <button type="button" class="btn btn-secondary" id="btn-import-clear">Limpar</button>
+      </div>
+      <div id="import-preview"></div>
+      <footer class="drawer-foot"><span class="hint grow" id="import-summary"></span><button type="button" class="btn btn-secondary" data-close-drawer>Cancelar</button><button type="button" class="btn btn-primary" id="btn-import-run" disabled>Importar</button></footer>
+    </div>
   </aside>
 
   <!-- ==========================================

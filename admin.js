@@ -57,15 +57,16 @@ const tabs = ['overview', 'products', 'categories', 'stock', 'maintenances', 're
 
 // ==========================================
 // ACCESS PROFILES (screen-level control; real enforcement needs the database, see DATABASE.md)
-//  - Thallys (owner): everything except capas and películas, which are Joice's business
-//  - Joice: only capas and películas (stock and products)
+//  - Thallys (owner): everything except capas, películas and perfumaria (Joice's business)
+//  - Joice: only capas, películas and perfumaria (stock and products)
 //  - Recepção: everything, including capas and películas, but nothing financial
 // ==========================================
 const CASE_CATEGORIES = ['cat-capas', 'cat-peliculas'];
+const JOICE_CATEGORIES = CASE_CATEGORIES.concat(PERFUME_CATS);
 const ALL_TABS = tabs.slice();
 const ACCESS = {
-  'Thallys': { role: 'Proprietário', tabs: ALL_TABS, hideCats: CASE_CATEGORIES, onlyCats: null, finance: true, color: 300 },
-  'Joice': { role: 'Capas e películas', tabs: ['stock', 'products'], hideCats: [], onlyCats: CASE_CATEGORIES, finance: true, color: 20 },
+  'Thallys': { role: 'Proprietário', tabs: ALL_TABS, hideCats: JOICE_CATEGORIES, onlyCats: null, finance: true, color: 300 },
+  'Joice': { role: 'Capas, películas e perfumes', tabs: ['stock', 'products'], hideCats: [], onlyCats: JOICE_CATEGORIES, finance: true, color: 20 },
   'Recepção': { role: 'Equipe da loja', tabs: ['overview', 'reservations', 'sales', 'maintenances', 'products', 'categories', 'stock'], hideCats: [], onlyCats: null, finance: false, color: 200 }
 };
 
